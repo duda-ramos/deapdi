@@ -1,0 +1,113 @@
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { 
+  Home, 
+  User, 
+  TrendingUp, 
+  Target, 
+  Users, 
+  Heart,
+  Trophy,
+  Settings,
+  BookOpen,
+  BarChart3,
+  UserCog,
+  FileText
+} from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { UserRole } from '../../types';
+
+interface SidebarItem {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  path: string;
+  roles: UserRole[];
+}
+
+const sidebarItems: SidebarItem[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: <Home size={20} />, path: '/dashboard', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'profile', label: 'Meu Perfil', icon: <User size={20} />, path: '/profile', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'career', label: 'Trilha de Carreira', icon: <TrendingUp size={20} />, path: '/career', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'competencies', label: 'Competências', icon: <BarChart3 size={20} />, path: '/competencies', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'pdi', label: 'PDI', icon: <Target size={20} />, path: '/pdi', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'groups', label: 'Grupos de Ação', icon: <Users size={20} />, path: '/groups', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'achievements', label: 'Conquistas', icon: <Trophy size={20} />, path: '/achievements', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'learning', label: 'Aprendizado', icon: <BookOpen size={20} />, path: '/learning', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'mentorship', label: 'Mentoria', icon: <Users size={20} />, path: '/mentorship', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'reports', label: 'Relatórios', icon: <FileText size={20} />, path: '/reports', roles: ['admin', 'hr', 'manager'] },
+  { id: 'users', label: 'Gerenciar Usuários', icon: <UserCog size={20} />, path: '/users', roles: ['admin', 'hr'] },
+  { id: 'hr', label: 'Área de RH', icon: <Heart size={20} />, path: '/hr', roles: ['admin', 'hr'] },
+  { id: 'admin', label: 'Administração', icon: <Settings size={20} />, path: '/admin', roles: ['admin'] },
+];
+
+export const Sidebar: React.FC = () => {
+  const { user } = useAuth();
+  const location = useLocation();
+
+  console.log('📋 Sidebar: Rendering with user:', !!user, 'at path:', location.pathname);
+
+  const filteredItems = sidebarItems.filter(item => 
+    user && item.roles.includes(user.role)
+  );
+
+  return (
+    <div className="bg-white border-r border-gray-200 h-full w-64 p-6">
+      <div className="flex items-center space-x-3 mb-8">
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 w-10 h-10 rounded-lg flex items-center justify-center">
+          <Trophy className="text-white" size={24} />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">TalentFlow</h1>
+          <p className="text-xs text-gray-500">Desenvolvimento & Gamificação</p>
+        </div>
+      </div>
+
+      <nav className="space-y-1">
+        {filteredItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          
+          return (
+            <Link key={item.id} to={item.path}>
+              <motion.div
+                whileHover={{ x: 4 }}
+                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {item.icon}
+                <span className="font-medium">{item.label}</span>
+              </motion.div>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User info at bottom */}
+      {user && (
+        <div className="absolute bottom-6 left-6 right-6">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <img
+                src={user.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+                alt={user.name}
+                className="w-10 h-10 rounded-full object-cover"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-xs text-gray-600">Pontos</span>
+              <span className="text-sm font-bold text-blue-600">{user.points}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
