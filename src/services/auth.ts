@@ -31,6 +31,27 @@ export const authService = {
 
     if (authError) throw authError;
 
+    // Create profile entry if user was created successfully
+    if (authData.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          email: data.email,
+          name: data.name,
+          role: data.role || 'employee',
+          level: data.level,
+          position: data.position,
+          team_id: data.team_id,
+          manager_id: data.manager_id
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        // Don't throw here as the user was created successfully
+      }
+    }
+
     return authData;
   },
 
@@ -82,9 +103,12 @@ export const authService = {
         manager:profiles!manager_id(name)
       `)
       .eq('id', targetUserId)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
-    return data;
+    if (error) {
+      console.error('Profile fetch error:', error);
+      return null;
+    }
+    return data || null;
   }
 };

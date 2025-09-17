@@ -42,14 +42,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Profile fetch error:', error);
         return null;
       }
       
-      return data;
+      return data || null;
     } catch (error) {
       console.error('Profile fetch exception:', error);
       return null;
@@ -127,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       setUser(null);
       setAuthUser(null);
-      throw error;
+      return null;
     } finally {
       setLoading(false);
     }
