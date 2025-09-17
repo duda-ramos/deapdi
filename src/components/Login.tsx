@@ -4,8 +4,6 @@ import { Trophy, Mail, Lock, Eye, EyeOff, User, Briefcase, UserPlus } from 'luci
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/auth';
 import { Button } from './ui/Button';
-import { Input } from './ui/Input';
-import { Select } from './ui/Select';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -36,15 +34,11 @@ export const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    console.log('🔐 Login: Starting login process');
     
     try {
-      console.log('🔐 Login: Calling login function');
       await login(email, password);
-      console.log('🔐 Login: Login successful');
     } catch (err: any) {
       console.error('Login error:', err);
-      console.log('🔐 Login: Login failed with error:', err.message);
       setError('Email ou senha incorretos. Tente novamente.');
     }
   };
@@ -131,14 +125,14 @@ export const Login: React.FC = () => {
               /* Login Form */
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                     Email
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                     <input
-                     id="email"
-                     name="email"
+                      id="email"
+                      name="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -150,14 +144,14 @@ export const Login: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                     Senha
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                     <input
-                     id="password"
-                     name="password"
+                      id="password"
+                      name="password"
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -209,10 +203,12 @@ export const Login: React.FC = () => {
                   </h4>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="signup-name" className="block text-sm font-medium text-gray-700 mb-1">
                         Nome Completo
                       </label>
                       <input
+                        id="signup-name"
+                        name="name"
                         type="text"
                         value={signUpData.name}
                         onChange={(e) => setSignUpData({ ...signUpData, name: e.target.value })}
@@ -222,12 +218,14 @@ export const Login: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="signup-email" className="block text-sm font-medium text-gray-700 mb-1">
                         Email
                       </label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                         <input
+                          id="signup-email"
+                          name="email"
                           type="email"
                           value={signUpData.email}
                           onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
@@ -239,7 +237,7 @@ export const Login: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
+                
                 {/* Informações Profissionais */}
                 <div className="bg-blue-50 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-3 flex items-center">
@@ -248,10 +246,12 @@ export const Login: React.FC = () => {
                   </h4>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="signup-position" className="block text-sm font-medium text-gray-700 mb-1">
                         Cargo/Posição
                       </label>
                       <input
+                        id="signup-position"
+                        name="position"
                         type="text"
                         value={signUpData.position}
                         onChange={(e) => setSignUpData({ ...signUpData, position: e.target.value })}
@@ -261,10 +261,12 @@ export const Login: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="signup-level" className="block text-sm font-medium text-gray-700 mb-1">
                         Nível Profissional
                       </label>
                       <select
+                        id="signup-level"
+                        name="level"
                         value={signUpData.level}
                         onChange={(e) => setSignUpData({ ...signUpData, level: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -288,14 +290,14 @@ export const Login: React.FC = () => {
                   </h4>
                   <div className="space-y-3">
                     <div>
-                     <label htmlFor="signup-password" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="signup-password" className="block text-sm font-medium text-gray-700 mb-1">
                         Senha
                       </label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                         <input
-                         id="signup-password"
-                         name="password"
+                          id="signup-password"
+                          name="password"
                           type={showPassword ? 'text' : 'password'}
                           value={signUpData.password}
                           onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
@@ -313,14 +315,14 @@ export const Login: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                     <label htmlFor="signup-confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="signup-confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
                         Confirmar Senha
                       </label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                         <input
-                         id="signup-confirm-password"
-                         name="confirmPassword"
+                          id="signup-confirm-password"
+                          name="confirmPassword"
                           type={showPassword ? 'text' : 'password'}
                           value={signUpData.confirmPassword}
                           onChange={(e) => setSignUpData({ ...signUpData, confirmPassword: e.target.value })}

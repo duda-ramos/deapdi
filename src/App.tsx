@@ -17,28 +17,31 @@ import Reports from './pages/Reports';
 import HRArea from './pages/HRArea';
 import Administration from './pages/Administration';
 
+const LoadingScreen: React.FC = () => (
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p className="text-gray-600">Carregando...</p>
+    </div>
+  </div>
+);
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
 
-  console.log('🛡️ ProtectedRoute: Checking auth state', { user: !!user, loading });
-
   if (loading) {
-    console.log('🛡️ ProtectedRoute: Showing loading spinner');
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
-  console.log('🛡️ ProtectedRoute: Auth resolved, redirecting or showing content');
   return user ? <Layout>{children}</Layout> : <Navigate to="/login" />;
 };
 
 const AppRoutes: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  console.log('🗺️ AppRoutes: Rendering with user:', !!user);
+  if (loading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <Routes>
