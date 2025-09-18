@@ -14,5 +14,4 @@ export const supabase = supabaseUrl && supabaseAnonKey ? createClient<Database>(
     persistSession: true,
     detectSessionInUrl: true
   }
-}
-)
+}) : null;
