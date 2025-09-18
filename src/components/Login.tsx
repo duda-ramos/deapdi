@@ -33,18 +33,23 @@ export const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 Login: handleSubmit called with email:', email);
     setError('');
     
     try {
+      console.log('📝 Login: Calling login function...');
       await login(email, password);
+      console.log('📝 Login: Login function completed successfully');
     } catch (err: any) {
       console.error('Login error:', err);
       setError('Email ou senha incorretos. Tente novamente.');
+      console.log('📝 Login: Login failed with error:', err);
     }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 Login: handleSignUp called');
     setError('');
 
     if (signUpData.password !== signUpData.confirmPassword) {
@@ -59,6 +64,7 @@ export const Login: React.FC = () => {
 
     try {
       setSignUpLoading(true);
+      console.log('📝 Login: Creating new account...');
       await authService.signUp({
         email: signUpData.email,
         password: signUpData.password,
@@ -68,11 +74,14 @@ export const Login: React.FC = () => {
         role: 'employee'
       });
       
+      console.log('📝 Login: Account created, attempting auto-login...');
       // Após criar conta, fazer login automaticamente
       await login(signUpData.email, signUpData.password);
+      console.log('📝 Login: Auto-login completed');
     } catch (err: any) {
       console.error('SignUp error:', err);
       setError('Erro ao criar conta. Tente novamente.');
+      console.log('📝 Login: SignUp failed with error:', err);
     } finally {
       setSignUpLoading(false);
     }

@@ -37,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
+    console.log('🔍 AuthContext: fetchUserProfile called with userId:', userId);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -44,11 +45,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .maybeSingle();
 
+      console.log('🔍 AuthContext: fetchUserProfile result:', { data, error });
+
       if (error) {
         console.error('Profile fetch error:', error);
         return null;
       }
       
+      console.log('🔍 AuthContext: fetchUserProfile returning:', data);
       return data || null;
     } catch (error) {
       console.error('Profile fetch exception:', error);
@@ -57,13 +61,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshUser = async () => {
+    console.log('🔄 AuthContext: refreshUser called');
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
+      console.log('🔄 AuthContext: refreshUser authUser:', authUser);
+      
       if (authUser) {
         const profile = await fetchUserProfile(authUser.id);
+        console.log('🔄 AuthContext: refreshUser profile:', profile);
         setUser(profile);
         setAuthUser(authUser);
       } else {
+        console.log('🔄 AuthContext: refreshUser no authUser, clearing state');
         setUser(null);
         setAuthUser(null);
       }
@@ -78,8 +87,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true;
 
     const initializeAuth = async () => {
+      console.log('🚀 AuthContext: initializeAuth started');
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        
+        console.log('🚀 AuthContext: getSession result:', { session, error });
         
         if (error) {
           console.error('Session error:', error);
@@ -87,16 +99,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (session?.user && mounted) {
+          console.log('🚀 AuthContext: Found session user:', session.user.id);
           const profile = await fetchUserProfile(session.user.id);
+          console.log('🚀 AuthContext: Fetched profile:', profile);
           if (mounted) {
             setUser(profile);
             setAuthUser(session.user);
+            console.log('🚀 AuthContext: Set user state:', profile);
           }
+        } else {
+          console.log('🚀 AuthContext: No session or user found');
         }
       } catch (error) {
         console.error('Init auth error:', error);
       } finally {
         if (mounted) {
+          console.log('🚀 AuthContext: Setting loading to false');
           setLoading(false);
         }
       }
@@ -110,6 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
+    console.log('🔐 AuthContext: login called with email:', email);
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -117,18 +136,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password
       });
       
+      console.log('🔐 AuthContext: signInWithPassword result:', { data, error });
+      
       if (error) throw error;
       
       if (data.user) {
+        console.log('🔐 AuthContext: Login successful, fetching profile for:', data.user.id);
         const profile = await fetchUserProfile(data.user.id);
+        console.log('🔐 AuthContext: Profile fetched:', profile);
         setUser(profile);
         setAuthUser(data.user);
+        console.log('🔐 AuthContext: User state updated - user:', profile, 'authUser:', data.user);
+      } else {
+        console.log('🔐 AuthContext: No user in login response');
       }
     } catch (error: any) {
+      console.error('🔐 AuthContext: Login error:', error);
       setUser(null);
       setAuthUser(null);
       return null;
     } finally {
+      console.log('🔐 AuthContext: Login process finished, setting loading to false');
       setLoading(false);
     }
   };

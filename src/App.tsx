@@ -29,17 +29,29 @@ const LoadingScreen: React.FC = () => (
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
 
+  console.log('🛡️ ProtectedRoute: user:', user, 'loading:', loading);
+
   if (loading) {
+    console.log('🛡️ ProtectedRoute: Still loading, showing LoadingScreen');
     return <LoadingScreen />;
   }
 
-  return user ? <Layout>{children}</Layout> : <Navigate to="/login" />;
+  if (user) {
+    console.log('🛡️ ProtectedRoute: User authenticated, rendering Layout');
+    return <Layout>{children}</Layout>;
+  } else {
+    console.log('🛡️ ProtectedRoute: No user, redirecting to login');
+    return <Navigate to="/login" />;
+  }
 };
 
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
 
+  console.log('🗺️ AppRoutes: user:', user, 'loading:', loading);
+
   if (loading) {
+    console.log('🗺️ AppRoutes: Still loading, showing LoadingScreen');
     return <LoadingScreen />;
   }
 
@@ -47,7 +59,17 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route 
         path="/login" 
-        element={user ? <Navigate to="/dashboard" /> : <Login />} 
+        element={user ? (
+          <>
+            {console.log('🗺️ AppRoutes: User exists, redirecting to dashboard')}
+            <Navigate to="/dashboard" />
+          </>
+        ) : (
+          <>
+            {console.log('🗺️ AppRoutes: No user, showing Login')}
+            <Login />
+          </>
+        )} 
       />
       <Route
         path="/dashboard"
