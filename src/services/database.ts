@@ -270,27 +270,83 @@ export const databaseService = {
   // Action Groups
   async getActionGroups(profileId?: string) {
     console.log('🗄️ Database: Getting action groups for profile:', profileId);
-    let query = supabase
-      .from('action_groups')
-      .select(`
-        *,
-        created_by_profile:profiles!created_by(name),
-        participants:action_group_participants(
-          id,
-          role,
-          profile:profiles(id, name, avatar_url)
-        )
-      `);
-
+    
     if (profileId) {
-      // Get groups where user is creator or participant
-      query = query.or(`created_by.eq.${profileId},participants.profile_id.eq.${profileId}`);
-    }
+      // First, get groups where user is the creator
+      const { data: createdGroups, error: createdError } = await supabase
+        .from('action_groups')
+        .select(`
+          *,
+          created_by_profile:profiles!created_by(name),
+          participants:action_group_participants(
+            id,
+            role,
+            profile:profiles(id, name, avatar_url)
+          )
+        `)
+        .eq('created_by', profileId)
+        .order('created_at', { ascending: false });
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-    console.log('🗄️ Database: Action groups result:', { count: data?.length, error });
-    if (error) throw error;
-    return data;
+      if (createdError) throw createdError;
+
+      // Second, get group IDs where user is a participant
+      const { data: participantGroups, error: participantError } = await supabase
+        .from('action_group_participants')
+        .select('group_id')
+        .eq('profile_id', profileId);
+
+      if (participantError) throw participantError;
+
+      const participantGroupIds = participantGroups?.map(p => p.group_id) || [];
+
+      // Third, get groups where user is a participant (if any)
+      let joinedGroups: any[] = [];
+      if (participantGroupIds.length > 0) {
+        const { data, error } = await supabase
+          .from('action_groups')
+          .select(`
+            *,
+            created_by_profile:profiles!created_by(name),
+            participants:action_group_participants(
+              id,
+              role,
+              profile:profiles(id, name, avatar_url)
+            )
+          `)
+          .in('id', participantGroupIds)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        joinedGroups = data || [];
+      }
+
+      // Combine and deduplicate results
+      const allGroups = [...(createdGroups || []), ...joinedGroups];
+      const uniqueGroups = allGroups.filter((group, index, self) => 
+        index === self.findIndex(g => g.id === group.id)
+      );
+
+      console.log('🗄️ Database: Action groups result:', { count: uniqueGroups.length });
+      return uniqueGroups;
+    } else {
+      // Get all groups if no profileId specified
+      const { data, error } = await supabase
+        .from('action_groups')
+        .select(`
+          *,
+          created_by_profile:profiles!created_by(name),
+          participants:action_group_participants(
+            id,
+            role,
+            profile:profiles(id, name, avatar_url)
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      console.log('🗄️ Database: Action groups result:', { count: data?.length });
+      return data;
+    }
   },
 
   async createActionGroup(group: Omit<ActionGroup, 'id' | 'created_at' | 'updated_at'>) {
