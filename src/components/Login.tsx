@@ -12,6 +12,8 @@ export const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [signUpLoading, setSignUpLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [signUpData, setSignUpData] = useState({
     name: '',
     email: '',
@@ -35,6 +37,8 @@ export const Login: React.FC = () => {
     e.preventDefault();
     console.log('📝 Login: handleSubmit called with email:', email);
     setError('');
+    setErrorMessage('');
+    setSuccessMessage('');
     
     try {
       console.log('📝 Login: Calling login function...');
@@ -42,6 +46,13 @@ export const Login: React.FC = () => {
       console.log('📝 Login: Login function completed successfully');
     } catch (err: any) {
       console.error('Login error:', err);
+      if (err.message?.includes('Invalid login credentials')) {
+        setErrorMessage('Email ou senha incorretos. Verifique suas credenciais ou crie uma nova conta.');
+      } else if (err.message?.includes('User already registered')) {
+        setErrorMessage('Este email já está cadastrado. Tente fazer login ou use outro email.');
+      } else {
+        setErrorMessage(err.message || 'Erro ao processar solicitação');
+      }
       setError('Email ou senha incorretos. Tente novamente.');
       console.log('📝 Login: Login failed with error:', err);
     }
@@ -51,6 +62,8 @@ export const Login: React.FC = () => {
     e.preventDefault();
     console.log('📝 Login: handleSignUp called');
     setError('');
+    setErrorMessage('');
+    setSuccessMessage('');
 
     if (signUpData.password !== signUpData.confirmPassword) {
       setError('As senhas não coincidem.');
@@ -90,14 +103,20 @@ export const Login: React.FC = () => {
       });
       
       // Show success message and switch to login form
+      setSuccessMessage('Conta criada com sucesso! Agora você pode fazer login com suas credenciais.');
       setIsSignUp(false); // Switch back to login form
       
       // Set email for login form
       setEmail(signUpData.email);
-      
-      alert('✅ Conta criada com sucesso! Você já pode fazer login.');
     } catch (err: any) {
       console.error('SignUp error:', err);
+      if (err.message?.includes('Invalid login credentials')) {
+        setErrorMessage('Email ou senha incorretos. Verifique suas credenciais ou crie uma nova conta.');
+      } else if (err.message?.includes('User already registered')) {
+        setErrorMessage('Este email já está cadastrado. Tente fazer login ou use outro email.');
+      } else {
+        setErrorMessage(err.message || 'Erro ao processar solicitação');
+      }
       setError(err.message || 'Erro ao criar conta. Tente novamente.');
       console.log('📝 Login: SignUp failed with error:', err);
     } finally {
@@ -148,6 +167,18 @@ export const Login: React.FC = () => {
 
           {/* Forms */}
           <div className="bg-white rounded-2xl shadow-xl p-8">
+            {errorMessage && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {errorMessage}
+              </div>
+            )}
+            
+            {successMessage && (
+              <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                {successMessage}
+              </div>
+            )}
+
             {!isSignUp ? (
               /* Login Form */
               <form onSubmit={handleSubmit} className="space-y-6">

@@ -137,6 +137,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       console.log('🔐 AuthContext: signInWithPassword result:', { data, error });
+        // Provide more specific error messages
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Email ou senha incorretos. Verifique suas credenciais.');
+        }
       
       if (error) throw error;
       
