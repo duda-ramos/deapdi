@@ -218,6 +218,19 @@ export const Login: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
+        {/* Offline Mode Banner */}
+        {localStorage.getItem('OFFLINE_MODE') === 'true' && (
+          <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 rounded-lg">
+            <div className="flex items-center">
+              <AlertTriangle className="text-yellow-600 mr-2" size={20} />
+              <div>
+                <h4 className="font-medium text-yellow-800">Modo Offline</h4>
+                <p className="text-sm text-yellow-700">Supabase não configurado - usando dados mockados</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -234,7 +247,8 @@ export const Login: React.FC = () => {
           </div>
 
           {/* Debug Panel */}
-          <div className="bg-gray-100 rounded-lg p-4 mb-6">
+          {import.meta.env.DEV && (
+            <div className="bg-gray-100 rounded-lg p-4 mb-6">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">🔧 Debug Panel</h3>
             <div className="space-y-2">
               <Button
@@ -252,6 +266,7 @@ export const Login: React.FC = () => {
               </div>
             </div>
           </div>
+          )}
 
           {/* Toggle Buttons */}
           <div className="flex bg-gray-100 rounded-lg p-1 mb-6">

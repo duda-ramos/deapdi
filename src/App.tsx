@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { setupService } from './services/setup';
+import { SetupCheck } from './components/SetupCheck';
 import { Login } from './components/Login';
 import { Layout } from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
@@ -18,6 +19,39 @@ import Mentorship from './pages/Mentorship';
 import Reports from './pages/Reports';
 import HRArea from './pages/HRArea';
 import Administration from './pages/Administration';
+
+const useSupabaseSetup = () => {
+  const [setupComplete, setSetupComplete] = React.useState(false);
+  const [checking, setChecking] = React.useState(true);
+
+  React.useEffect(() => {
+    const checkSetup = () => {
+      const hasUrl = !!import.meta.env.VITE_SUPABASE_URL;
+      const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const offlineMode = localStorage.getItem('OFFLINE_MODE') === 'true';
+      const tempUrl = localStorage.getItem('TEMP_SUPABASE_URL');
+      const tempKey = localStorage.getItem('TEMP_SUPABASE_ANON_KEY');
+      
+      const isSetup = (hasUrl && hasKey) || offlineMode || (tempUrl && tempKey);
+      
+      console.log('🔧 Setup Check:', {
+        hasUrl,
+        hasKey,
+        offlineMode,
+        tempUrl: !!tempUrl,
+        tempKey: !!tempKey,
+        isSetup
+      });
+      
+      setSetupComplete(isSetup);
+      setChecking(false);
+    };
+
+    checkSetup();
+  }, []);
+
+  return { setupComplete, checking, setSetupComplete };
+};
 
 const LoadingScreen: React.FC = () => (
   <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -49,6 +83,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
+  const { setupComplete, checking, setSetupComplete } = useSupabaseSetup();
 
   useEffect(() => {
     // Check initial setup status
@@ -65,6 +100,16 @@ const AppRoutes: React.FC = () => {
   }, []);
 
   console.log('🗺️ AppRoutes: user:', user, 'loading:', loading);
+
+  if (checking) {
+    console.log('🗺️ AppRoutes: Checking setup, showing LoadingScreen');
+    return <LoadingScreen />;
+  }
+
+  if (!setupComplete) {
+    console.log('🗺️ AppRoutes: Setup not complete, showing SetupCheck');
+    return <SetupCheck onSetupComplete={() => setSetupComplete(true)} />;
+  }
 
   if (loading) {
     console.log('🗺️ AppRoutes: Still loading, showing LoadingScreen');
