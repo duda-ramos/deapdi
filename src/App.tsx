@@ -1,4 +1,5 @@
 import React from 'react';
+import { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { useErrorHandler } from './hooks/useErrorHandler';
@@ -6,19 +7,21 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SetupCheck } from './components/SetupCheck';
 import { Login } from './components/Login';
 import { Layout } from './components/layout/Layout';
-import Dashboard from './pages/Dashboard';
-import UserManagement from './pages/UserManagement';
-import Profile from './pages/Profile';
-import CareerTrack from './pages/CareerTrack';
-import Competencies from './pages/Competencies';
-import PDI from './pages/PDI';
-import ActionGroups from './pages/ActionGroups';
-import Achievements from './pages/Achievements';
-import Learning from './pages/Learning';
-import Mentorship from './pages/Mentorship';
-import Reports from './pages/Reports';
-import HRArea from './pages/HRArea';
-import Administration from './pages/Administration';
+import {
+  LazyDashboard,
+  LazyProfile,
+  LazyCareerTrack,
+  LazyCompetencies,
+  LazyPDI,
+  LazyActionGroups,
+  LazyAchievements,
+  LazyLearning,
+  LazyMentorship,
+  LazyReports,
+  LazyHRArea,
+  LazyAdministration,
+  LazyUserManagement
+} from './components/LazyComponents';
 
 const LoadingScreen: React.FC = () => (
   <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -68,7 +71,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   
   return (
     <ErrorBoundary>
-      <Layout>{children}</Layout>
+      <Layout>
+        <Suspense fallback={<LoadingScreen />}>
+          {children}
+        </Suspense>
+      </Layout>
     </ErrorBoundary>
   );
 };
@@ -100,7 +107,7 @@ const AppRoutes: React.FC = () => {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <LazyDashboard />
           </ProtectedRoute>
         }
       />
@@ -108,7 +115,7 @@ const AppRoutes: React.FC = () => {
         path="/profile"
         element={
           <ProtectedRoute>
-            <Profile />
+            <LazyProfile />
           </ProtectedRoute>
         }
       />
@@ -116,7 +123,7 @@ const AppRoutes: React.FC = () => {
         path="/career"
         element={
           <ProtectedRoute>
-            <CareerTrack />
+            <LazyCareerTrack />
           </ProtectedRoute>
         }
       />
@@ -124,7 +131,7 @@ const AppRoutes: React.FC = () => {
         path="/competencies"
         element={
           <ProtectedRoute>
-            <Competencies />
+            <LazyCompetencies />
           </ProtectedRoute>
         }
       />
@@ -132,7 +139,7 @@ const AppRoutes: React.FC = () => {
         path="/pdi"
         element={
           <ProtectedRoute>
-            <PDI />
+            <LazyPDI />
           </ProtectedRoute>
         }
       />
@@ -140,7 +147,7 @@ const AppRoutes: React.FC = () => {
         path="/users"
         element={
           <ProtectedRoute>
-            <UserManagement />
+            <LazyUserManagement />
           </ProtectedRoute>
         }
       />
@@ -148,7 +155,7 @@ const AppRoutes: React.FC = () => {
         path="/groups"
         element={
           <ProtectedRoute>
-            <ActionGroups />
+            <LazyActionGroups />
           </ProtectedRoute>
         }
       />
@@ -156,7 +163,7 @@ const AppRoutes: React.FC = () => {
         path="/achievements"
         element={
           <ProtectedRoute>
-            <Achievements />
+            <LazyAchievements />
           </ProtectedRoute>
         }
       />
@@ -164,7 +171,7 @@ const AppRoutes: React.FC = () => {
         path="/learning"
         element={
           <ProtectedRoute>
-            <Learning />
+            <LazyLearning />
           </ProtectedRoute>
         }
       />
@@ -172,7 +179,7 @@ const AppRoutes: React.FC = () => {
         path="/mentorship"
         element={
           <ProtectedRoute>
-            <Mentorship />
+            <LazyMentorship />
           </ProtectedRoute>
         }
       />
@@ -180,7 +187,7 @@ const AppRoutes: React.FC = () => {
         path="/reports"
         element={
           <ProtectedRoute>
-            <Reports />
+            <LazyReports />
           </ProtectedRoute>
         }
       />
@@ -188,7 +195,7 @@ const AppRoutes: React.FC = () => {
         path="/hr"
         element={
           <ProtectedRoute>
-            <HRArea />
+            <LazyHRArea />
           </ProtectedRoute>
         }
       />
@@ -196,7 +203,7 @@ const AppRoutes: React.FC = () => {
         path="/admin"
         element={
           <ProtectedRoute>
-            <Administration />
+            <LazyAdministration />
           </ProtectedRoute>
         }
       />
