@@ -74,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+    }
     const result = await authService.signIn(email, password);
     if (!result.success) {
       throw new Error(result.error);
@@ -88,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (userData: any) => {
     try {
+    }
     const result = await authService.signUp(userData);
     if (!result.success) {
       throw new Error(result.error);
