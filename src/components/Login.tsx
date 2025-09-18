@@ -53,7 +53,6 @@ export const Login: React.FC = () => {
       } else {
         setErrorMessage(err.message || 'Erro ao processar solicitação');
       }
-      setError('Email ou senha incorretos. Tente novamente.');
       console.log('📝 Login: Login failed with error:', err);
     }
   };
