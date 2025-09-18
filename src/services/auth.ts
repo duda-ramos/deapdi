@@ -16,7 +16,7 @@ export const authService = {
   async signUp(data: SignUpData) {
     console.log('🔐 AuthService: Starting signup process for:', data.email);
     
-    // Step 1: Create user in Supabase Auth
+    // Create user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -43,22 +43,11 @@ export const authService = {
 
     console.log('🔐 AuthService: User created successfully:', authData.user.id);
 
-    // Step 2: Sign in the user immediately (trigger will create profile)
-    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password
-    });
-
-    if (loginError) {
-      console.error('🔐 AuthService: Auto-login error:', loginError);
-      // Don't throw here, user can login manually
-    }
-
     console.log('🔐 AuthService: Signup completed successfully');
 
     return { 
       user: authData.user, 
-      session: loginData?.session || authData.session,
+      session: authData.session,
       profileCreated: true 
     };
   },

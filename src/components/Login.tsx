@@ -97,7 +97,7 @@ export const Login: React.FC = () => {
       setSignUpLoading(true);
       
       // Create account
-      await authService.signUp({
+      const result = await authService.signUp({
         email: signUpData.email,
         password: signUpData.password,
         name: signUpData.name,
@@ -108,13 +108,13 @@ export const Login: React.FC = () => {
       
       console.log('📝 Login: Signup successful, attempting auto-login');
       
-      // Try auto-login after successful signup
-      try {
-        await login(signUpData.email, signUpData.password);
-        console.log('📝 Login: Auto-login successful');
-      } catch (loginError) {
-        console.log('📝 Login: Auto-login failed, showing manual login form');
-        // If auto-login fails, show success message and switch to login form
+      // Check if user is already logged in (email confirmation disabled)
+      if (result.session) {
+        console.log('📝 Login: User logged in automatically');
+        // User is logged in, AuthContext will handle the state
+      } else {
+        console.log('📝 Login: Email confirmation required');
+        // Email confirmation required, show success message
         setSuccessMessage('Conta criada com sucesso! Agora você pode fazer login com suas credenciais.');
         setIsSignUp(false);
         setEmail(signUpData.email);
