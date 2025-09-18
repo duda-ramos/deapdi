@@ -2,6 +2,11 @@ import { Database } from './database';
 
 // Export database types for easier access
 export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type ProfileWithRelations = Profile & {
+  achievements?: Achievement[];
+  team?: Team;
+  manager?: Profile;
+};
 export type Team = Database['public']['Tables']['teams']['Row'];
 export type CareerTrack = Database['public']['Tables']['career_tracks']['Row'];
 export type SalaryEntry = Database['public']['Tables']['salary_history']['Row'];

@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Profile } from '../types';
+import { ProfileWithRelations } from '../types';
 
 export interface SignUpData {
   email: string;
@@ -150,13 +150,13 @@ class AuthService {
   /**
    * Get user profile
    */
-  async getProfile(userId: string): Promise<Profile | null> {
+  async getProfile(userId: string): Promise<ProfileWithRelations | null> {
     console.log('🔐 AuthService: Getting profile for user:', userId);
 
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, achievements(*)')
         .eq('id', userId)
         .maybeSingle();
 
@@ -177,7 +177,7 @@ class AuthService {
   /**
    * Update user profile
    */
-  async updateProfile(userId: string, updates: Partial<Profile>): Promise<Profile | null> {
+  async updateProfile(userId: string, updates: Partial<ProfileWithRelations>): Promise<ProfileWithRelations | null> {
     console.log('🔐 AuthService: Updating profile for user:', userId);
 
     try {
