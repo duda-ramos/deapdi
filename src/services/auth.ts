@@ -57,6 +57,7 @@ export const authService = {
         session: authData.session,
         profileCreated: true 
       };
+    }
 
     return authData;
   },
