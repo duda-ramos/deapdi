@@ -50,7 +50,13 @@ export const authService = {
         console.error('Profile creation error:', profileError);
         // Don't throw here as the user was created successfully
       }
-    }
+      // Return the auth data without attempting to login
+      // The user will need to confirm their email if email confirmation is enabled
+      return { 
+        user: authData.user, 
+        session: authData.session,
+        profileCreated: true 
+      };
 
     return authData;
   },

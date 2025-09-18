@@ -60,7 +60,7 @@ export const Login: React.FC = () => {
     if (signUpData.password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres.');
       return;
-    }
+      const result = await authService.signUp(email, password, {
 
     try {
       setSignUpLoading(true);
@@ -74,10 +74,13 @@ export const Login: React.FC = () => {
         role: 'employee'
       });
       
-      console.log('📝 Login: Account created, attempting auto-login...');
-      // Após criar conta, fazer login automaticamente
-      await login(signUpData.email, signUpData.password);
-      console.log('📝 Login: Auto-login completed');
+      console.log('📝 Login: Signup successful', result);
+      
+      // Show success message instead of auto-login
+      setError('');
+      // You might want to show a success message here
+      alert('Account created successfully! You can now login with your credentials.');
+      setIsSignUp(false); // Switch back to login form
     } catch (err: any) {
       console.error('SignUp error:', err);
       setError('Erro ao criar conta. Tente novamente.');
