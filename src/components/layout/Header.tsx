@@ -5,7 +5,7 @@ import { Button } from '../ui/Button';
 import { NotificationCenter } from '../NotificationCenter';
 
 export const Header: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
   console.log('🎯 Header: Rendering with user:', !!user);
 
@@ -42,7 +42,7 @@ export const Header: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={logout}
+              onClick={signOut}
               className="text-gray-600 hover:text-gray-900"
             >
               <LogOut size={16} />

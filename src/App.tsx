@@ -60,11 +60,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <LoadingScreen />;
   }
 
-  if (user) {
-    return <Layout>{children}</Layout>;
-  } else {
+  if (!user) {
     return <Navigate to="/login" />;
   }
+  
+  return <Layout>{children}</Layout>;
 };
 
 const AppRoutes: React.FC = () => {
@@ -89,7 +89,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route 
         path="/login" 
-        element={user ? <Navigate to="/dashboard" /> : <Login />} 
+        element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
       />
       <Route
         path="/dashboard"
@@ -195,7 +195,7 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };

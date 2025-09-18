@@ -35,6 +35,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize auth state
   useEffect(() => {
     console.log('🔐 AuthContext: Initializing auth state');
+    
+    let mounted = true;
+    
+    const initializeAuth = async () => {
+      try {
+        console.log('🔐 AuthContext: Getting initial session');
+        const session = await authService.getSession();
+        
+        if (!mounted) return;
+        
+        if (session?.user) {
+          console.log('🔐 AuthContext: Found existing session');
+          await loadUserProfile(session.user);
+        } else {
+          console.log('🔐 AuthContext: No existing session');
+          setUser(null);
+          setSupabaseUser(null);
+        }
+      } catch (error) {
+        console.error('🔐 AuthContext: Initialize auth error:', error);
+        if (mounted) {
+          setUser(null);
+          setSupabaseUser(null);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+    
     initializeAuth();
 
     // Listen for auth changes
@@ -42,39 +73,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         console.log('🔐 AuthContext: Auth state changed:', event);
         
+        if (!mounted) return;
+        
         if (session?.user) {
           await loadUserProfile(session.user);
         } else {
           setUser(null);
           setSupabaseUser(null);
         }
-        
-        setLoading(false);
       }
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
-
-  const initializeAuth = async () => {
-    try {
-      console.log('🔐 AuthContext: Getting initial session');
-      const session = await authService.getSession();
-      
-      if (session?.user) {
-        console.log('🔐 AuthContext: Found existing session');
-        await loadUserProfile(session.user);
-      } else {
-        console.log('🔐 AuthContext: No existing session');
-      }
-    } catch (error) {
-      console.error('🔐 AuthContext: Initialize auth error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
     console.log('🔐 AuthContext: Loading user profile');
