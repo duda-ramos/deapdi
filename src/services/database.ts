@@ -77,7 +77,7 @@ export const databaseService = {
       .from('career_tracks')
       .select('*')
       .eq('profile_id', profileId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
