@@ -88,11 +88,13 @@ export const Login: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('📝 Login: handleSignUp called');
     setError('');
     setErrorMessage('');
     setSuccessMessage('');
 
+    console.log('📝 Login: Starting signup process');
+
+    // Validations
     if (signUpData.password !== signUpData.confirmPassword) {
       setError('As senhas não coincidem.');
       return;
@@ -105,8 +107,9 @@ export const Login: React.FC = () => {
 
     try {
       setSignUpLoading(true);
-      console.log('📝 Login: Creating new account...');
-      const result = await authService.signUp({
+      
+      // Create account
+      await authService.signUp({
         email: signUpData.email,
         password: signUpData.password,
         name: signUpData.name,
@@ -115,10 +118,19 @@ export const Login: React.FC = () => {
         role: 'employee'
       });
       
-      console.log('📝 Login: Signup successful', result);
+      console.log('📝 Login: Signup successful, attempting auto-login');
       
-      // Show success message and switch to login
-      setError('');
+      // Try auto-login after successful signup
+      try {
+        await login(signUpData.email, signUpData.password);
+        console.log('📝 Login: Auto-login successful');
+      } catch (loginError) {
+        console.log('📝 Login: Auto-login failed, showing manual login form');
+        // If auto-login fails, show success message and switch to login form
+        setSuccessMessage('Conta criada com sucesso! Agora você pode fazer login com suas credenciais.');
+        setIsSignUp(false);
+        setEmail(signUpData.email);
+      }
       
       // Clear form
       setSignUpData({
@@ -130,23 +142,21 @@ export const Login: React.FC = () => {
         level: 'Estagiário'
       });
       
-      // Show success message and switch to login form
-      setSuccessMessage('Conta criada com sucesso! Agora você pode fazer login com suas credenciais.');
-      setIsSignUp(false); // Switch back to login form
-      
-      // Set email for login form
-      setEmail(signUpData.email);
     } catch (err: any) {
       console.error('SignUp error:', err);
-      if (err.message?.includes('Invalid login credentials')) {
-        setErrorMessage('Email ou senha incorretos. Verifique suas credenciais ou crie uma nova conta.');
-      } else if (err.message?.includes('User already registered')) {
-        setErrorMessage('Este email já está cadastrado. Tente fazer login ou use outro email.');
+      
+      // Specific error messages
+      if (err.message?.includes('User already registered') || err.message?.includes('already been registered')) {
+        setError('Este email já está cadastrado. Tente fazer login ou use outro email.');
+      } else if (err.message?.includes('duplicate key')) {
+        setError('Este email já está cadastrado.');
+      } else if (err.message?.includes('row-level security')) {
+        setError('Erro ao criar perfil. Tente novamente em alguns segundos.');
+      } else if (err.message?.includes('Password should be at least')) {
+        setError('A senha deve ter pelo menos 6 caracteres.');
       } else {
-        setErrorMessage(err.message || 'Erro ao processar solicitação');
+        setError(err.message || 'Erro ao criar conta. Tente novamente.');
       }
-      setError(err.message || 'Erro ao criar conta. Tente novamente.');
-      console.log('📝 Login: SignUp failed with error:', err);
     } finally {
       setSignUpLoading(false);
     }

@@ -14,29 +14,51 @@ export interface SignUpData {
 
 export const authService = {
   async signUp(data: SignUpData) {
-    // Create user with metadata - trigger will create profile automatically
+    console.log('🔐 AuthService: Starting signup process for:', data.email);
+    
+    // Step 1: Create user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
         data: {
           name: data.name,
-          role: data.role || 'employee',
-          level: data.level,
           position: data.position,
+          level: data.level,
+          role: data.role || 'employee',
           team_id: data.team_id || null,
           manager_id: data.manager_id || null
         }
       }
     });
 
-    if (authError) throw authError;
+    if (authError) {
+      console.error('🔐 AuthService: Signup error:', authError);
+      throw authError;
+    }
 
-    // Profile will be created automatically by trigger
-    // Return auth data for success handling
+    if (!authData.user) {
+      throw new Error('Falha ao criar usuário');
+    }
+
+    console.log('🔐 AuthService: User created successfully:', authData.user.id);
+
+    // Step 2: Sign in the user immediately (trigger will create profile)
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password
+    });
+
+    if (loginError) {
+      console.error('🔐 AuthService: Auto-login error:', loginError);
+      // Don't throw here, user can login manually
+    }
+
+    console.log('🔐 AuthService: Signup completed successfully');
+
     return { 
       user: authData.user, 
-      session: authData.session,
+      session: loginData?.session || authData.session,
       profileCreated: true 
     };
   },
