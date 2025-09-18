@@ -76,14 +76,29 @@ export const Login: React.FC = () => {
       
       console.log('📝 Login: Signup successful', result);
       
-      // Show success message instead of auto-login
+      // Show success message and switch to login
       setError('');
-      // You might want to show a success message here
-      alert('Account created successfully! You can now login with your credentials.');
+      
+      // Clear form
+      setSignUpData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        position: '',
+        level: 'Estagiário'
+      });
+      
+      // Show success message and switch to login form
       setIsSignUp(false); // Switch back to login form
+      
+      // Set email for login form
+      setEmail(signUpData.email);
+      
+      alert('✅ Conta criada com sucesso! Você já pode fazer login.');
     } catch (err: any) {
       console.error('SignUp error:', err);
-      setError('Erro ao criar conta. Tente novamente.');
+      setError(err.message || 'Erro ao criar conta. Tente novamente.');
       console.log('📝 Login: SignUp failed with error:', err);
     } finally {
       setSignUpLoading(false);

@@ -14,6 +14,7 @@ export interface SignUpData {
 
 export const authService = {
   async signUp(data: SignUpData) {
+    // Create user with metadata - trigger will create profile automatically
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -23,43 +24,21 @@ export const authService = {
           role: data.role || 'employee',
           level: data.level,
           position: data.position,
-          team_id: data.team_id,
-          manager_id: data.manager_id
+          team_id: data.team_id || null,
+          manager_id: data.manager_id || null
         }
       }
     });
 
     if (authError) throw authError;
 
-    // Create profile entry if user was created successfully
-    if (authData.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          email: data.email,
-          name: data.name,
-          role: data.role || 'employee',
-          level: data.level,
-          position: data.position,
-          team_id: data.team_id,
-          manager_id: data.manager_id
-        });
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        // Don't throw here as the user was created successfully
-      }
-      // Return the auth data without attempting to login
-      // The user will need to confirm their email if email confirmation is enabled
-      return { 
-        user: authData.user, 
-        session: authData.session,
-        profileCreated: true 
-      };
-    }
-
-    return authData;
+    // Profile will be created automatically by trigger
+    // Return auth data for success handling
+    return { 
+      user: authData.user, 
+      session: authData.session,
+      profileCreated: true 
+    };
   },
 
   async signIn(email: string, password: string) {
