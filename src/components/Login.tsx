@@ -60,12 +60,12 @@ export const Login: React.FC = () => {
     if (signUpData.password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres.');
       return;
-      const result = await authService.signUp(email, password, {
+    }
 
     try {
       setSignUpLoading(true);
       console.log('📝 Login: Creating new account...');
-      await authService.signUp({
+      const result = await authService.signUp({
         email: signUpData.email,
         password: signUpData.password,
         name: signUpData.name,
