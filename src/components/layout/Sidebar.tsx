@@ -86,28 +86,6 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      {/* User info at bottom */}
-      {user && (
-        <div className="absolute bottom-6 left-6 right-6">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
-            <div className="flex items-center space-x-3">
-              <img
-                src={user.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
-                alt={user.name}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                <p className="text-xs text-gray-500 capitalize">{user.role}</p>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-xs text-gray-600">Pontos</span>
-              <span className="text-sm font-bold text-blue-600">{user.points}</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
