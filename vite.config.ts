@@ -34,10 +34,7 @@ export default defineConfig(({ mode }) => ({
         assetFileNames: 'assets/[name]-[hash].[ext]'
       },
       // Optimize external dependencies
-      external: (id) => {
-        // Don't bundle these in production for better caching
-        return false; // Bundle everything for simplicity
-      }
+      external: []
     },
     // Security: Remove comments and console logs in production
     terserOptions: mode === 'production' ? {
