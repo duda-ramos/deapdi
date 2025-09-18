@@ -54,14 +54,12 @@ const useSupabaseSetup = () => {
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
 
-  console.log('🛡️ ProtectedRoute: user:', !!user, 'loading:', loading);
-
   if (loading) {
     return <LoadingScreen />;
   }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
   
   return <Layout>{children}</Layout>;
@@ -70,8 +68,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
   const { setupComplete, checking, setSetupComplete } = useSupabaseSetup();
-
-  console.log('🗺️ AppRoutes: user:', !!user, 'loading:', loading);
 
   if (checking) {
     return <LoadingScreen />;
