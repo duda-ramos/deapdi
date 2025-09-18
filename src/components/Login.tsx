@@ -15,7 +15,6 @@ export const Login: React.FC = () => {
   const [signUpLoading, setSignUpLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [showTestCredentials, setShowTestCredentials] = useState(false);
   const [setupStatus, setSetupStatus] = useState<any>(null);
   const [signUpData, setSignUpData] = useState({
     name: '',
@@ -35,12 +34,6 @@ export const Login: React.FC = () => {
     try {
       const status = await setupService.checkInitialSetup();
       setSetupStatus(status);
-      
-      // Show test credentials if no users exist
-      if (!status.hasUsers) {
-        setShowTestCredentials(true);
-        console.warn('⚠️ Nenhum usuário encontrado. Mostrando credenciais de teste.');
-      }
     } catch (error) {
       console.error('Error checking setup status:', error);
     }
@@ -69,12 +62,7 @@ export const Login: React.FC = () => {
     } catch (err: any) {
       console.error('Login error:', err);
       if (err.message?.includes('Invalid login credentials') || err.message?.includes('invalid_credentials')) {
-        if (setupStatus && !setupStatus.hasUsers) {
-          setErrorMessage('Nenhum usuário encontrado no sistema. Por favor, configure os usuários de teste primeiro.');
-        } else {
-          setErrorMessage('Email ou senha incorretos. Verifique suas credenciais ou use as credenciais de teste abaixo.');
-        }
-        setShowTestCredentials(true);
+        setErrorMessage('Email ou senha incorretos. Verifique suas credenciais.');
       } else if (err.message?.includes('email_not_confirmed')) {
         setErrorMessage('Por favor, confirme seu email antes de fazer login.');
       } else if (err.message?.includes('User already registered')) {
@@ -177,55 +165,6 @@ export const Login: React.FC = () => {
             </div>
             <h1 className="text-3xl font-bold text-gray-900">TalentFlow</h1>
           
-          {/* Test Credentials Info */}
-          {showTestCredentials && (
-            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-blue-900 flex items-center">
-                  🔐 Credenciais de Teste
-                </h3>
-                <button
-                  onClick={() => setShowTestCredentials(false)}
-                  className="text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  ✕
-                </button>
-              </div>
-              <p className="text-sm text-blue-700 mb-3">
-                {setupStatus && !setupStatus.hasUsers 
-                  ? '⚠️ Sistema sem usuários. Configure primeiro no Supabase Dashboard:'
-                  : 'Use estas credenciais para testar o sistema:'
-                }
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                <div className="bg-white p-2 rounded border">
-                  <strong className="text-red-600">Admin:</strong><br />
-                  admin@empresa.com / admin123
-                </div>
-                <div className="bg-white p-2 rounded border">
-                  <strong className="text-blue-600">Gestor:</strong><br />
-                  gestor@empresa.com / gestor123
-                </div>
-                <div className="bg-white p-2 rounded border">
-                  <strong className="text-green-600">Colaborador:</strong><br />
-                  colaborador@empresa.com / colab123
-                </div>
-                <div className="bg-white p-2 rounded border">
-                  <strong className="text-purple-600">RH:</strong><br />
-                  rh@empresa.com / rh123456
-                </div>
-              </div>
-              {setupStatus && !setupStatus.hasUsers && (
-                <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                  <strong>📋 Instruções:</strong><br />
-                  1. Vá para Supabase Dashboard → Authentication → Users<br />
-                  2. Crie os usuários acima com "Create new user"<br />
-                  3. Marque "Auto Confirm User" para cada um<br />
-                  4. Volte aqui e tente fazer login
-                </div>
-              )}
-            </div>
-          )}
             <p className="text-gray-600 mt-2">Plataforma de Desenvolvimento de Colaboradores</p>
           </div>
 
@@ -329,18 +268,6 @@ export const Login: React.FC = () => {
                 >
                   Entrar
                 </Button>
-                
-                {!showTestCredentials && (
-                  <div className="text-center mt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowTestCredentials(true)}
-                      className="text-sm text-blue-600 hover:text-blue-800 underline"
-                    >
-                      Mostrar credenciais de teste
-                    </button>
-                  </div>
-                )}
               </form>
             ) : (
               /* Sign Up Form */
