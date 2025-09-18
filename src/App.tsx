@@ -1,6 +1,8 @@
 import React from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { setupService } from './services/setup';
 import { Login } from './components/Login';
 import { Layout } from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
@@ -47,6 +49,20 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    // Check initial setup status
+    setupService.checkInitialSetup().then(status => {
+      if (!status.hasUsers) {
+        console.warn('⚠️ Sistema sem usuários configurados. Configure usuários de teste no Supabase Dashboard.');
+        console.info('📋 Instruções: Vá para Authentication > Users e crie os usuários de teste.');
+      } else {
+        console.info(`✅ Sistema configurado com ${status.userCount} usuários e ${status.teamCount} times.`);
+      }
+    }).catch(error => {
+      console.error('Erro ao verificar configuração inicial:', error);
+    });
+  }, []);
 
   console.log('🗺️ AppRoutes: user:', user, 'loading:', loading);
 
