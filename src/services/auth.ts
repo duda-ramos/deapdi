@@ -1,157 +1,229 @@
 import { supabase } from '../lib/supabase';
-import { Profile, UserRole } from '../types';
+import { Profile } from '../types';
 
 export interface SignUpData {
   email: string;
   password: string;
   name: string;
-  role?: UserRole;
-  level: string;
   position: string;
-  team_id?: string;
-  manager_id?: string;
+  level: string;
 }
 
-// Test function for isolated signup testing
-export const testSignUp = async (email: string, password: string) => {
-  console.log('🧪 TEST SIGNUP - Starting isolated test');
-  console.log('🧪 TEST SIGNUP - Email:', email);
-  console.log('🧪 TEST SIGNUP - Password length:', password.length);
-  
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email: email,
-      password: password
-    });
-    
-    console.log('🧪 TEST SIGNUP - Raw response:', { data, error });
-    console.log('🧪 TEST SIGNUP - User created:', !!data.user);
-    console.log('🧪 TEST SIGNUP - Session created:', !!data.session);
-    
-    if (error) {
-      console.error('🧪 TEST SIGNUP - Error:', error);
-      return { success: false, error: error.message };
-    }
-    
-    return { success: true, user: data.user, session: data.session };
-  } catch (err) {
-    console.error('🧪 TEST SIGNUP - Exception:', err);
-    return { success: false, error: err };
-  }
-};
+export interface AuthResponse {
+  success: boolean;
+  user?: any;
+  session?: any;
+  error?: string;
+}
 
-export const authService = {
-  async signUp(data: SignUpData) {
-    console.log('🔐 AuthService: ========== SIGNUP PROCESS START ==========');
+class AuthService {
+  /**
+   * Sign up a new user
+   */
+  async signUp(data: SignUpData): Promise<AuthResponse> {
+    console.log('🔐 AuthService: Starting signup process');
     console.log('🔐 AuthService: Email:', data.email);
     console.log('🔐 AuthService: Name:', data.name);
-    console.log('🔐 AuthService: Position:', data.position);
-    console.log('🔐 AuthService: Level:', data.level);
-    console.log('🔐 AuthService: Role:', data.role);
-    console.log('🔐 AuthService: Password length:', data.password.length);
     
-    console.log('🔐 AuthService: Step 1 - Creating user in Supabase Auth...');
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          name: data.name,
-          position: data.position,
-          level: data.level,
-          role: data.role || 'employee',
-          team_id: data.team_id || null,
-          manager_id: data.manager_id || null
+    try {
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+            position: data.position,
+            level: data.level
+          }
         }
+      });
+
+      console.log('🔐 AuthService: Signup response:', { 
+        user: !!authData.user, 
+        session: !!authData.session, 
+        error 
+      });
+
+      if (error) {
+        console.error('🔐 AuthService: Signup error:', error);
+        return {
+          success: false,
+          error: this.formatError(error.message)
+        };
       }
-    });
 
-    console.log('🔐 AuthService: Step 1 - Auth response received');
-    console.log('🔐 AuthService: Auth data:', authData);
-    console.log('🔐 AuthService: Auth error:', authError);
-    console.log('🔐 AuthService: User created:', !!authData?.user);
-    console.log('🔐 AuthService: Session created:', !!authData?.session);
-    console.log('🔐 AuthService: User ID:', authData?.user?.id);
-    console.log('🔐 AuthService: User email confirmed:', authData?.user?.email_confirmed_at);
+      if (!authData.user) {
+        return {
+          success: false,
+          error: 'Falha ao criar usuário'
+        };
+      }
 
-    if (authError) {
-      console.error('🔐 AuthService: ❌ Auth signup failed:', authError);
-      console.error('🔐 AuthService: Error code:', authError.status);
-      console.error('🔐 AuthService: Error message:', authError.message);
-      throw authError;
+      console.log('🔐 AuthService: Signup successful');
+      return {
+        success: true,
+        user: authData.user,
+        session: authData.session
+      };
+
+    } catch (error: any) {
+      console.error('🔐 AuthService: Signup exception:', error);
+      return {
+        success: false,
+        error: this.formatError(error.message)
+      };
     }
+  }
 
-    if (!authData.user) {
-      console.error('🔐 AuthService: ❌ No user returned from signup');
-      throw new Error('Falha ao criar usuário');
+  /**
+   * Sign in user
+   */
+  async signIn(email: string, password: string): Promise<AuthResponse> {
+    console.log('🔐 AuthService: Starting signin process');
+    console.log('🔐 AuthService: Email:', email);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      console.log('🔐 AuthService: Signin response:', { 
+        user: !!data.user, 
+        session: !!data.session, 
+        error 
+      });
+
+      if (error) {
+        console.error('🔐 AuthService: Signin error:', error);
+        return {
+          success: false,
+          error: this.formatError(error.message)
+        };
+      }
+
+      console.log('🔐 AuthService: Signin successful');
+      return {
+        success: true,
+        user: data.user,
+        session: data.session
+      };
+
+    } catch (error: any) {
+      console.error('🔐 AuthService: Signin exception:', error);
+      return {
+        success: false,
+        error: this.formatError(error.message)
+      };
     }
+  }
 
-    console.log('🔐 AuthService: ✅ User created successfully in auth.users');
-    console.log('🔐 AuthService: User ID:', authData.user.id);
-    console.log('🔐 AuthService: User email:', authData.user.email);
-    console.log('🔐 AuthService: ========== SIGNUP PROCESS END ==========');
-
-    return { 
-      user: authData.user, 
-      session: authData.session,
-      profileCreated: false // We're not creating profile here anymore
-    };
-  },
-
-  async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) throw error;
-    return data;
-  },
-
-  async signOut() {
+  /**
+   * Sign out user
+   */
+  async signOut(): Promise<void> {
+    console.log('🔐 AuthService: Signing out');
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-  },
-
-  async getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return user;
-  },
-
-  async updateProfile(updates: Partial<Profile>) {
-    const user = await this.getCurrentUser();
-    if (!user) throw new Error('No authenticated user');
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  },
-
-  async getProfile(userId?: string) {
-    const targetUserId = userId || (await this.getCurrentUser())?.id;
-    if (!targetUserId) throw new Error('No user ID provided');
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select(`
-        *,
-        team:teams(name),
-        manager:profiles!manager_id(name)
-      `)
-      .eq('id', targetUserId)
-      .maybeSingle();
-
     if (error) {
-      console.error('Profile fetch error:', error);
+      console.error('🔐 AuthService: Signout error:', error);
+      throw error;
+    }
+    console.log('🔐 AuthService: Signout successful');
+  }
+
+  /**
+   * Get current session
+   */
+  async getSession() {
+    console.log('🔐 AuthService: Getting session');
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('🔐 AuthService: Get session error:', error);
       return null;
     }
-    return data || null;
+
+    console.log('🔐 AuthService: Session retrieved:', !!session);
+    return session;
   }
-};
+
+  /**
+   * Get user profile
+   */
+  async getProfile(userId: string): Promise<Profile | null> {
+    console.log('🔐 AuthService: Getting profile for user:', userId);
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('🔐 AuthService: Profile fetch error:', error);
+        return null;
+      }
+
+      console.log('🔐 AuthService: Profile retrieved:', !!data);
+      return data;
+
+    } catch (error) {
+      console.error('🔐 AuthService: Profile fetch exception:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(userId: string, updates: Partial<Profile>): Promise<Profile | null> {
+    console.log('🔐 AuthService: Updating profile for user:', userId);
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('🔐 AuthService: Profile update error:', error);
+        throw error;
+      }
+
+      console.log('🔐 AuthService: Profile updated successfully');
+      return data;
+
+    } catch (error) {
+      console.error('🔐 AuthService: Profile update exception:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Format error messages for user display
+   */
+  private formatError(message: string): string {
+    if (message.includes('Invalid login credentials')) {
+      return 'Email ou senha incorretos. Verifique suas credenciais.';
+    }
+    if (message.includes('User already registered')) {
+      return 'Este email já está cadastrado. Tente fazer login.';
+    }
+    if (message.includes('Password should be at least')) {
+      return 'A senha deve ter pelo menos 6 caracteres.';
+    }
+    if (message.includes('email_not_confirmed')) {
+      return 'Por favor, confirme seu email antes de fazer login.';
+    }
+    if (message.includes('signup_disabled')) {
+      return 'Cadastro de novos usuários está desabilitado.';
+    }
+    
+    return message || 'Erro desconhecido. Tente novamente.';
+  }
+}
+
+export const authService = new AuthService();
