@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Mail, Lock, Eye, EyeOff, User, Briefcase, UserPlus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { authService } from '../services/auth';
+import { authService, testSignUp } from '../services/auth';
 import { setupService } from '../services/setup';
 import { Button } from './ui/Button';
 
@@ -16,6 +16,7 @@ export const Login: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [setupStatus, setSetupStatus] = useState<any>(null);
+  const [testLoading, setTestLoading] = useState(false);
   const [signUpData, setSignUpData] = useState({
     name: '',
     email: '',
@@ -36,6 +37,34 @@ export const Login: React.FC = () => {
       setSetupStatus(status);
     } catch (error) {
       console.error('Error checking setup status:', error);
+    }
+  };
+
+  const handleTestSignUp = async () => {
+    console.log('🧪 Starting isolated signup test...');
+    setTestLoading(true);
+    setError('');
+    setErrorMessage('');
+    setSuccessMessage('');
+    
+    const testEmail = `test${Date.now()}@example.com`;
+    const testPassword = 'test123456';
+    
+    try {
+      const result = await testSignUp(testEmail, testPassword);
+      
+      if (result.success) {
+        setSuccessMessage(`✅ Test signup successful! User created: ${testEmail}`);
+        console.log('🧪 Test signup successful:', result);
+      } else {
+        setErrorMessage(`❌ Test signup failed: ${result.error}`);
+        console.error('🧪 Test signup failed:', result.error);
+      }
+    } catch (err) {
+      setErrorMessage(`❌ Test signup exception: ${err}`);
+      console.error('🧪 Test signup exception:', err);
+    } finally {
+      setTestLoading(false);
     }
   };
 
@@ -76,27 +105,50 @@ export const Login: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 SignUp: ========== SIGNUP FORM SUBMIT START ==========');
+    console.log('📝 SignUp: Form data:', {
+      name: signUpData.name,
+      email: signUpData.email,
+      position: signUpData.position,
+      level: signUpData.level,
+      passwordLength: signUpData.password.length
+    });
+    
     setError('');
     setErrorMessage('');
     setSuccessMessage('');
 
-    console.log('📝 Login: Starting signup process');
-
-    // Validations
+    console.log('📝 SignUp: Step 1 - Validating form data...');
     if (signUpData.password !== signUpData.confirmPassword) {
+      console.log('📝 SignUp: ❌ Password mismatch');
       setError('As senhas não coincidem.');
       return;
     }
 
     if (signUpData.password.length < 6) {
+      console.log('📝 SignUp: ❌ Password too short');
       setError('A senha deve ter pelo menos 6 caracteres.');
       return;
     }
 
+    if (!signUpData.name.trim()) {
+      console.log('📝 SignUp: ❌ Name is empty');
+      setError('Nome é obrigatório.');
+      return;
+    }
+
+    if (!signUpData.position.trim()) {
+      console.log('📝 SignUp: ❌ Position is empty');
+      setError('Cargo é obrigatório.');
+      return;
+    }
+
+    console.log('📝 SignUp: ✅ Form validation passed');
+
     try {
       setSignUpLoading(true);
       
-      // Create account
+      console.log('📝 SignUp: Step 2 - Calling authService.signUp...');
       const result = await authService.signUp({
         email: signUpData.email,
         password: signUpData.password,
@@ -106,21 +158,21 @@ export const Login: React.FC = () => {
         role: 'employee'
       });
       
-      console.log('📝 Login: Signup successful, attempting auto-login');
+      console.log('📝 SignUp: Step 3 - AuthService response:', result);
+      console.log('📝 SignUp: User created:', !!result.user);
+      console.log('📝 SignUp: Session exists:', !!result.session);
       
-      // Check if user is already logged in (email confirmation disabled)
       if (result.session) {
-        console.log('📝 Login: User logged in automatically');
-        // User is logged in, AuthContext will handle the state
+        console.log('📝 SignUp: ✅ User logged in automatically (email confirmation disabled)');
+        setSuccessMessage('✅ Conta criada e login realizado com sucesso!');
       } else {
-        console.log('📝 Login: Email confirmation required');
-        // Email confirmation required, show success message
-        setSuccessMessage('Conta criada com sucesso! Agora você pode fazer login com suas credenciais.');
+        console.log('📝 SignUp: ✅ User created, email confirmation required');
+        setSuccessMessage('✅ Conta criada com sucesso! Verifique seu email e faça login.');
         setIsSignUp(false);
         setEmail(signUpData.email);
       }
       
-      // Clear form
+      console.log('📝 SignUp: Step 4 - Clearing form...');
       setSignUpData({
         name: '',
         email: '',
@@ -130,23 +182,36 @@ export const Login: React.FC = () => {
         level: 'Estagiário'
       });
       
-    } catch (err: any) {
-      console.error('SignUp error:', err);
+      console.log('📝 SignUp: ✅ Signup process completed successfully');
       
-      // Specific error messages
+    } catch (err: any) {
+      console.error('📝 SignUp: ❌ Signup process failed:', err);
+      console.error('📝 SignUp: Error type:', typeof err);
+      console.error('📝 SignUp: Error message:', err.message);
+      console.error('📝 SignUp: Error stack:', err.stack);
+      
       if (err.message?.includes('User already registered') || err.message?.includes('already been registered')) {
+        console.log('📝 SignUp: Error type - User already exists');
         setError('Este email já está cadastrado. Tente fazer login ou use outro email.');
       } else if (err.message?.includes('duplicate key')) {
+        console.log('📝 SignUp: Error type - Duplicate key');
         setError('Este email já está cadastrado.');
       } else if (err.message?.includes('row-level security')) {
+        console.log('📝 SignUp: Error type - RLS policy');
         setError('Erro ao criar perfil. Tente novamente em alguns segundos.');
       } else if (err.message?.includes('Password should be at least')) {
+        console.log('📝 SignUp: Error type - Password policy');
         setError('A senha deve ter pelo menos 6 caracteres.');
+      } else if (err.message?.includes('Invalid login credentials')) {
+        console.log('📝 SignUp: Error type - Invalid credentials (possibly auto-login)');
+        setError('Conta criada, mas houve erro no login automático. Tente fazer login manualmente.');
       } else {
+        console.log('📝 SignUp: Error type - Generic/Unknown');
         setError(err.message || 'Erro ao criar conta. Tente novamente.');
       }
     } finally {
       setSignUpLoading(false);
+      console.log('📝 SignUp: ========== SIGNUP FORM SUBMIT END ==========');
     }
   };
 
@@ -166,6 +231,26 @@ export const Login: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900">TalentFlow</h1>
           
             <p className="text-gray-600 mt-2">Plataforma de Desenvolvimento de Colaboradores</p>
+          </div>
+
+          {/* Debug Panel */}
+          <div className="bg-gray-100 rounded-lg p-4 mb-6">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">🔧 Debug Panel</h3>
+            <div className="space-y-2">
+              <Button
+                onClick={handleTestSignUp}
+                loading={testLoading}
+                variant="secondary"
+                size="sm"
+                className="w-full"
+              >
+                🧪 Test Isolated Signup
+              </Button>
+              <div className="text-xs text-gray-600">
+                <p>Supabase URL: {import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing'}</p>
+                <p>Anon Key: {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing'}</p>
+              </div>
+            </div>
           </div>
 
           {/* Toggle Buttons */}

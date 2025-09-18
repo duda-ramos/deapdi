@@ -12,11 +12,45 @@ export interface SignUpData {
   manager_id?: string;
 }
 
+// Test function for isolated signup testing
+export const testSignUp = async (email: string, password: string) => {
+  console.log('🧪 TEST SIGNUP - Starting isolated test');
+  console.log('🧪 TEST SIGNUP - Email:', email);
+  console.log('🧪 TEST SIGNUP - Password length:', password.length);
+  
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password
+    });
+    
+    console.log('🧪 TEST SIGNUP - Raw response:', { data, error });
+    console.log('🧪 TEST SIGNUP - User created:', !!data.user);
+    console.log('🧪 TEST SIGNUP - Session created:', !!data.session);
+    
+    if (error) {
+      console.error('🧪 TEST SIGNUP - Error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true, user: data.user, session: data.session };
+  } catch (err) {
+    console.error('🧪 TEST SIGNUP - Exception:', err);
+    return { success: false, error: err };
+  }
+};
+
 export const authService = {
   async signUp(data: SignUpData) {
-    console.log('🔐 AuthService: Starting signup process for:', data.email);
+    console.log('🔐 AuthService: ========== SIGNUP PROCESS START ==========');
+    console.log('🔐 AuthService: Email:', data.email);
+    console.log('🔐 AuthService: Name:', data.name);
+    console.log('🔐 AuthService: Position:', data.position);
+    console.log('🔐 AuthService: Level:', data.level);
+    console.log('🔐 AuthService: Role:', data.role);
+    console.log('🔐 AuthService: Password length:', data.password.length);
     
-    // Create user in Supabase Auth
+    console.log('🔐 AuthService: Step 1 - Creating user in Supabase Auth...');
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -32,23 +66,35 @@ export const authService = {
       }
     });
 
+    console.log('🔐 AuthService: Step 1 - Auth response received');
+    console.log('🔐 AuthService: Auth data:', authData);
+    console.log('🔐 AuthService: Auth error:', authError);
+    console.log('🔐 AuthService: User created:', !!authData?.user);
+    console.log('🔐 AuthService: Session created:', !!authData?.session);
+    console.log('🔐 AuthService: User ID:', authData?.user?.id);
+    console.log('🔐 AuthService: User email confirmed:', authData?.user?.email_confirmed_at);
+
     if (authError) {
-      console.error('🔐 AuthService: Signup error:', authError);
+      console.error('🔐 AuthService: ❌ Auth signup failed:', authError);
+      console.error('🔐 AuthService: Error code:', authError.status);
+      console.error('🔐 AuthService: Error message:', authError.message);
       throw authError;
     }
 
     if (!authData.user) {
+      console.error('🔐 AuthService: ❌ No user returned from signup');
       throw new Error('Falha ao criar usuário');
     }
 
-    console.log('🔐 AuthService: User created successfully:', authData.user.id);
-
-    console.log('🔐 AuthService: Signup completed successfully');
+    console.log('🔐 AuthService: ✅ User created successfully in auth.users');
+    console.log('🔐 AuthService: User ID:', authData.user.id);
+    console.log('🔐 AuthService: User email:', authData.user.email);
+    console.log('🔐 AuthService: ========== SIGNUP PROCESS END ==========');
 
     return { 
       user: authData.user, 
       session: authData.session,
-      profileCreated: true 
+      profileCreated: false // We're not creating profile here anymore
     };
   },
 
