@@ -6,8 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:prod": "vite build --mode production",
+    "preview:prod": "vite preview --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
+    "security:audit": "npm audit && npm audit fix",
+    "test:security": "npm run security:audit && npm run test:all",
+    "deploy:check": "npm run test:security && npm run build:prod",
     "test": "jest",
     "test:unit": "jest --testPathPattern=unit",
     "test:integration": "jest --testPathPattern=integration",
@@ -18,7 +23,10 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@sentry/react": "^10.12.0",
     "@supabase/supabase-js": "^2.57.4",
+    "@types/dompurify": "^3.2.0",
+    "dompurify": "^3.2.7",
     "framer-motion": "^12.23.13",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",

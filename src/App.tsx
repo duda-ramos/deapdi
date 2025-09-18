@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { useErrorHandler } from './hooks/useErrorHandler';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SetupCheck } from './components/SetupCheck';
 import { Login } from './components/Login';
@@ -39,7 +41,9 @@ const useSupabaseSetup = () => {
       
       const isSetup = (hasUrl && hasKey) || offlineMode;
       
-      console.log('🔧 Setup Check:', { hasUrl, hasKey, offlineMode, isSetup });
+      if (import.meta.env.DEV) {
+        console.log('🔧 Setup Check:', { hasUrl, hasKey, offlineMode, isSetup });
+      }
       
       setSetupComplete(isSetup);
       setChecking(false);
@@ -62,7 +66,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <Navigate to="/login" replace />;
   }
   
-  return <Layout>{children}</Layout>;
+  return (
+    <ErrorBoundary>
+      <Layout>{children}</Layout>
+    </ErrorBoundary>
+  );
 };
 
 const AppRoutes: React.FC = () => {
@@ -82,7 +90,8 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <Routes>
+    <ErrorBoundary>
+      <Routes>
       <Route 
         path="/login" 
         element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
@@ -192,17 +201,20 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+      </Routes>
+    </ErrorBoundary>
   );
 };
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

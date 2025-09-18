@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { supabaseRequest } from './api';
 import { 
   Profile, 
   Team, 
@@ -15,7 +16,6 @@ import {
 export const databaseService = {
   // Profiles
   async getProfiles(filters?: { role?: string; team_id?: string; status?: string }) {
-    console.log('🗄️ Database: Getting profiles with filters:', filters);
     let query = supabase
       .from('profiles')
       .select(`
@@ -28,22 +28,16 @@ export const databaseService = {
     if (filters?.team_id) query = query.eq('team_id', filters.team_id);
     if (filters?.status) query = query.eq('status', filters.status);
 
-    const { data, error } = await query;
-    console.log('🗄️ Database: getProfiles result', { count: data?.length, error });
-    if (error) throw error;
-    return data;
+    return supabaseRequest(() => query, 'getProfiles');
   },
 
   async updateProfile(id: string, updates: Partial<Profile>) {
-    const { data, error } = await supabase
+    return supabaseRequest(() => supabase
       .from('profiles')
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+      .single(), 'updateProfile');
   },
 
   // Teams
@@ -73,41 +67,28 @@ export const databaseService = {
 
   // Career Tracks
   async getCareerTrack(profileId: string) {
-    console.log('🗄️ Database: Getting career track for profile:', profileId);
-    const { data, error } = await supabase
+    return supabaseRequest(() => supabase
       .from('career_tracks')
       .select('*')
       .eq('profile_id', profileId)
-      .maybeSingle();
-
-    console.log('🗄️ Database: Career track result:', { data: !!data, error });
-    if (error) throw error;
-    return data;
+      .maybeSingle(), 'getCareerTrack');
   },
 
   async updateCareerTrack(profileId: string, updates: Partial<CareerTrack>) {
-    console.log('🗄️ Database: Updating career track for profile:', profileId);
-    const { data, error } = await supabase
+    return supabaseRequest(() => supabase
       .from('career_tracks')
       .update(updates)
       .eq('profile_id', profileId)
       .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+      .single(), 'updateCareerTrack');
   },
 
   async createCareerTrack(careerTrack: Omit<CareerTrack, 'id' | 'created_at' | 'updated_at'>) {
-    console.log('🗄️ Database: Creating career track:', careerTrack);
-    const { data, error } = await supabase
+    return supabaseRequest(() => supabase
       .from('career_tracks')
       .insert(careerTrack)
       .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+      .single(), 'createCareerTrack');
   },
   // Competencies
   async getCompetencies(profileId: string) {
