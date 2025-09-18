@@ -73,17 +73,20 @@ export const databaseService = {
 
   // Career Tracks
   async getCareerTrack(profileId: string) {
+    console.log('🗄️ Database: Getting career track for profile:', profileId);
     const { data, error } = await supabase
       .from('career_tracks')
       .select('*')
       .eq('profile_id', profileId)
       .maybeSingle();
 
+    console.log('🗄️ Database: Career track result:', { data: !!data, error });
     if (error) throw error;
     return data;
   },
 
   async updateCareerTrack(profileId: string, updates: Partial<CareerTrack>) {
+    console.log('🗄️ Database: Updating career track for profile:', profileId);
     const { data, error } = await supabase
       .from('career_tracks')
       .update(updates)
@@ -95,6 +98,17 @@ export const databaseService = {
     return data;
   },
 
+  async createCareerTrack(careerTrack: Omit<CareerTrack, 'id' | 'created_at' | 'updated_at'>) {
+    console.log('🗄️ Database: Creating career track:', careerTrack);
+    const { data, error } = await supabase
+      .from('career_tracks')
+      .insert(careerTrack)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
   // Competencies
   async getCompetencies(profileId: string) {
     const { data, error } = await supabase
@@ -246,6 +260,56 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('notifications')
       .insert(notification)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Action Groups
+  async getActionGroups(profileId?: string) {
+    console.log('🗄️ Database: Getting action groups for profile:', profileId);
+    let query = supabase
+      .from('action_groups')
+      .select(`
+        *,
+        created_by_profile:profiles!created_by(name),
+        participants:action_group_participants(
+          id,
+          role,
+          profile:profiles(id, name, avatar_url)
+        )
+      `);
+
+    if (profileId) {
+      // Get groups where user is creator or participant
+      query = query.or(`created_by.eq.${profileId},participants.profile_id.eq.${profileId}`);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    console.log('🗄️ Database: Action groups result:', { count: data?.length, error });
+    if (error) throw error;
+    return data;
+  },
+
+  async createActionGroup(group: Omit<ActionGroup, 'id' | 'created_at' | 'updated_at'>) {
+    console.log('🗄️ Database: Creating action group:', group);
+    const { data, error } = await supabase
+      .from('action_groups')
+      .insert(group)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateActionGroup(id: string, updates: Partial<ActionGroup>) {
+    const { data, error } = await supabase
+      .from('action_groups')
+      .update(updates)
+      .eq('id', id)
       .select()
       .single();
 

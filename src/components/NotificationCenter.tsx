@@ -22,20 +22,25 @@ export const NotificationCenter: React.FC = () => {
       const subscription = notificationService.subscribeToNotifications(
         user.id,
         (newNotification) => {
+          console.log('🔔 NotificationCenter: New notification received:', newNotification);
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
           
           // Show browser notification if permission granted
-          if (Notification.permission === 'granted') {
-            new Notification(newNotification.title, {
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new window.Notification(newNotification.title, {
               body: newNotification.message,
               icon: '/favicon.ico'
             });
+          } else if ('Notification' in window && Notification.permission === 'default') {
+            // Request permission
+            Notification.requestPermission();
           }
         }
       );
 
       return () => {
+        console.log('🔔 NotificationCenter: Cleaning up subscription');
         subscription.unsubscribe();
       };
     }

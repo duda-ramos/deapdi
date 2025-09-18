@@ -62,6 +62,8 @@ export const notificationService = {
 
   // Real-time subscription for notifications
   subscribeToNotifications(profileId: string, callback: (notification: Notification) => void) {
+    console.log('🔔 Notifications: Setting up subscription for profile:', profileId);
+    
     return supabase
       .channel(`notifications_${profileId}`)
       .on(
@@ -73,9 +75,12 @@ export const notificationService = {
           filter: `profile_id=eq.${profileId}`
         },
         (payload) => {
+          console.log('🔔 Notifications: Received real-time notification:', payload);
           callback(payload.new as Notification);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔔 Notifications: Subscription status:', status);
+      });
   }
 };

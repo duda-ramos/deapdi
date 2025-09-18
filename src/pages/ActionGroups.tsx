@@ -35,33 +35,8 @@ const ActionGroups: React.FC = () => {
   const loadGroups = async () => {
     try {
       setLoading(true);
-      // TODO: Implement getActionGroups in databaseService
-      // const data = await databaseService.getActionGroups();
-      // setGroups(data || []);
-      
-      // Mock data for now
-      setGroups([
-        {
-          id: '1',
-          title: 'Projeto de Melhoria de Processos',
-          description: 'Grupo focado em otimizar os processos internos da empresa',
-          deadline: '2024-03-15',
-          status: 'active',
-          created_by: user?.id || '',
-          created_at: '2024-01-15T10:00:00Z',
-          updated_at: '2024-01-15T10:00:00Z'
-        },
-        {
-          id: '2',
-          title: 'Implementação de Nova Tecnologia',
-          description: 'Avaliação e implementação de novas ferramentas tecnológicas',
-          deadline: '2024-04-20',
-          status: 'active',
-          created_by: user?.id || '',
-          created_at: '2024-01-10T14:30:00Z',
-          updated_at: '2024-01-10T14:30:00Z'
-        }
-      ]);
+      const data = await databaseService.getActionGroups(user?.id);
+      setGroups(data || []);
     } catch (error) {
       console.error('Erro ao carregar grupos:', error);
     } finally {
@@ -83,8 +58,15 @@ const ActionGroups: React.FC = () => {
     if (!user) return;
 
     try {
-      // TODO: Implement createActionGroup in databaseService
-      console.log('Creating group:', formData);
+      const newGroup = {
+        title: formData.title,
+        description: formData.description,
+        deadline: formData.deadline,
+        status: 'active' as const,
+        created_by: user.id
+      };
+      
+      await databaseService.createActionGroup(newGroup);
       
       setShowCreateModal(false);
       setFormData({
@@ -93,6 +75,7 @@ const ActionGroups: React.FC = () => {
         deadline: '',
         participants: []
       });
+      
       loadGroups();
     } catch (error) {
       console.error('Erro ao criar grupo:', error);

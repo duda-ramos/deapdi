@@ -25,7 +25,23 @@ const CareerTrack: React.FC = () => {
     try {
       setLoading(true);
       const track = await databaseService.getCareerTrack(user.id);
-      setCareerTrack(track);
+      
+      if (!track) {
+        // Create a default career track if none exists
+        const defaultTrack = {
+          profession: user.position,
+          current_stage: user.level,
+          progress: 0,
+          next_stage: getNextStage(user.level),
+          track_type: 'development' as const,
+          profile_id: user.id
+        };
+        
+        const newTrack = await databaseService.createCareerTrack(defaultTrack);
+        setCareerTrack(newTrack);
+      } else {
+        setCareerTrack(track);
+      }
     } catch (error) {
       console.error('Erro ao carregar trilha de carreira:', error);
     } finally {
@@ -33,6 +49,11 @@ const CareerTrack: React.FC = () => {
     }
   };
 
+  const getNextStage = (currentLevel: string): string | null => {
+    const stages = ['Estagiário', 'Assistente', 'Júnior', 'Pleno', 'Sênior', 'Especialista', 'Principal'];
+    const currentIndex = stages.indexOf(currentLevel);
+    return currentIndex >= 0 && currentIndex < stages.length - 1 ? stages[currentIndex + 1] : null;
+  };
   const developmentStages = [
     { name: 'Estagiário', level: 1, description: 'Início da jornada profissional' },
     { name: 'Assistente', level: 2, description: 'Desenvolvimento de habilidades básicas' },
