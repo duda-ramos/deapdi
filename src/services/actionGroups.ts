@@ -160,57 +160,6 @@ export const actionGroupService = {
       throw error;
     }
   },
-            .from('action_groups')
-            .select(`
-              *,
-              created_by_profile:profiles!created_by(id, name, avatar_url),
-              tasks:tasks(
-                id,
-                title,
-                description,
-                deadline,
-                status,
-                assignee:profiles!assignee_id(id, name, avatar_url)
-              )
-            `)
-            .eq('created_by', profileId || '')
-            .order('created_at', { ascending: false });
-            
-          const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-          
-          if (fallbackError) {
-            throw fallbackError;
-          }
-          
-          // Return groups with empty participants array
-          return (fallbackData || []).map(group => ({
-            ...group,
-            participants: [],
-            member_contributions: []
-          }));
-        }
-        console.error('👥 ActionGroups: Error fetching groups:', error);
-        throw error;
-      }
-
-      // Get member contributions for each group
-      const groupsWithContributions = await Promise.all(
-        (data || []).map(async (group) => {
-          const contributions = await this.getMemberContributions(group.id);
-          return {
-            ...group,
-            member_contributions: contributions
-          };
-        })
-      );
-
-      console.log('👥 ActionGroups: Groups fetched:', groupsWithContributions.length);
-      return groupsWithContributions;
-    } catch (error) {
-      console.error('👥 ActionGroups: Critical error fetching groups:', error);
-      throw error;
-    }
-  },
 
   async createGroup(groupData: CreateGroupData, createdBy: string): Promise<ActionGroup> {
     console.log('👥 ActionGroups: Creating group:', groupData.title);
