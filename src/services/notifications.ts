@@ -61,10 +61,14 @@ export const notificationService = {
   },
 
   // Real-time subscription for notifications
-  subscribeToNotifications(profileId: string, callback: (notification: Notification) => void) {
+  subscribeToNotifications(
+    profileId: string, 
+    callback: (notification: Notification) => void,
+    statusCallback?: (status: string) => void
+  ) {
     console.log('🔔 Notifications: Setting up subscription for profile:', profileId);
     
-    return supabase
+    const channel = supabase
       .channel(`notifications_${profileId}`)
       .on(
         'postgres_changes',
@@ -76,11 +80,21 @@ export const notificationService = {
         },
         (payload) => {
           console.log('🔔 Notifications: Received real-time notification:', payload);
-          callback(payload.new as Notification);
+          if (payload.new) {
+            callback(payload.new as Notification);
+          }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('🔔 Notifications: Subscription status:', status);
+        if (err) {
+          console.error('🔔 Notifications: Subscription error:', err);
+        }
+        if (statusCallback) {
+          statusCallback(status);
+        }
       });
+    
+    return channel;
   }
 };

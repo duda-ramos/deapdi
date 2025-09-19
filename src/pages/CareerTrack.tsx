@@ -24,10 +24,13 @@ const CareerTrack: React.FC = () => {
 
     try {
       setLoading(true);
-      const track = await databaseService.getCareerTrack(user.id);
+      console.log('🎯 CareerTrack: Loading career track for user:', user.id);
+      
+      let track = await databaseService.getCareerTrack(user.id);
+      console.log('🎯 CareerTrack: Track found:', !!track);
       
       if (!track) {
-        // Create a default career track if none exists
+        console.log('🎯 CareerTrack: No track found, creating default...');
         const defaultTrack = {
           profession: user.position,
           current_stage: user.level,
@@ -37,13 +40,44 @@ const CareerTrack: React.FC = () => {
           profile_id: user.id
         };
         
-        const newTrack = await databaseService.createCareerTrack(defaultTrack);
-        setCareerTrack(newTrack);
+        try {
+          const newTrack = await databaseService.createCareerTrack(defaultTrack);
+          console.log('🎯 CareerTrack: Default track created:', newTrack.id);
+          setCareerTrack(newTrack);
+        } catch (createError) {
+          console.error('🎯 CareerTrack: Error creating default track:', createError);
+          // Set a minimal track object to prevent UI crashes
+          setCareerTrack({
+            id: 'temp',
+            profession: user.position,
+            current_stage: user.level,
+            progress: 0,
+            next_stage: getNextStage(user.level),
+            track_type: 'development',
+            profile_id: user.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        }
       } else {
+        console.log('🎯 CareerTrack: Using existing track');
         setCareerTrack(track);
       }
     } catch (error) {
-      console.error('Erro ao carregar trilha de carreira:', error);
+      console.error('🎯 CareerTrack: Critical error loading career track:', error);
+      
+      // Provide fallback data to prevent UI crash
+      setCareerTrack({
+        id: 'fallback',
+        profession: user?.position || 'Colaborador',
+        current_stage: user?.level || 'Júnior',
+        progress: 0,
+        next_stage: getNextStage(user?.level || 'Júnior'),
+        track_type: 'development',
+        profile_id: user?.id || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
     } finally {
       setLoading(false);
     }

@@ -67,11 +67,26 @@ export const databaseService = {
 
   // Career Tracks
   async getCareerTrack(profileId: string) {
-    return supabaseRequest(() => supabase
-      .from('career_tracks')
-      .select('*')
-      .eq('profile_id', profileId)
-      .maybeSingle(), 'getCareerTrack');
+    console.log('🗄️ Database: Getting career track for profile:', profileId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('career_tracks')
+        .select('*')
+        .eq('profile_id', profileId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('🗄️ Database: Career track query error:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Career track result:', !!data);
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Career track fetch failed:', error);
+      return null; // Return null instead of throwing to allow fallback handling
+    }
   },
 
   async updateCareerTrack(profileId: string, updates: Partial<CareerTrack>) {
@@ -252,37 +267,9 @@ export const databaseService = {
   async getActionGroups(profileId?: string) {
     console.log('🗄️ Database: Getting action groups for profile:', profileId);
     
-    if (profileId) {
-      // First, get groups where user is the creator
-      const { data: createdGroups, error: createdError } = await supabase
-        .from('action_groups')
-        .select(`
-          *,
-          created_by_profile:profiles!created_by(name),
-          participants:action_group_participants(
-            id,
-            role,
-            profile:profiles(id, name, avatar_url)
-          )
-        `)
-        .eq('created_by', profileId)
-        .order('created_at', { ascending: false });
-
-      if (createdError) throw createdError;
-
-      // Second, get group IDs where user is a participant
-      const { data: participantGroups, error: participantError } = await supabase
-        .from('action_group_participants')
-        .select('group_id')
-        .eq('profile_id', profileId);
-
-      if (participantError) throw participantError;
-
-      const participantGroupIds = participantGroups?.map(p => p.group_id) || [];
-
-      // Third, get groups where user is a participant (if any)
-      let joinedGroups: any[] = [];
-      if (participantGroupIds.length > 0) {
+    try {
+      if (profileId) {
+        // First, get groups where user is the creator
         const { data, error } = await supabase
           .from('action_groups')
           .select(`
@@ -294,63 +281,263 @@ export const databaseService = {
               profile:profiles(id, name, avatar_url)
             )
           `)
-          .in('id', participantGroupIds)
+          .eq('created_by', profileId)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        joinedGroups = data || [];
+        if (error) {
+          console.error('🗄️ Database: Error fetching created groups:', error);
+          throw error;
+        }
+
+        const createdGroups = data || [];
+        console.log('🗄️ Database: Created groups found:', createdGroups.length);
+
+        // Second, get group IDs where user is a participant
+        const { data: participantData, error: participantError } = await supabase
+          .from('action_group_participants')
+          .select('group_id')
+          .eq('profile_id', profileId);
+
+        if (participantError) {
+          console.error('🗄️ Database: Error fetching participant groups:', participantError);
+          // Don't throw, just log and continue with created groups only
+          console.log('🗄️ Database: Continuing with created groups only');
+          return createdGroups;
+        }
+
+        const participantGroupIds = participantData?.map(p => p.group_id) || [];
+        console.log('🗄️ Database: Participant group IDs:', participantGroupIds.length);
+
+        // Third, get groups where user is a participant (if any)
+        let joinedGroups: any[] = [];
+        if (participantGroupIds.length > 0) {
+          const { data: joinedData, error: joinedError } = await supabase
+            .from('action_groups')
+            .select(`
+              *,
+              created_by_profile:profiles!created_by(name),
+              participants:action_group_participants(
+                id,
+                role,
+                profile:profiles(id, name, avatar_url)
+              )
+            `)
+            .in('id', participantGroupIds)
+            .order('created_at', { ascending: false });
+
+          if (joinedError) {
+            console.error('🗄️ Database: Error fetching joined groups:', joinedError);
+            // Continue with created groups only
+          } else {
+            joinedGroups = joinedData || [];
+            console.log('🗄️ Database: Joined groups found:', joinedGroups.length);
+          }
+        }
+
+        // Combine and deduplicate results
+        const allGroups = [...createdGroups, ...joinedGroups];
+        const uniqueGroups = allGroups.filter((group, index, self) => 
+          index === self.findIndex(g => g.id === group.id)
+        );
+
+        console.log('🗄️ Database: Final action groups result:', { count: uniqueGroups.length });
+        return uniqueGroups;
+      } else {
+        // Get all groups if no profileId specified
+        const { data, error } = await supabase
+          .from('action_groups')
+          .select(`
+            *,
+            created_by_profile:profiles!created_by(name),
+            participants:action_group_participants(
+              id,
+              role,
+              profile:profiles(id, name, avatar_url)
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('🗄️ Database: Error fetching all groups:', error);
+          throw error;
+        }
+        
+        console.log('🗄️ Database: All action groups result:', { count: data?.length });
+        return data;
       }
-
-      // Combine and deduplicate results
-      const allGroups = [...(createdGroups || []), ...joinedGroups];
-      const uniqueGroups = allGroups.filter((group, index, self) => 
-        index === self.findIndex(g => g.id === group.id)
-      );
-
-      console.log('🗄️ Database: Action groups result:', { count: uniqueGroups.length });
-      return uniqueGroups;
-    } else {
-      // Get all groups if no profileId specified
-      const { data, error } = await supabase
-        .from('action_groups')
-        .select(`
-          *,
-          created_by_profile:profiles!created_by(name),
-          participants:action_group_participants(
-            id,
-            role,
-            profile:profiles(id, name, avatar_url)
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      console.log('🗄️ Database: Action groups result:', { count: data?.length });
-      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error in getActionGroups:', error);
+      return []; // Return empty array as fallback
     }
   },
 
   async createActionGroup(group: Omit<ActionGroup, 'id' | 'created_at' | 'updated_at'>) {
     console.log('🗄️ Database: Creating action group:', group);
-    const { data, error } = await supabase
-      .from('action_groups')
-      .insert(group)
-      .select()
-      .single();
+    
+    try {
+      const { data, error } = await supabase
+        .from('action_groups')
+        .insert(group)
+        .select()
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('🗄️ Database: Error creating action group:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Action group created successfully:', data.id);
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error creating action group:', error);
+      throw error;
+    }
   },
 
   async updateActionGroup(id: string, updates: Partial<ActionGroup>) {
-    const { data, error } = await supabase
-      .from('action_groups')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+    console.log('🗄️ Database: Updating action group:', id, updates);
+    
+    try {
+      const { data, error } = await supabase
+        .from('action_groups')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('🗄️ Database: Error updating action group:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Action group updated successfully');
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error updating action group:', error);
+      throw error;
+    }
+  },
+
+  // Add missing action group participants methods
+  async addGroupParticipant(groupId: string, profileId: string, role: 'leader' | 'member' = 'member') {
+    console.log('🗄️ Database: Adding participant to group:', { groupId, profileId, role });
+    
+    try {
+      const { data, error } = await supabase
+        .from('action_group_participants')
+        .insert({
+          group_id: groupId,
+          profile_id: profileId,
+          role: role
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('🗄️ Database: Error adding group participant:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Participant added successfully');
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error adding participant:', error);
+      throw error;
+    }
+  },
+
+  async removeGroupParticipant(groupId: string, profileId: string) {
+    console.log('🗄️ Database: Removing participant from group:', { groupId, profileId });
+    
+    try {
+      const { error } = await supabase
+        .from('action_group_participants')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('profile_id', profileId);
+
+      if (error) {
+        console.error('🗄️ Database: Error removing group participant:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Participant removed successfully');
+    } catch (error) {
+      console.error('🗄️ Database: Critical error removing participant:', error);
+      throw error;
+    }
+  },
+
+  async getGroupTasks(groupId: string) {
+    console.log('🗄️ Database: Getting tasks for group:', groupId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:profiles!assignee_id(id, name, avatar_url)
+        `)
+        .eq('group_id', groupId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('🗄️ Database: Error fetching group tasks:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Group tasks result:', { count: data?.length });
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error fetching group tasks:', error);
+      return []; // Return empty array as fallback
+    }
+  },
+
+  async createTask(task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) {
+    console.log('🗄️ Database: Creating task:', task);
+    
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert(task)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('🗄️ Database: Error creating task:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Task created successfully:', data.id);
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error creating task:', error);
+      throw error;
+    }
+  },
+
+  async updateTask(id: string, updates: Partial<Task>) {
+    console.log('🗄️ Database: Updating task:', id, updates);
+    
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('🗄️ Database: Error updating task:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Task updated successfully');
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error updating task:', error);
+      throw error;
+    }
   }
 };

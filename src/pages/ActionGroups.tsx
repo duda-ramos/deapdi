@@ -223,12 +223,12 @@ const ActionGroups: React.FC = () => {
 
                   <div className="flex items-center text-sm text-gray-600">
                     <Users size={16} className="mr-2" />
-                    <span>5 participantes</span> {/* TODO: Get real participant count */}
+                    <span>{group.participants?.length || 0} participantes</span>
                   </div>
 
                   <div className="flex items-center text-sm text-gray-600">
                     <Target size={16} className="mr-2" />
-                    <span>3 tarefas pendentes</span> {/* TODO: Get real task count */}
+                    <span>{group.tasks?.length || 0} tarefas</span>
                   </div>
                 </div>
               </Card>
@@ -333,23 +333,23 @@ const ActionGroups: React.FC = () => {
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">Participantes</h4>
                 <div className="space-y-2">
-                  {/* TODO: Load real participants */}
-                  <div className="flex items-center space-x-2">
-                    <img
-                      src="https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face"
-                      alt="Participante"
-                      className="w-6 h-6 rounded-full"
-                    />
-                    <span className="text-sm">João Silva (Líder)</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <img
-                      src="https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?w=32&h=32&fit=crop&crop=face"
-                      alt="Participante"
-                      className="w-6 h-6 rounded-full"
-                    />
-                    <span className="text-sm">Maria Santos</span>
-                  </div>
+                  {selectedGroup.participants && selectedGroup.participants.length > 0 ? (
+                    selectedGroup.participants.map((participant: any) => (
+                      <div key={participant.id} className="flex items-center space-x-2">
+                        <img
+                          src={participant.profile?.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face'}
+                          alt={participant.profile?.name}
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                        <span className="text-sm">
+                          {participant.profile?.name} 
+                          {participant.role === 'leader' && ' (Líder)'}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">Nenhum participante adicionado ainda</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -357,21 +357,28 @@ const ActionGroups: React.FC = () => {
             <div>
               <h4 className="font-medium text-gray-900 mb-3">Tarefas</h4>
               <div className="space-y-2">
-                {/* TODO: Load real tasks */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle size={16} className="text-green-500" />
-                    <span className="text-sm">Análise de requisitos</span>
-                  </div>
-                  <span className="text-xs text-gray-500">Concluída</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Clock size={16} className="text-blue-500" />
-                    <span className="text-sm">Desenvolvimento da solução</span>
-                  </div>
-                  <span className="text-xs text-gray-500">Em progresso</span>
-                </div>
+                {selectedGroup.tasks && selectedGroup.tasks.length > 0 ? (
+                  selectedGroup.tasks.map((task: any) => (
+                    <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        {task.status === 'done' ? (
+                          <CheckCircle size={16} className="text-green-500" />
+                        ) : task.status === 'in-progress' ? (
+                          <Clock size={16} className="text-blue-500" />
+                        ) : (
+                          <AlertTriangle size={16} className="text-gray-500" />
+                        )}
+                        <span className="text-sm">{task.title}</span>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {task.status === 'done' ? 'Concluída' :
+                         task.status === 'in-progress' ? 'Em progresso' : 'Pendente'}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">Nenhuma tarefa criada ainda</p>
+                )}
               </div>
             </div>
           </div>

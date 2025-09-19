@@ -13,18 +13,34 @@ export const NotificationCenter: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const maxReconnectAttempts = 5;
 
   useEffect(() => {
     if (user) {
       loadNotifications();
       
-      // Subscribe to real-time notifications
+      setupNotificationSubscription();
+    }
+  }, [user, reconnectAttempts]);
+
+  const setupNotificationSubscription = () => {
+    if (!user) return;
+    
+    console.log('🔔 NotificationCenter: Setting up subscription, attempt:', reconnectAttempts + 1);
+    setSubscriptionStatus('connecting');
+    
+    try {
+      // Subscribe to real-time notifications with enhanced error handling
       const subscription = notificationService.subscribeToNotifications(
         user.id,
         (newNotification) => {
           console.log('🔔 NotificationCenter: New notification received:', newNotification);
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
+          setSubscriptionStatus('connected');
+          setReconnectAttempts(0); // Reset attempts on successful message
           
           // Show browser notification if permission granted
           if ('Notification' in window && Notification.permission === 'granted') {
@@ -36,15 +52,42 @@ export const NotificationCenter: React.FC = () => {
             // Request permission
             Notification.requestPermission();
           }
+        },
+        (status) => {
+          console.log('🔔 NotificationCenter: Subscription status changed:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            setSubscriptionStatus('connected');
+            setReconnectAttempts(0);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setSubscriptionStatus('disconnected');
+            
+            // Attempt reconnection with exponential backoff
+            if (reconnectAttempts < maxReconnectAttempts) {
+              const delay = Math.pow(2, reconnectAttempts) * 1000; // 1s, 2s, 4s, 8s, 16s
+              console.log(`🔔 NotificationCenter: Reconnecting in ${delay}ms...`);
+              
+              setTimeout(() => {
+                setReconnectAttempts(prev => prev + 1);
+              }, delay);
+            } else {
+              console.error('🔔 NotificationCenter: Max reconnection attempts reached');
+            }
+          }
         }
       );
 
       return () => {
         console.log('🔔 NotificationCenter: Cleaning up subscription');
-        subscription.unsubscribe();
+        if (subscription) {
+          subscription.unsubscribe();
+        }
       };
+    } catch (error) {
+      console.error('🔔 NotificationCenter: Subscription setup failed:', error);
+      setSubscriptionStatus('disconnected');
     }
-  }, [user]);
+  };
 
   const loadNotifications = async () => {
     if (!user) return;
