@@ -6,6 +6,7 @@ import { useAchievements } from '../contexts/AchievementContext';
 import { achievementService, AchievementProgress } from '../services/achievements';
 import { Achievement } from '../types';
 import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { ErrorMessage } from '../utils/errorMessages';
 import { Badge } from '../components/ui/Badge';
