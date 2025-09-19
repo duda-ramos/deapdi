@@ -206,7 +206,7 @@ const Achievements: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Suas conquistas aparecerão aqui!
           </h3>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-4">
             Complete atividades, PDIs e cursos para desbloquear suas primeiras conquistas.
           </p>
           <div className="mt-6 space-y-2">
@@ -214,6 +214,7 @@ const Achievements: React.FC = () => {
               <Target size={16} className="mr-2" />
               Criar Primeiro PDI
             </Button>
+          </div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
