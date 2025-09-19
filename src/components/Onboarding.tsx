@@ -28,6 +28,90 @@ import { Textarea } from './ui/Textarea';
 import { Select } from './ui/Select';
 import { Badge } from './ui/Badge';
 
+interface SkillInputProps {
+  type: 'hard_skills' | 'soft_skills' | 'certifications' | 'development_interests';
+  label: string;
+  suggestions: string[];
+  formData: OnboardingData;
+  errors: Record<string, string>;
+  addSkill: (type: 'hard_skills' | 'soft_skills' | 'certifications' | 'development_interests', skill: string) => void;
+  removeSkill: (type: 'hard_skills' | 'soft_skills' | 'certifications' | 'development_interests', index: number) => void;
+}
+
+const SkillInput: React.FC<SkillInputProps> = ({ type, label, suggestions, formData, errors, addSkill, removeSkill }) => {
+  const [inputValue, setInputValue] = useState('');
+  
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <div className="space-y-2">
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder={`Digite ${label.toLowerCase()}`}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addSkill(type, inputValue);
+                setInputValue('');
+              }
+            }}
+          />
+          <Button
+            type="button"
+            onClick={() => {
+              addSkill(type, inputValue);
+              setInputValue('');
+            }}
+            disabled={!inputValue.trim()}
+          >
+            Adicionar
+          </Button>
+        </div>
+        
+        {/* Suggestions */}
+        <div className="flex flex-wrap gap-2">
+          {suggestions.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => {
+                addSkill(type, suggestion);
+              }}
+              className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              disabled={formData[type].includes(suggestion)}
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+        
+        {/* Selected skills */}
+        <div className="flex flex-wrap gap-2">
+          {formData[type].map((skill, index) => (
+            <Badge key={index} variant="info" className="flex items-center space-x-1">
+              <span>{skill}</span>
+              <button
+                type="button"
+                onClick={() => removeSkill(type, index)}
+                className="ml-1 text-blue-600 hover:text-blue-800"
+              >
+                ×
+              </button>
+            </Badge>
+          ))}
+        </div>
+      </div>
+      {errors[type] && (
+        <p className="text-sm text-red-600 mt-1">{errors[type]}</p>
+      )}
+    </div>
+  );
+};
+
 interface OnboardingData {
   // Step 1 - Personal Info
   name: string;
@@ -325,84 +409,6 @@ export const Onboarding: React.FC = () => {
     }));
   };
 
-  const renderSkillInput = (
-    type: 'hard_skills' | 'soft_skills' | 'certifications' | 'development_interests',
-    label: string,
-    suggestions: string[]
-  ) => {
-    const [inputValue, setInputValue] = useState('');
-    
-    return (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-        <div className="space-y-2">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder={`Digite ${label.toLowerCase()}`}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addSkill(type, inputValue);
-                  setInputValue('');
-                }
-              }}
-            />
-            <Button
-              type="button"
-              onClick={() => {
-                addSkill(type, inputValue);
-                setInputValue('');
-              }}
-              disabled={!inputValue.trim()}
-            >
-              Adicionar
-            </Button>
-          </div>
-          
-          {/* Suggestions */}
-          <div className="flex flex-wrap gap-2">
-            {suggestions.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => {
-                  addSkill(type, suggestion);
-                }}
-                className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-                disabled={formData[type].includes(suggestion)}
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
-          
-          {/* Selected skills */}
-          <div className="flex flex-wrap gap-2">
-            {formData[type].map((skill, index) => (
-              <Badge key={index} variant="info" className="flex items-center space-x-1">
-                <span>{skill}</span>
-                <button
-                  type="button"
-                  onClick={() => removeSkill(type, index)}
-                  className="ml-1 text-blue-600 hover:text-blue-800"
-                >
-                  ×
-                </button>
-              </Badge>
-            ))}
-          </div>
-        </div>
-        {errors[type] && (
-          <p className="text-sm text-red-600 mt-1">{errors[type]}</p>
-        )}
-      </div>
-    );
-  };
-
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -560,23 +566,35 @@ export const Onboarding: React.FC = () => {
               rows={3}
             />
 
-            {renderSkillInput(
-              'certifications',
-              'Certificações',
-              ['AWS Certified', 'Google Cloud', 'Microsoft Azure', 'Scrum Master', 'PMP', 'ITIL']
-            )}
+            <SkillInput
+              type="certifications"
+              label="Certificações"
+              suggestions={['AWS Certified', 'Google Cloud', 'Microsoft Azure', 'Scrum Master', 'PMP', 'ITIL']}
+              formData={formData}
+              errors={errors}
+              addSkill={addSkill}
+              removeSkill={removeSkill}
+            />
 
-            {renderSkillInput(
-              'hard_skills',
-              'Hard Skills (mínimo 3) *',
-              ['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Java', 'SQL', 'Docker', 'AWS', 'Git']
-            )}
+            <SkillInput
+              type="hard_skills"
+              label="Hard Skills (mínimo 3) *"
+              suggestions={['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Java', 'SQL', 'Docker', 'AWS', 'Git']}
+              formData={formData}
+              errors={errors}
+              addSkill={addSkill}
+              removeSkill={removeSkill}
+            />
 
-            {renderSkillInput(
-              'soft_skills',
-              'Soft Skills (mínimo 3) *',
-              ['Liderança', 'Comunicação', 'Trabalho em Equipe', 'Resolução de Problemas', 'Criatividade', 'Adaptabilidade']
-            )}
+            <SkillInput
+              type="soft_skills"
+              label="Soft Skills (mínimo 3) *"
+              suggestions={['Liderança', 'Comunicação', 'Trabalho em Equipe', 'Resolução de Problemas', 'Criatividade', 'Adaptabilidade']}
+              formData={formData}
+              errors={errors}
+              addSkill={addSkill}
+              removeSkill={removeSkill}
+            />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Idiomas</label>
@@ -723,11 +741,15 @@ export const Onboarding: React.FC = () => {
               rows={4}
             />
 
-            {renderSkillInput(
-              'development_interests',
-              'Áreas de Interesse para Desenvolvimento',
-              ['Liderança', 'Gestão de Projetos', 'Tecnologia', 'Vendas', 'Marketing', 'Finanças', 'RH']
-            )}
+            <SkillInput
+              type="development_interests"
+              label="Áreas de Interesse para Desenvolvimento"
+              suggestions={['Liderança', 'Gestão de Projetos', 'Tecnologia', 'Vendas', 'Marketing', 'Finanças', 'RH']}
+              formData={formData}
+              errors={errors}
+              addSkill={addSkill}
+              removeSkill={removeSkill}
+            />
 
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
