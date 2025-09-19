@@ -589,21 +589,8 @@ export const mentalHealthService = {
     console.log('🧠 MentalHealth: Getting mental health statistics');
 
     try {
-      const { data, error } = await supabase.rpc('get_mental_health_stats');
+      const data = await supabaseRequest(() => supabase.rpc('get_mental_health_stats'), 'getMentalHealthStats');
       
-      if (error) {
-        console.error('🧠 MentalHealth: Error getting stats:', error);
-        // Return default stats if function doesn't exist
-        return {
-          total_employees_participating: 0,
-          average_mood_score: 0,
-          sessions_this_month: 0,
-          high_risk_responses: 0,
-          active_alerts: 0,
-          wellness_resources_accessed: 0
-        };
-      }
-
       return data || {
         total_employees_participating: 0,
         average_mood_score: 0,
@@ -614,6 +601,7 @@ export const mentalHealthService = {
       };
     } catch (error) {
       console.error('🧠 MentalHealth: Error getting stats:', error);
+      // Return default stats if RPC function doesn't exist or has errors
       return {
         total_employees_participating: 0,
         average_mood_score: 0,
