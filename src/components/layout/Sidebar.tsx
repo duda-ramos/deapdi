@@ -39,6 +39,7 @@ const sidebarItems: SidebarItem[] = [
   { id: 'reports', label: 'Relatórios', icon: <FileText size={20} />, path: '/reports', roles: ['admin', 'hr', 'manager'] },
   { id: 'users', label: 'Gerenciar Usuários', icon: <UserCog size={20} />, path: '/users', roles: ['admin', 'hr'] },
   { id: 'hr', label: 'Área de RH', icon: <Heart size={20} />, path: '/hr', roles: ['admin', 'hr'] },
+  { id: 'career-management', label: 'Gerenciar Trilhas', icon: <TrendingUp size={20} />, path: '/career-management', roles: ['admin', 'hr'] },
   { id: 'admin', label: 'Administração', icon: <Settings size={20} />, path: '/admin', roles: ['admin'] },
 ];
 

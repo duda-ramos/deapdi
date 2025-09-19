@@ -72,7 +72,10 @@ export const databaseService = {
     try {
       const { data, error } = await supabase
         .from('career_tracks')
-        .select('*')
+        .select(`
+          *,
+          template:career_track_templates(name, profession, stages)
+        `)
         .eq('profile_id', profileId)
         .maybeSingle();
       
@@ -90,6 +93,8 @@ export const databaseService = {
   },
 
   async updateCareerTrack(profileId: string, updates: Partial<CareerTrack>) {
+    console.log('🗄️ Database: Updating career track for profile:', profileId, updates);
+    
     return supabaseRequest(() => supabase
       .from('career_tracks')
       .update(updates)
@@ -99,6 +104,8 @@ export const databaseService = {
   },
 
   async createCareerTrack(careerTrack: Omit<CareerTrack, 'id' | 'created_at' | 'updated_at'>) {
+    console.log('🗄️ Database: Creating career track:', careerTrack);
+    
     return supabaseRequest(() => supabase
       .from('career_tracks')
       .insert(careerTrack)

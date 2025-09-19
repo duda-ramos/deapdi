@@ -14,3 +14,4 @@ export const LazyReports = lazy(() => import('../pages/Reports'));
 export const LazyHRArea = lazy(() => import('../pages/HRArea'));
 export const LazyAdministration = lazy(() => import('../pages/Administration'));
 export const LazyUserManagement = lazy(() => import('../pages/UserManagement'));
+export const LazyCareerTrackManagement = lazy(() => import('../pages/CareerTrackManagement'));

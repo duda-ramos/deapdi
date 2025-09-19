@@ -21,7 +21,8 @@ import {
   LazyReports,
   LazyHRArea,
   LazyAdministration,
-  LazyUserManagement
+  LazyUserManagement,
+  LazyCareerTrackManagement
 } from './components/LazyComponents';
 
 const useSupabaseSetup = () => {
@@ -196,6 +197,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <LazyAdministration />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/career-management"
+        element={
+          <ProtectedRoute>
+            <LazyCareerTrackManagement />
           </ProtectedRoute>
         }
       />
