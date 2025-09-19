@@ -267,7 +267,7 @@ export const achievementService = {
     }
   },
 
-  private async getUserMentorshipIds(profileId: string): Promise<string[]> {
+  async getUserMentorshipIds(profileId: string): Promise<string[]> {
     try {
       const { data: mentorships, error } = await supabase
         .from('mentorships')
