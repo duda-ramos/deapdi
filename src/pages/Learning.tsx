@@ -542,11 +542,10 @@ const Learning: React.FC = () => {
             <div className="flex justify-between pt-4 border-t">
               <div>
                 {selectedCourse.enrollment?.status === 'completed' && (
-                  <Button variant="success">
-                    <Button 
-                      variant="success"
-                      onClick={() => handleDownloadCertificate(selectedCourse.enrollment!.id)}
-                    >
+                  <Button 
+                    variant="success"
+                    onClick={() => handleDownloadCertificate(selectedCourse.enrollment!.id)}
+                  >
                     <Download size={16} className="mr-2" />
                     Baixar Certificado
                   </Button>
