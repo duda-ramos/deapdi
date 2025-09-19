@@ -338,9 +338,15 @@ export const Onboarding: React.FC = () => {
     try {
       setLoading(true);
 
-      // Update profile with all onboarding data
+      // Update profile with only database fields (exclude UI-specific fields)
+      const {
+        terms_accepted,
+        privacy_accepted,
+        ...profileData
+      } = formData;
+
       await databaseService.updateProfile(user.id, {
-        ...formData,
+        ...profileData,
         is_onboarded: true,
         onboarding_completed_at: new Date().toISOString(),
         onboarding_progress: null
