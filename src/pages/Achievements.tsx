@@ -172,7 +172,6 @@ const Achievements: React.FC = () => {
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-green-500 mr-3" />
             <div>
-              <div className="text-xl md:text-2xl font-bold text-gray-900">{Math.round((unlockedCount / achievementTemplates.length) * 100)}%</div>
               <div className="text-xl md:text-2xl font-bold text-gray-900">{Math.round((unlockedCount / achievementProgress.length) * 100)}%</div>
               <div className="text-sm text-gray-600">Progresso</div>
             </div>
@@ -201,90 +200,108 @@ const Achievements: React.FC = () => {
       </Card>
 
       {/* Achievements Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {filteredAchievements.map((achievement) => (
-          <motion.div
-            key={achievement.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: filteredAchievements.findIndex(a => a.templateId === achievement.templateId) * 0.1 }}
-          >
-            <Card className={`p-6 h-full transition-all ${
-              achievement.unlocked 
-                ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200' 
-                : 'bg-gray-50 border-gray-200'
-            }`}>
-              <div className="flex items-start justify-between mb-4">
-                <div className={`text-4xl ${achievement.unlocked ? '' : 'grayscale opacity-50'}`}>
-                  {achievement.unlocked ? achievement.icon : '🔒'}
+      {filteredAchievements.length === 0 ? (
+        <Card className="p-6 md:p-8 text-center">
+          <Trophy size={48} className="mx-auto mb-4 text-gray-300" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Suas conquistas aparecerão aqui!
+          </h3>
+          <p className="text-gray-600">
+            Complete atividades, PDIs e cursos para desbloquear suas primeiras conquistas.
+          </p>
+          <div className="mt-6 space-y-2">
+            <Button onClick={() => window.location.href = '/pdi'}>
+              <Target size={16} className="mr-2" />
+              Criar Primeiro PDI
+            </Button>
+          </p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {filteredAchievements.map((achievement) => (
+            <motion.div
+              key={achievement.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: filteredAchievements.findIndex(a => a.templateId === achievement.templateId) * 0.1 }}
+            >
+              <Card className={`p-6 h-full transition-all ${
+                achievement.unlocked 
+                  ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200' 
+                  : 'bg-gray-50 border-gray-200'
+              }`}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`text-4xl ${achievement.unlocked ? '' : 'grayscale opacity-50'}`}>
+                    {achievement.unlocked ? achievement.icon : '🔒'}
+                  </div>
+                  <div className="flex flex-col items-end space-y-2">
+                    <Badge variant={getCategoryBadgeVariant(achievement.category)}>
+                      {categories.find(c => c.id === achievement.category)?.label}
+                    </Badge>
+                    {achievement.unlocked && (
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-yellow-600">+{achievement.points}</div>
+                        <div className="text-xs text-gray-500">pontos</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-col items-end space-y-2">
-                  <Badge variant={getCategoryBadgeVariant(achievement.category)}>
-                    {categories.find(c => c.id === achievement.category)?.label}
-                  </Badge>
+
+                <div className="space-y-3">
+                  <div>
+                    <h3 className={`text-lg font-semibold ${
+                      achievement.unlocked ? 'text-gray-900' : 'text-gray-500'
+                    }`}>
+                      {achievement.title}
+                    </h3>
+                    <p className={`text-sm ${
+                      achievement.unlocked ? 'text-gray-600' : 'text-gray-400'
+                    }`}>
+                      {achievement.description}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-gray-700">Requisitos:</h4>
+                    <ul className="text-xs text-gray-600 space-y-1">
+                      {achievement.requirements.map((req, idx) => (
+                        <li key={idx} className="flex items-center space-x-2">
+                          {achievement.unlocked ? (
+                            <span className="text-green-500">✓</span>
+                          ) : (
+                            <span className="text-gray-400">○</span>
+                          )}
+                          <span>{req}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {!achievement.unlocked && achievement.progress !== undefined && achievement.maxProgress && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>Progresso</span>
+                        <span>{achievement.progress}/{achievement.maxProgress}</span>
+                      </div>
+                      <ProgressBar
+                        progress={(achievement.progress / achievement.maxProgress) * 100}
+                        color="blue"
+                      />
+                    </div>
+                  )}
+
                   {achievement.unlocked && (
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-yellow-600">+{achievement.points}</div>
-                      <div className="text-xs text-gray-500">pontos</div>
+                    <div className="flex items-center space-x-2 text-xs text-green-600">
+                      <Trophy size={12} />
+                      <span>Conquista desbloqueada!</span>
                     </div>
                   )}
                 </div>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <h3 className={`text-lg font-semibold ${
-                    achievement.unlocked ? 'text-gray-900' : 'text-gray-500'
-                  }`}>
-                    {achievement.title}
-                  </h3>
-                  <p className={`text-sm ${
-                    achievement.unlocked ? 'text-gray-600' : 'text-gray-400'
-                  }`}>
-                    {achievement.description}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-700">Requisitos:</h4>
-                  <ul className="text-xs text-gray-600 space-y-1">
-                    {achievement.requirements.map((req, idx) => (
-                      <li key={idx} className="flex items-center space-x-2">
-                        {achievement.unlocked ? (
-                          <span className="text-green-500">✓</span>
-                        ) : (
-                          <span className="text-gray-400">○</span>
-                        )}
-                        <span>{req}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {!achievement.unlocked && achievement.progress !== undefined && achievement.maxProgress && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-gray-600">
-                      <span>Progresso</span>
-                      <span>{achievement.progress}/{achievement.maxProgress}</span>
-                    </div>
-                    <ProgressBar
-                      progress={(achievement.progress / achievement.maxProgress) * 100}
-                      color="blue"
-                    />
-                  </div>
-                )}
-
-                {achievement.unlocked && (
-                  <div className="flex items-center space-x-2 text-xs text-green-600">
-                    <Trophy size={12} />
-                    <span>Conquista desbloqueada!</span>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Next Achievements */}
       <Card className="p-4 md:p-6">

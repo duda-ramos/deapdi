@@ -323,14 +323,14 @@ const Mentorship: React.FC = () => {
         <Card className="p-8 text-center">
           <Users size={48} className="mx-auto mb-4 text-gray-300" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Nenhuma mentoria encontrada
+            Acelere seu desenvolvimento com mentoria!
           </h3>
           <p className="text-gray-600 mb-4">
-            Comece solicitando mentoria com um especialista.
+            Conecte-se com mentores experientes para acelerar seu crescimento profissional.
           </p>
           <Button onClick={() => setShowRequestModal(true)}>
             <Plus size={20} className="mr-2" />
-            Solicitar Primeira Mentoria
+            Solicitar Mentoria
           </Button>
         </Card>
       ) : (

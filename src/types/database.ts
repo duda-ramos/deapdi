@@ -25,6 +25,24 @@ export interface Database {
           formation: string | null
           status: 'active' | 'inactive'
           personality_test_results: Json | null
+          is_onboarded: boolean
+          onboarding_progress: Json | null
+          onboarding_completed_at: string | null
+          birth_date: string | null
+          phone: string | null
+          location: string | null
+          admission_date: string | null
+          area: string | null
+          certifications: string[]
+          hard_skills: string[]
+          soft_skills: string[]
+          languages: Json | null
+          emergency_contact: string | null
+          mental_health_consent: boolean
+          preferred_session_type: string | null
+          career_objectives: string | null
+          development_interests: string[]
+          mentorship_availability: boolean
           created_at: string
           updated_at: string
         }
@@ -43,6 +61,24 @@ export interface Database {
           formation?: string | null
           status?: 'active' | 'inactive'
           personality_test_results?: Json | null
+          is_onboarded?: boolean
+          onboarding_progress?: Json | null
+          onboarding_completed_at?: string | null
+          birth_date?: string | null
+          phone?: string | null
+          location?: string | null
+          admission_date?: string | null
+          area?: string | null
+          certifications?: string[]
+          hard_skills?: string[]
+          soft_skills?: string[]
+          languages?: Json | null
+          emergency_contact?: string | null
+          mental_health_consent?: boolean
+          preferred_session_type?: string | null
+          career_objectives?: string | null
+          development_interests?: string[]
+          mentorship_availability?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -61,6 +97,24 @@ export interface Database {
           formation?: string | null
           status?: 'active' | 'inactive'
           personality_test_results?: Json | null
+          is_onboarded?: boolean
+          onboarding_progress?: Json | null
+          onboarding_completed_at?: string | null
+          birth_date?: string | null
+          phone?: string | null
+          location?: string | null
+          admission_date?: string | null
+          area?: string | null
+          certifications?: string[]
+          hard_skills?: string[]
+          soft_skills?: string[]
+          languages?: Json | null
+          emergency_contact?: string | null
+          mental_health_consent?: boolean
+          preferred_session_type?: string | null
+          career_objectives?: string | null
+          development_interests?: string[]
+          mentorship_availability?: boolean
           created_at?: string
           updated_at?: string
         }

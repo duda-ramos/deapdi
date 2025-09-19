@@ -295,10 +295,16 @@ const Learning: React.FC = () => {
         <Card className="p-6 md:p-8 text-center">
           <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Nenhum curso encontrado
+            Explore nossos cursos para começar sua jornada!
           </h3>
           <p className="text-gray-600">
-            Tente ajustar os filtros ou termos de busca.
+            Nossa biblioteca de cursos está sendo preparada. Em breve você terá acesso a conteúdos incríveis para seu desenvolvimento.
+          </p>
+          <div className="mt-6">
+            <Button onClick={() => window.location.href = '/competencies'}>
+              <BarChart3 size={16} className="mr-2" />
+              Avaliar Competências Primeiro
+            </Button>
           </p>
         </Card>
       ) : (

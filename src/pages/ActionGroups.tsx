@@ -327,15 +327,15 @@ const ActionGroups: React.FC = () => {
         <Card className="p-6 md:p-8 text-center">
           <Users size={48} className="mx-auto mb-4 text-gray-300" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Nenhum grupo encontrado
+            Colabore em projetos incríveis!
           </h3>
           <p className="text-gray-600 mb-4">
-            Comece criando seu primeiro grupo de ação colaborativo.
+            Os grupos de ação aparecerão aqui. Colabore com colegas em projetos e iniciativas estratégicas.
           </p>
           {(user?.role === 'manager' || user?.role === 'admin' || user?.role === 'hr') && (
             <Button onClick={() => setShowCreateModal(true)}>
               <Plus size={20} className="mr-2" />
-              Criar Primeiro Grupo
+              Criar Grupo de Ação
             </Button>
           )}
         </Card>

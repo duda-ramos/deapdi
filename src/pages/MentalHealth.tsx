@@ -419,14 +419,14 @@ const MentalHealth: React.FC = () => {
           <div className="text-center py-8">
             <Activity size={48} className="mx-auto mb-4 text-gray-300" />
             <h4 className="text-lg font-medium text-gray-900 mb-2">
-              Ainda não fez seu check-in hoje
+              Seu bem-estar é nossa prioridade
             </h4>
             <p className="text-gray-600 mb-4">
-              Reserve um momento para avaliar como você está se sentindo
+              Faça seu primeiro check-in emocional para começar a acompanhar seu bem-estar
             </p>
             <Button onClick={() => setShowCheckinModal(true)}>
               <Activity size={16} className="mr-2" />
-              Fazer Check-in Agora
+              Fazer Primeiro Check-in
             </Button>
           </div>
         )}
