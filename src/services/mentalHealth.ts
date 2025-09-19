@@ -153,22 +153,27 @@ export const mentalHealthService = {
   async getSessions(employeeId?: string, psychologistId?: string): Promise<PsychologySession[]> {
     console.log('🧠 MentalHealth: Getting sessions', { employeeId, psychologistId });
 
-    let query = supabase
-      .from('psychology_sessions')
-      .select(`
-        *,
-        employee:profiles!employee_id(id, name, avatar_url, position),
-        psychologist:profiles!psychologist_id(id, name, avatar_url, position)
-      `);
+    try {
+      let query = supabase
+        .from('psychology_sessions')
+        .select(`
+          *,
+          employee:profiles!employee_id(id, name, avatar_url, position),
+          psychologist:profiles!psychologist_id(id, name, avatar_url, position)
+        `);
 
-    if (employeeId) {
-      query = query.eq('employee_id', employeeId);
-    }
-    if (psychologistId) {
-      query = query.eq('psychologist_id', psychologistId);
-    }
+      if (employeeId) {
+        query = query.eq('employee_id', employeeId);
+      }
+      if (psychologistId) {
+        query = query.eq('psychologist_id', psychologistId);
+      }
 
-    return supabaseRequest(() => query.order('scheduled_date', { ascending: false }), 'getSessions');
+      return await supabaseRequest(() => query.order('scheduled_date', { ascending: false }), 'getSessions');
+    } catch (error) {
+      console.warn('🧠 MentalHealth: psychology_sessions table not found, returning empty array');
+      return [];
+    }
   },
 
   async createSession(session: Omit<PsychologySession, 'id' | 'created_at' | 'updated_at'>): Promise<PsychologySession> {
@@ -236,11 +241,16 @@ export const mentalHealthService = {
   async getActivities(employeeId: string): Promise<TherapeuticActivity[]> {
     console.log('🧠 MentalHealth: Getting activities for employee:', employeeId);
 
-    return supabaseRequest(() => supabase
-      .from('therapeutic_activities')
-      .select('*')
-      .eq('employee_id', employeeId)
-      .order('due_date', { ascending: true }), 'getActivities');
+    try {
+      return await supabaseRequest(() => supabase
+        .from('therapeutic_activities')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .order('due_date', { ascending: true }), 'getActivities');
+    } catch (error) {
+      console.warn('🧠 MentalHealth: therapeutic_activities table not found, returning empty array');
+      return [];
+    }
   },
 
   async createActivity(activity: Omit<TherapeuticActivity, 'id' | 'created_at' | 'updated_at'>): Promise<TherapeuticActivity> {
@@ -319,23 +329,28 @@ export const mentalHealthService = {
   async getFormResponses(employeeId?: string, formId?: string): Promise<FormResponse[]> {
     console.log('🧠 MentalHealth: Getting form responses', { employeeId, formId });
 
-    let query = supabase
-      .from('form_responses')
-      .select(`
-        *,
-        form:psychological_forms(title, form_type),
-        employee:profiles!employee_id(id, name, avatar_url),
-        reviewer:profiles!reviewed_by(id, name)
-      `);
+    try {
+      let query = supabase
+        .from('form_responses')
+        .select(`
+          *,
+          form:psychological_forms(title, form_type),
+          employee:profiles!employee_id(id, name, avatar_url),
+          reviewer:profiles!reviewed_by(id, name)
+        `);
 
-    if (employeeId) {
-      query = query.eq('employee_id', employeeId);
-    }
-    if (formId) {
-      query = query.eq('form_id', formId);
-    }
+      if (employeeId) {
+        query = query.eq('employee_id', employeeId);
+      }
+      if (formId) {
+        query = query.eq('form_id', formId);
+      }
 
-    return supabaseRequest(() => query.order('created_at', { ascending: false }), 'getFormResponses');
+      return await supabaseRequest(() => query.order('created_at', { ascending: false }), 'getFormResponses');
+    } catch (error) {
+      console.warn('🧠 MentalHealth: form_responses table not found, returning empty array');
+      return [];
+    }
   },
 
   async submitFormResponse(response: Omit<FormResponse, 'id' | 'created_at' | 'score' | 'risk_level'>): Promise<FormResponse> {
@@ -368,15 +383,20 @@ export const mentalHealthService = {
   async getEmotionalCheckins(employeeId: string, days = 30): Promise<EmotionalCheckin[]> {
     console.log('🧠 MentalHealth: Getting emotional checkins for employee:', employeeId);
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    try {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
 
-    return supabaseRequest(() => supabase
-      .from('emotional_checkins')
-      .select('*')
-      .eq('employee_id', employeeId)
-      .gte('checkin_date', startDate.toISOString().split('T')[0])
-      .order('checkin_date', { ascending: false }), 'getEmotionalCheckins');
+      return await supabaseRequest(() => supabase
+        .from('emotional_checkins')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .gte('checkin_date', startDate.toISOString().split('T')[0])
+        .order('checkin_date', { ascending: false }), 'getEmotionalCheckins');
+    } catch (error) {
+      console.warn('🧠 MentalHealth: emotional_checkins table not found, returning empty array');
+      return [];
+    }
   },
 
   async createEmotionalCheckin(checkin: Omit<EmotionalCheckin, 'id' | 'created_at'>): Promise<EmotionalCheckin> {
@@ -403,7 +423,7 @@ export const mentalHealthService = {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('🧠 MentalHealth: Error getting today checkin:', error);
+      console.warn('🧠 MentalHealth: emotional_checkins table not found or error getting today checkin:', error);
       return null;
     }
   },
@@ -459,16 +479,21 @@ export const mentalHealthService = {
   async getWellnessResources(category?: string): Promise<WellnessResource[]> {
     console.log('🧠 MentalHealth: Getting wellness resources, category:', category);
 
-    let query = supabase
-      .from('wellness_resources')
-      .select('*')
-      .eq('active', true);
+    try {
+      let query = supabase
+        .from('wellness_resources')
+        .select('*')
+        .eq('active', true);
 
-    if (category) {
-      query = query.eq('category', category);
+      if (category) {
+        query = query.eq('category', category);
+      }
+
+      return await supabaseRequest(() => query.order('created_at', { ascending: false }), 'getWellnessResources');
+    } catch (error) {
+      console.warn('🧠 MentalHealth: wellness_resources table not found, returning empty array');
+      return [];
     }
-
-    return supabaseRequest(() => query.order('created_at', { ascending: false }), 'getWellnessResources');
   },
 
   async viewResource(resourceId: string, employeeId: string, timeSpent = 0): Promise<void> {
