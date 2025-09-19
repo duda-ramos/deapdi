@@ -429,7 +429,7 @@ export const mentalHealthService = {
   async acknowledgeAlert(id: string, notes?: string): Promise<MentalHealthAlert> {
     console.log('🧠 MentalHealth: Acknowledging alert:', id);
 
-    return supabaseRequest(() => supabase
+    return supabaseRequest(async () => supabase
       .from('mental_health_alerts')
       .update({
         acknowledged_by: (await supabase.auth.getUser()).data.user?.id,
