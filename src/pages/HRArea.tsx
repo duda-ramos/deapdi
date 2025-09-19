@@ -11,6 +11,7 @@ import {
   AlertCircle,
   CheckCircle,
   Clock
+  DollarSign
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
@@ -22,6 +23,7 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Table } from '../components/ui/Table';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { AddSalaryModal } from '../components/modals/AddSalaryModal';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 const HRArea: React.FC = () => {
@@ -31,6 +33,8 @@ const HRArea: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [selectedTab, setSelectedTab] = useState('overview');
+  const [showAddSalaryModal, setShowAddSalaryModal] = useState(false);
+  const [selectedProfileForSalary, setSelectedProfileForSalary] = useState<string>('');
 
   useEffect(() => {
     if (user && (user.role === 'hr' || user.role === 'admin')) {
@@ -56,6 +60,15 @@ const HRArea: React.FC = () => {
     }
   };
 
+  const handleAddSalary = (profileId: string) => {
+    setSelectedProfileForSalary(profileId);
+    setShowAddSalaryModal(true);
+  };
+
+  const handleSalarySuccess = () => {
+    setSelectedProfileForSalary('');
+    loadHRData(); // Reload data to reflect changes
+  };
   // Mock data for charts
   const teamPerformanceData = [
     { team: 'Desenvolvimento', performance: 85, members: 12 },
@@ -130,6 +143,22 @@ const HRArea: React.FC = () => {
         </Badge>
       )
     }
+    {
+      key: 'actions',
+      label: 'Ações',
+      render: (value: any, row: Profile) => (
+        <div className="flex items-center space-x-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleAddSalary(row.id)}
+            title="Adicionar histórico salarial"
+          >
+            <DollarSign size={14} />
+          </Button>
+        </div>
+      )
+    }
   ];
 
   if (!user || (user.role !== 'hr' && user.role !== 'admin')) {
@@ -165,6 +194,15 @@ const HRArea: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Área de RH</h1>
           <p className="text-gray-600 mt-1">Gestão estratégica de pessoas e desenvolvimento</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <Button
+            onClick={() => setShowAddSalaryModal(true)}
+            variant="secondary"
+          >
+            <DollarSign size={16} className="mr-2" />
+            Gerenciar Salários
+          </Button>
         </div>
       </div>
 
@@ -306,9 +344,18 @@ const HRArea: React.FC = () => {
           <Card className="p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Lista de Colaboradores</h3>
-              <Button>
-                Exportar Relatório
-              </Button>
+              <div className="flex items-center space-x-3">
+                <Button
+                  onClick={() => setShowAddSalaryModal(true)}
+                  variant="secondary"
+                >
+                  <DollarSign size={16} className="mr-2" />
+                  Adicionar Histórico Salarial
+                </Button>
+                <Button>
+                  Exportar Relatório
+                </Button>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <Table
@@ -405,6 +452,17 @@ const HRArea: React.FC = () => {
         </div>
       )}
 
+      {/* Add Salary Modal */}
+      <AddSalaryModal
+        isOpen={showAddSalaryModal}
+        onClose={() => {
+          setShowAddSalaryModal(false);
+          setSelectedProfileForSalary('');
+        }}
+        profiles={profiles}
+        selectedProfileId={selectedProfileForSalary}
+        onSuccess={handleSalarySuccess}
+      />
       {/* Development Tab */}
       {selectedTab === 'development' && (
         <div className="space-y-6">
