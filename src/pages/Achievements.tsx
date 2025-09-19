@@ -214,7 +214,6 @@ const Achievements: React.FC = () => {
               <Target size={16} className="mr-2" />
               Criar Primeiro PDI
             </Button>
-          </p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
