@@ -209,7 +209,6 @@ const Achievements: React.FC = () => {
           <p className="text-gray-600">
             Complete atividades, PDIs e cursos para desbloquear suas primeiras conquistas.
           </p>
-        </div>
           <div className="mt-6 space-y-2">
             <Button onClick={() => window.location.href = '/pdi'}>
               <Target size={16} className="mr-2" />
