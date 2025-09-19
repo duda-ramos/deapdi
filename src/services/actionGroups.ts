@@ -348,7 +348,7 @@ export const actionGroupService = {
       console.log('👥 ActionGroups: Member contributions fetched:', data?.length);
       return data || [];
     } catch (error) {
-      console.error('👥 ActionGroups: Critical error getting contributions:', error);
+      console.error('👥 ActionGroups: Error getting user group IDs:', error instanceof Error ? error.message : String(error));
       return [];
     }
   },

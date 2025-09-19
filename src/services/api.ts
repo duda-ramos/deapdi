@@ -59,32 +59,36 @@ export const supabaseRequest = async <T>(
     const { data, error } = await operation();
     
     if (error) {
-      console.error(`Supabase error in ${context}:`, error);
+      // Normalize error to prevent primitive conversion issues
+      const errorMessage = error?.message || String(error);
+      console.error(`Supabase error in ${context}:`, errorMessage);
       
       // Handle network connectivity issues
-      if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+      if (errorMessage === 'Failed to fetch' || error?.name === 'TypeError') {
         throw new Error('Não foi possível conectar ao Supabase. Verifique se as variáveis de ambiente estão configuradas corretamente e se o projeto está online.');
       }
       
       // Handle specific error types
-      if (error.code === '42501') {
+      if (error?.code === '42501') {
         throw new Error('Você não tem permissão para realizar esta ação.');
       }
       
-      if (error.code === '23505') {
+      if (error?.code === '23505') {
         throw new Error('Este registro já existe.');
       }
       
-      if (error.message?.includes('JWT expired')) {
+      if (errorMessage?.includes('JWT expired')) {
         throw new Error('Sua sessão expirou. Por favor, faça login novamente.');
       }
       
-      throw new Error(error.message || 'Erro interno do servidor.');
+      throw new Error(errorMessage || 'Erro interno do servidor.');
     }
     
     return data as T;
   } catch (error) {
-    console.error(`Operation failed in ${context}:`, error);
-    throw error;
+    // Normalize error to prevent primitive conversion issues
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    console.error(`Operation failed in ${context}:`, normalizedError.message);
+    throw normalizedError;
   }
 };
