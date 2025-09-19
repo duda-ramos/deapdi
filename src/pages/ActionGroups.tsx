@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
 import { ActionGroup, Profile, Task } from '../types';
 import { Card } from '../components/ui/Card';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { ErrorMessage } from '../utils/errorMessages';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -17,6 +19,7 @@ const ActionGroups: React.FC = () => {
   const [groups, setGroups] = useState<ActionGroup[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<ActionGroup | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -35,10 +38,12 @@ const ActionGroups: React.FC = () => {
   const loadGroups = async () => {
     try {
       setLoading(true);
+      setError('');
       const data = await databaseService.getActionGroups(user?.id);
       setGroups(data || []);
     } catch (error) {
       console.error('Erro ao carregar grupos:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao carregar grupos de ação');
     } finally {
       setLoading(false);
     }
@@ -127,15 +132,23 @@ const ActionGroups: React.FC = () => {
   }));
 
   if (loading) {
+    return <LoadingScreen message="Carregando grupos de ação..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Grupos de Ação</h1>
+          <p className="text-gray-600 mt-1">Colabore em projetos e iniciativas estratégicas</p>
+        </div>
+        <ErrorMessage error={error} onRetry={loadGroups} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Grupos de Ação</h1>
@@ -150,17 +163,17 @@ const ActionGroups: React.FC = () => {
       </div>
 
       {/* Groups Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {[
           { label: 'Grupos Ativos', count: groups.filter(g => g.status === 'active').length, color: 'bg-blue-500' },
           { label: 'Concluídos', count: groups.filter(g => g.status === 'completed').length, color: 'bg-green-500' },
           { label: 'Total', count: groups.length, color: 'bg-purple-500' }
-        ].map((stat, index) => (
-          <Card key={index} className="p-4">
+        ].map((stat) => (
+          <Card key={stat.label} className="p-3 md:p-4">
             <div className="flex items-center">
               <div className={`w-3 h-3 rounded-full ${stat.color} mr-3`} />
               <div>
-                <div className="text-2xl font-bold text-gray-900">{stat.count}</div>
+                <div className="text-xl md:text-2xl font-bold text-gray-900">{stat.count}</div>
                 <div className="text-sm text-gray-600">{stat.label}</div>
               </div>
             </div>
@@ -170,7 +183,7 @@ const ActionGroups: React.FC = () => {
 
       {/* Groups List */}
       {groups.length === 0 ? (
-        <Card className="p-8 text-center">
+        <Card className="p-6 md:p-8 text-center">
           <Users size={48} className="mx-auto mb-4 text-gray-300" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Nenhum grupo encontrado
@@ -186,15 +199,15 @@ const ActionGroups: React.FC = () => {
           )}
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {groups.map((group, index) => (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          {groups.map((group) => (
             <motion.div
               key={group.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: groups.indexOf(group) * 0.1 }}
             >
-              <Card className="p-6 h-full hover:shadow-lg transition-shadow cursor-pointer" onClick={() => {
+              <Card className="p-4 md:p-6 h-full hover:shadow-lg transition-shadow cursor-pointer" onClick={() => {
                 setSelectedGroup(group);
                 setShowDetailsModal(true);
               }}>
@@ -309,7 +322,7 @@ const ActionGroups: React.FC = () => {
               <p className="text-gray-600">{selectedGroup.description}</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">Informações</h4>
                 <div className="space-y-2 text-sm">
@@ -359,7 +372,7 @@ const ActionGroups: React.FC = () => {
               <div className="space-y-2">
                 {selectedGroup.tasks && selectedGroup.tasks.length > 0 ? (
                   selectedGroup.tasks.map((task: any) => (
-                    <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
                       <div className="flex items-center space-x-3">
                         {task.status === 'done' ? (
                           <CheckCircle size={16} className="text-green-500" />

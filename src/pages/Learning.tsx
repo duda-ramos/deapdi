@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, Play, CheckCircle, Clock, Star, Award, Filter, Search } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -226,15 +227,11 @@ const Learning: React.FC = () => {
   const totalPoints = courses.filter(c => c.status === 'completed').reduce((sum, c) => sum + c.points, 0);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingScreen message="Carregando cursos..." />;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Aprendizado</h1>
@@ -243,39 +240,39 @@ const Learning: React.FC = () => {
       </div>
 
       {/* Learning Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <Card className="p-3 md:p-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-green-500 mr-3" />
             <div>
-              <div className="text-2xl font-bold text-gray-900">{completedCourses}</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-900">{completedCourses}</div>
               <div className="text-sm text-gray-600">Concluídos</div>
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3 md:p-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-blue-500 mr-3" />
             <div>
-              <div className="text-2xl font-bold text-gray-900">{inProgressCourses}</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-900">{inProgressCourses}</div>
               <div className="text-sm text-gray-600">Em Progresso</div>
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3 md:p-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-purple-500 mr-3" />
             <div>
-              <div className="text-2xl font-bold text-gray-900">{totalPoints}</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-900">{totalPoints}</div>
               <div className="text-sm text-gray-600">Pontos Ganhos</div>
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3 md:p-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-orange-500 mr-3" />
             <div>
-              <div className="text-2xl font-bold text-gray-900">{courses.length}</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-900">{courses.length}</div>
               <div className="text-sm text-gray-600">Disponíveis</div>
             </div>
           </div>
@@ -283,8 +280,8 @@ const Learning: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <Card className="p-3 md:p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
@@ -314,7 +311,7 @@ const Learning: React.FC = () => {
 
       {/* Courses Grid */}
       {filteredCourses.length === 0 ? (
-        <Card className="p-8 text-center">
+        <Card className="p-6 md:p-8 text-center">
           <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Nenhum curso encontrado
@@ -324,13 +321,13 @@ const Learning: React.FC = () => {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {filteredCourses.map((course) => (
             <motion.div
               key={course.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: filteredCourses.indexOf(course) * 0.1 }}
             >
               <Card className="overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="relative">
@@ -358,7 +355,7 @@ const Learning: React.FC = () => {
                   )}
                 </div>
 
-                <div className="p-6">
+                <div className="p-4 md:p-6">
                   <div className="mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
                       {course.title}
@@ -405,7 +402,7 @@ const Learning: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="text-sm">
                         <span className="font-medium text-blue-600">+{course.points}</span>
                         <span className="text-gray-500"> pontos</span>
@@ -424,14 +421,14 @@ const Learning: React.FC = () => {
       )}
 
       {/* Recommended Courses */}
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         <h3 className="text-lg font-semibold mb-4">Recomendados para Você</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {courses
             .filter(c => c.status === 'not-started')
             .slice(0, 2)
             .map((course) => (
-              <div key={course.id} className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
+              <div key={course.id} className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 p-4 bg-blue-50 rounded-lg">
                 <img
                   src={course.thumbnail}
                   alt={course.title}

@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
 import { PDI as PDIType, Profile } from '../types';
 import { Card } from '../components/ui/Card';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { ErrorMessage } from '../utils/errorMessages';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -17,6 +19,7 @@ const PDI: React.FC = () => {
   const [pdis, setPdis] = useState<PDIType[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPDI, setSelectedPDI] = useState<PDIType | null>(null);
   const [formData, setFormData] = useState({
@@ -38,10 +41,12 @@ const PDI: React.FC = () => {
 
     try {
       setLoading(true);
+      setError('');
       const data = await databaseService.getPDIs(user.id);
       setPdis(data || []);
     } catch (error) {
       console.error('Erro ao carregar PDIs:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao carregar PDIs');
     } finally {
       setLoading(false);
     }
@@ -174,15 +179,23 @@ const PDI: React.FC = () => {
   }));
 
   if (loading) {
+    return <LoadingScreen message="Carregando PDIs..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">PDI - Plano de Desenvolvimento Individual</h1>
+          <p className="text-gray-600 mt-1">Gerencie seus objetivos de desenvolvimento</p>
+        </div>
+        <ErrorMessage error={error} onRetry={loadPDIs} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">PDI - Plano de Desenvolvimento Individual</h1>
@@ -195,18 +208,18 @@ const PDI: React.FC = () => {
       </div>
 
       {/* PDI Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {[
           { label: 'Total', count: pdis.length, color: 'bg-blue-500' },
           { label: 'Pendentes', count: pdis.filter(p => p.status === 'pending').length, color: 'bg-yellow-500' },
           { label: 'Em Progresso', count: pdis.filter(p => p.status === 'in-progress').length, color: 'bg-blue-500' },
           { label: 'Concluídos', count: pdis.filter(p => p.status === 'completed' || p.status === 'validated').length, color: 'bg-green-500' }
-        ].map((stat, index) => (
-          <Card key={index} className="p-4">
+        ].map((stat) => (
+          <Card key={stat.label} className="p-3 md:p-4">
             <div className="flex items-center">
               <div className={`w-3 h-3 rounded-full ${stat.color} mr-3`} />
               <div>
-                <div className="text-2xl font-bold text-gray-900">{stat.count}</div>
+                <div className="text-xl md:text-2xl font-bold text-gray-900">{stat.count}</div>
                 <div className="text-sm text-gray-600">{stat.label}</div>
               </div>
             </div>
@@ -216,7 +229,7 @@ const PDI: React.FC = () => {
 
       {/* PDI List */}
       {pdis.length === 0 ? (
-        <Card className="p-8 text-center">
+        <Card className="p-6 md:p-8 text-center">
           <Target size={48} className="mx-auto mb-4 text-gray-300" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Nenhum PDI encontrado
@@ -230,7 +243,7 @@ const PDI: React.FC = () => {
           </Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {pdis.map((pdi, index) => (
             <motion.div
               key={pdi.id}
@@ -238,7 +251,7 @@ const PDI: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className="p-6 h-full">
+              <Card className="p-4 md:p-6 h-full">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -269,13 +282,13 @@ const PDI: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="text-sm text-gray-600">
                       <span className="font-medium text-blue-600">+{pdi.points}</span> pontos
                     </div>
                     
                     {canUpdateStatus(pdi) && (
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
                         {pdi.status === 'pending' && (
                           <Button
                             size="sm"

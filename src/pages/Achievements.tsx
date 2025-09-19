@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
 import { Achievement } from '../types';
 import { Card } from '../components/ui/Card';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { ErrorMessage } from '../utils/errorMessages';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 
@@ -25,6 +27,7 @@ const Achievements: React.FC = () => {
   const { user } = useAuth();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Mock achievement templates - in real app, this would come from database
@@ -147,10 +150,12 @@ const Achievements: React.FC = () => {
 
     try {
       setLoading(true);
+      setError('');
       const data = await databaseService.getAchievements(user.id);
       setAchievements(data || []);
     } catch (error) {
       console.error('Erro ao carregar conquistas:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao carregar conquistas');
     } finally {
       setLoading(false);
     }
@@ -188,15 +193,23 @@ const Achievements: React.FC = () => {
   };
 
   if (loading) {
+    return <LoadingScreen message="Carregando conquistas..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Conquistas</h1>
+          <p className="text-gray-600 mt-1">Acompanhe seu progresso e desbloqueie novas conquistas</p>
+        </div>
+        <ErrorMessage error={error} onRetry={loadAchievements} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Conquistas</h1>
@@ -205,39 +218,39 @@ const Achievements: React.FC = () => {
       </div>
 
       {/* Achievement Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <Card className="p-3 md:p-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-yellow-500 mr-3" />
             <div>
-              <div className="text-2xl font-bold text-gray-900">{unlockedCount}</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-900">{unlockedCount}</div>
               <div className="text-sm text-gray-600">Desbloqueadas</div>
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3 md:p-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-gray-400 mr-3" />
             <div>
-              <div className="text-2xl font-bold text-gray-900">{achievementTemplates.length - unlockedCount}</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-900">{achievementTemplates.length - unlockedCount}</div>
               <div className="text-sm text-gray-600">Bloqueadas</div>
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3 md:p-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-blue-500 mr-3" />
             <div>
-              <div className="text-2xl font-bold text-gray-900">{totalPoints}</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-900">{totalPoints}</div>
               <div className="text-sm text-gray-600">Pontos Ganhos</div>
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3 md:p-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-green-500 mr-3" />
             <div>
-              <div className="text-2xl font-bold text-gray-900">{Math.round((unlockedCount / achievementTemplates.length) * 100)}%</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-900">{Math.round((unlockedCount / achievementTemplates.length) * 100)}%</div>
               <div className="text-sm text-gray-600">Progresso</div>
             </div>
           </div>
@@ -245,13 +258,13 @@ const Achievements: React.FC = () => {
       </div>
 
       {/* Category Filter */}
-      <Card className="p-4">
-        <div className="flex flex-wrap gap-2">
+      <Card className="p-3 md:p-4">
+        <div className="flex flex-wrap gap-2 overflow-x-auto">
           {categories.map((category) => (
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center space-x-2 px-3 md:px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 selectedCategory === category.id
                   ? 'bg-blue-100 text-blue-700 border border-blue-300'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -265,13 +278,13 @@ const Achievements: React.FC = () => {
       </Card>
 
       {/* Achievements Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredAchievements.map((achievement, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {filteredAchievements.map((achievement) => (
           <motion.div
             key={achievement.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+            transition={{ delay: filteredAchievements.indexOf(achievement) * 0.1 }}
           >
             <Card className={`p-6 h-full transition-all ${
               achievement.unlocked 
@@ -351,7 +364,7 @@ const Achievements: React.FC = () => {
       </div>
 
       {/* Next Achievements */}
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         <h3 className="text-lg font-semibold mb-4">Próximas Conquistas</h3>
         <div className="space-y-3">
           {achievementTemplates
@@ -363,7 +376,7 @@ const Achievements: React.FC = () => {
             })
             .slice(0, 3)
             .map((achievement) => (
-              <div key={achievement.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+              <div key={achievement.id} className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-3 bg-gray-50 rounded-lg">
                 <div className="text-2xl grayscale opacity-50">{achievement.icon}</div>
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-900">{achievement.title}</h4>

@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
 import { CareerTrack as CareerTrackType } from '../types';
 import { Card } from '../components/ui/Card';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { ErrorMessage } from '../utils/errorMessages';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Badge } from '../components/ui/Badge';
 
@@ -12,6 +14,7 @@ const CareerTrack: React.FC = () => {
   const { user } = useAuth();
   const [careerTrack, setCareerTrack] = useState<CareerTrackType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
     if (user) {
@@ -24,60 +27,14 @@ const CareerTrack: React.FC = () => {
 
     try {
       setLoading(true);
+      setError('');
       console.log('🎯 CareerTrack: Loading career track for user:', user.id);
       
-      let track = await databaseService.getCareerTrack(user.id);
-      console.log('🎯 CareerTrack: Track found:', !!track);
-      
-      if (!track) {
-        console.log('🎯 CareerTrack: No track found, creating default...');
-        const defaultTrack = {
-          profession: user.position,
-          current_stage: user.level,
-          progress: 0,
-          next_stage: getNextStage(user.level),
-          track_type: 'development' as const,
-          profile_id: user.id
-        };
-        
-        try {
-          const newTrack = await databaseService.createCareerTrack(defaultTrack);
-          console.log('🎯 CareerTrack: Default track created:', newTrack.id);
-          setCareerTrack(newTrack);
-        } catch (createError) {
-          console.error('🎯 CareerTrack: Error creating default track:', createError);
-          // Set a minimal track object to prevent UI crashes
-          setCareerTrack({
-            id: 'temp',
-            profession: user.position,
-            current_stage: user.level,
-            progress: 0,
-            next_stage: getNextStage(user.level),
-            track_type: 'development',
-            profile_id: user.id,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-        }
-      } else {
-        console.log('🎯 CareerTrack: Using existing track');
-        setCareerTrack(track);
-      }
+      const track = await databaseService.getCareerTrack(user.id);
+      setCareerTrack(track);
     } catch (error) {
-      console.error('🎯 CareerTrack: Critical error loading career track:', error);
-      
-      // Provide fallback data to prevent UI crash
-      setCareerTrack({
-        id: 'fallback',
-        profession: user?.position || 'Colaborador',
-        current_stage: user?.level || 'Júnior',
-        progress: 0,
-        next_stage: getNextStage(user?.level || 'Júnior'),
-        track_type: 'development',
-        profile_id: user?.id || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
+      console.error('🎯 CareerTrack: Error loading career track:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao carregar trilha de carreira');
     } finally {
       setLoading(false);
     }
@@ -88,6 +45,7 @@ const CareerTrack: React.FC = () => {
     const currentIndex = stages.indexOf(currentLevel);
     return currentIndex >= 0 && currentIndex < stages.length - 1 ? stages[currentIndex + 1] : null;
   };
+
   const developmentStages = [
     { name: 'Estagiário', level: 1, description: 'Início da jornada profissional' },
     { name: 'Assistente', level: 2, description: 'Desenvolvimento de habilidades básicas' },
@@ -111,7 +69,6 @@ const CareerTrack: React.FC = () => {
 
   const renderStageCard = (stage: typeof developmentStages[0], isActive: boolean, isCompleted: boolean, progress?: number) => (
     <motion.div
-      key={stage.name}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={`relative p-4 rounded-lg border-2 transition-all ${
@@ -149,9 +106,17 @@ const CareerTrack: React.FC = () => {
   );
 
   if (loading) {
+    return <LoadingScreen message="Carregando trilha de carreira..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Trilha de Carreira</h1>
+          <p className="text-gray-600 mt-1">Acompanhe sua evolução profissional</p>
+        </div>
+        <ErrorMessage error={error} onRetry={loadCareerTrack} />
       </div>
     );
   }
@@ -180,7 +145,7 @@ const CareerTrack: React.FC = () => {
   const isInSpecialization = currentStageIndex === -1;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Trilha de Carreira</h1>
@@ -200,7 +165,7 @@ const CareerTrack: React.FC = () => {
           </Badge>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-600 mb-1">
               {careerTrack.current_stage}
@@ -242,43 +207,51 @@ const CareerTrack: React.FC = () => {
       </Card>
 
       {/* Development Track */}
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center">
           <Target className="mr-2" size={20} />
           Trilha de Desenvolvimento
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {developmentStages.map((stage, index) => {
             const isCompleted = currentStageIndex > index || isInSpecialization;
             const isActive = currentStageIndex === index && !isInSpecialization;
             const progress = isActive ? careerTrack.progress : undefined;
             
-            return renderStageCard(stage, isActive, isCompleted, progress);
+            return (
+              <div key={stage.name}>
+                {renderStageCard(stage, isActive, isCompleted, progress)}
+              </div>
+            );
           })}
         </div>
       </Card>
 
       {/* Specialization Track */}
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center">
           <Award className="mr-2" size={20} />
           Trilha de Especialização
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {specializationStages.map((stage, index) => {
             const specIndex = getCurrentStageIndex(careerTrack.current_stage, specializationStages);
             const isCompleted = specIndex > index && isInSpecialization;
             const isActive = specIndex === index && isInSpecialization;
             const progress = isActive ? careerTrack.progress : undefined;
             
-            return renderStageCard(stage, isActive, isCompleted, progress);
+            return (
+              <div key={stage.name}>
+                {renderStageCard(stage, isActive, isCompleted, progress)}
+              </div>
+            );
           })}
         </div>
       </Card>
 
       {/* Next Steps */}
       {careerTrack.next_stage && (
-        <Card className="p-6">
+        <Card className="p-4 md:p-6">
           <h3 className="text-lg font-semibold mb-4">Próximos Passos</h3>
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="flex items-center mb-2">

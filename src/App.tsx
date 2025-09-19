@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { useErrorHandler } from './hooks/useErrorHandler';
+import { LoadingScreen } from './components/ui/LoadingScreen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SetupCheck } from './components/SetupCheck';
 import { Login } from './components/Login';
@@ -22,15 +23,6 @@ import {
   LazyAdministration,
   LazyUserManagement
 } from './components/LazyComponents';
-
-const LoadingScreen: React.FC = () => (
-  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p className="text-gray-600">Carregando...</p>
-    </div>
-  </div>
-);
 
 const useSupabaseSetup = () => {
   const [setupComplete, setSetupComplete] = React.useState(false);
@@ -62,7 +54,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen message="Verificando autenticação..." />;
   }
 
   if (!user) {
@@ -72,7 +64,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return (
     <ErrorBoundary>
       <Layout>
-        <Suspense fallback={<LoadingScreen />}>
+        <Suspense fallback={<LoadingScreen message="Carregando página..." />}>
           {children}
         </Suspense>
       </Layout>
@@ -85,7 +77,7 @@ const AppRoutes: React.FC = () => {
   const { setupComplete, checking, setSetupComplete } = useSupabaseSetup();
 
   if (checking) {
-    return <LoadingScreen />;
+    return <LoadingScreen message="Verificando configuração..." />;
   }
 
   if (!setupComplete) {
@@ -93,7 +85,7 @@ const AppRoutes: React.FC = () => {
   }
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen message="Carregando aplicação..." />;
   }
 
   return (

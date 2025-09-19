@@ -16,6 +16,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
 import { Profile, PDI, Competency } from '../types';
 import { Card } from '../components/ui/Card';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { ErrorMessage } from '../utils/errorMessages';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Table } from '../components/ui/Table';
@@ -27,6 +29,7 @@ const HRArea: React.FC = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [pendingPDIs, setPendingPDIs] = useState<PDI[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [selectedTab, setSelectedTab] = useState('overview');
 
   useEffect(() => {
@@ -38,6 +41,7 @@ const HRArea: React.FC = () => {
   const loadHRData = async () => {
     try {
       setLoading(true);
+      setError('');
       const profilesData = await databaseService.getProfiles();
       setProfiles(profilesData || []);
       
@@ -46,6 +50,7 @@ const HRArea: React.FC = () => {
       // setPendingPDIs(pendingPDIsData || []);
     } catch (error) {
       console.error('Erro ao carregar dados do RH:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao carregar dados do RH');
     } finally {
       setLoading(false);
     }
@@ -139,15 +144,23 @@ const HRArea: React.FC = () => {
   }
 
   if (loading) {
+    return <LoadingScreen message="Carregando dados do RH..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Área de RH</h1>
+          <p className="text-gray-600 mt-1">Gestão estratégica de pessoas e desenvolvimento</p>
+        </div>
+        <ErrorMessage error={error} onRetry={loadHRData} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Área de RH</h1>
@@ -156,13 +169,13 @@ const HRArea: React.FC = () => {
       </div>
 
       {/* Tab Navigation */}
-      <Card className="p-4">
-        <div className="flex space-x-1">
+      <Card className="p-3 md:p-4">
+        <div className="flex space-x-1 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setSelectedTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center space-x-2 px-3 md:px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 selectedTab === tab.id
                   ? 'bg-blue-100 text-blue-700 border border-blue-300'
                   : 'text-gray-600 hover:bg-gray-100'
@@ -177,43 +190,43 @@ const HRArea: React.FC = () => {
 
       {/* Overview Tab */}
       {selectedTab === 'overview' && (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-blue-500 mr-3" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{profiles.length}</div>
+                  <div className="text-xl md:text-2xl font-bold text-gray-900">{profiles.length}</div>
                   <div className="text-sm text-gray-600">Total Colaboradores</div>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-green-500 mr-3" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-xl md:text-2xl font-bold text-gray-900">
                     {profiles.filter(p => p.status === 'active').length}
                   </div>
                   <div className="text-sm text-gray-600">Ativos</div>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-purple-500 mr-3" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">87%</div>
+                  <div className="text-xl md:text-2xl font-bold text-gray-900">87%</div>
                   <div className="text-sm text-gray-600">Engajamento</div>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-orange-500 mr-3" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">23</div>
+                  <div className="text-xl md:text-2xl font-bold text-gray-900">23</div>
                   <div className="text-sm text-gray-600">PDIs Pendentes</div>
                 </div>
               </div>
@@ -221,9 +234,9 @@ const HRArea: React.FC = () => {
           </div>
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             {/* Role Distribution */}
-            <Card className="p-6">
+            <Card className="p-4 md:p-6">
               <h3 className="text-lg font-semibold mb-4">Distribuição por Função</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
@@ -235,16 +248,16 @@ const HRArea: React.FC = () => {
                     outerRadius={100}
                     dataKey="value"
                   >
-                    {roleDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    {roleDistribution.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {roleDistribution.map((item, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {roleDistribution.map((item) => (
+                  <div key={item.name} className="flex items-center space-x-2">
                     <div 
                       className="w-3 h-3 rounded-full" 
                       style={{ backgroundColor: item.color }}
@@ -256,7 +269,7 @@ const HRArea: React.FC = () => {
             </Card>
 
             {/* Engagement Trend */}
-            <Card className="p-6">
+            <Card className="p-4 md:p-6">
               <h3 className="text-lg font-semibold mb-4">Tendência de Engajamento</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={engagementData}>
@@ -272,7 +285,7 @@ const HRArea: React.FC = () => {
           </div>
 
           {/* Team Performance */}
-          <Card className="p-6">
+          <Card className="p-4 md:p-6">
             <h3 className="text-lg font-semibold mb-4">Performance por Equipe</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={teamPerformanceData}>
@@ -289,20 +302,22 @@ const HRArea: React.FC = () => {
 
       {/* Employees Tab */}
       {selectedTab === 'employees' && (
-        <div className="space-y-6">
-          <Card className="p-6">
+        <div className="space-y-4 md:space-y-6">
+          <Card className="p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Lista de Colaboradores</h3>
               <Button>
                 Exportar Relatório
               </Button>
             </div>
-            <Table
-              columns={employeeColumns}
-              data={profiles}
-              loading={loading}
-              emptyMessage="Nenhum colaborador encontrado"
-            />
+            <div className="overflow-x-auto">
+              <Table
+                columns={employeeColumns}
+                data={profiles}
+                loading={loading}
+                emptyMessage="Nenhum colaborador encontrado"
+              />
+            </div>
           </Card>
         </div>
       )}

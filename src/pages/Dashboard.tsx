@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -19,6 +20,16 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading dashboard data
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const dashboardStats = [
     {
@@ -64,6 +75,10 @@ const Dashboard: React.FC = () => {
     { name: 'Em Progresso', value: 25, color: '#3B82F6' },
     { name: 'Pendente', value: 10, color: '#F59E0B' }
   ];
+  if (loading) {
+    return <LoadingScreen message="Carregando dashboard..." />;
+  }
+
 
   const upcomingTasks = [
     { id: 1, title: 'Reunião de Feedback', date: '2024-01-15', type: 'meeting' },
@@ -79,15 +94,15 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white">
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-xl md:rounded-2xl p-4 md:p-8 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">
               Olá, {user?.name}! 🚀
             </h1>
-            <p className="text-blue-100 text-lg">
+            <p className="text-blue-100 text-base md:text-lg">
               Continue sua jornada de desenvolvimento. Você está no nível <strong>{user?.level}</strong>
             </p>
             <div className="mt-4">
@@ -112,15 +127,15 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {dashboardStats.map((stat, index) => (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        {dashboardStats.map((stat) => (
           <motion.div
-            key={index}
+            key={stat.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+            transition={{ delay: dashboardStats.indexOf(stat) * 0.1 }}
           >
-            <Card className="p-6">
+            <Card className="p-4 md:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className={`p-3 rounded-lg bg-${stat.color}-50`}>
                   {stat.icon}
@@ -128,7 +143,7 @@ const Dashboard: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900 mb-2">{stat.value}</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{stat.value}</p>
                 <p className="text-sm text-green-600">{stat.change}</p>
               </div>
             </Card>
@@ -136,9 +151,9 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
         {/* Competency Comparison Chart */}
-        <Card className="lg:col-span-2 p-6">
+        <Card className="lg:col-span-2 p-4 md:p-6">
           <h3 className="text-lg font-semibold mb-6">Avaliação de Competências</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={competencyData}>
@@ -153,7 +168,7 @@ const Dashboard: React.FC = () => {
         </Card>
 
         {/* Progress Overview */}
-        <Card className="p-6">
+        <Card className="p-4 md:p-6">
           <h3 className="text-lg font-semibold mb-6">Visão Geral</h3>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
@@ -165,16 +180,16 @@ const Dashboard: React.FC = () => {
                 outerRadius={80}
                 dataKey="value"
               >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                {pieData.map((entry) => (
+                  <Cell key={entry.name} fill={entry.color} />
                 ))}
               </Pie>
               <Tooltip />
             </PieChart>
           </ResponsiveContainer>
           <div className="mt-4 space-y-2">
-            {pieData.map((item, index) => (
-              <div key={index} className="flex items-center justify-between">
+            {pieData.map((item) => (
+              <div key={item.name} className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div 
                     className="w-3 h-3 rounded-full" 
@@ -189,9 +204,9 @@ const Dashboard: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
         {/* Upcoming Tasks */}
-        <Card className="p-6">
+        <Card className="p-4 md:p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold">Próximas Atividades</h3>
             <Button size="sm" variant="ghost">
@@ -201,7 +216,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="space-y-4">
             {upcomingTasks.map((task) => (
-              <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
                 <div className="flex items-center space-x-3">
                   <div className={`w-2 h-2 rounded-full ${
                     task.type === 'meeting' ? 'bg-blue-500' :
@@ -228,7 +243,7 @@ const Dashboard: React.FC = () => {
         </Card>
 
         {/* Recent Achievements */}
-        <Card className="p-6">
+        <Card className="p-4 md:p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold">Conquistas Recentes</h3>
             <Button size="sm" variant="ghost">
@@ -237,12 +252,12 @@ const Dashboard: React.FC = () => {
             </Button>
           </div>
           <div className="space-y-4">
-            {recentAchievements.map((achievement, index) => (
+            {recentAchievements.map((achievement) => (
               <motion.div
-                key={index}
+                key={achievement.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: recentAchievements.indexOf(achievement) * 0.1 }}
                 className="flex items-center space-x-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200"
               >
                 <div className="text-2xl">{achievement.icon}</div>
@@ -261,9 +276,9 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Quick Actions */}
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         <h3 className="text-lg font-semibold mb-6">Ações Rápidas</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
           <Button variant="primary" className="flex flex-col items-center py-4 space-y-2">
             <Target size={24} />
             <span className="text-sm">Criar PDI</span>
