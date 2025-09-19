@@ -142,7 +142,7 @@ const HRArea: React.FC = () => {
           {value === 'active' ? 'Ativo' : 'Inativo'}
         </Badge>
       )
-    }
+    },
     {
       key: 'actions',
       label: 'Ações',
