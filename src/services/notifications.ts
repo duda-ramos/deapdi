@@ -107,7 +107,18 @@ export const notificationService = {
   async getPreferences(profileId: string): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Getting preferences for profile:', profileId);
     // Return default preferences since notification_preferences table doesn't exist yet
-    return this.getDefaultPreferences();
+    try {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('profile_id', profileId)
+        .single();
+
+      if (error) {
+        console.error('🔔 Notifications: Error getting preferences:', error);
+        // Try to create default preferences
+        try {
+          return await this.createDefaultPreferences(profileId);
         } catch (createError) {
           console.error('🔔 Notifications: Error creating default preferences:', createError);
           return this.getDefaultPreferences(profileId);
@@ -214,9 +225,22 @@ export const notificationService = {
         p_profile_id: profileId
       });
 
-    console.log('🔔 Notifications: Getting stats for profile:', profileId);
-    // Return default stats since get_notification_stats function doesn't exist yet
-    return this.getDefaultStats();
+      if (error) {
+        console.error('🔔 Notifications: Error getting stats:', error);
+        // Return default stats for any database error
+        return this.getDefaultStats();
+      }
+
+      return data?.[0] || {
+        total_notifications: 0,
+        unread_notifications: 0,
+        notifications_today: 0,
+        most_common_type: 'info'
+      };
+    } catch (error) {
+      console.error('🔔 Notifications: Error getting stats:', error);
+      return this.getDefaultStats();
+    }
   },
 
   getDefaultStats(): NotificationStats {
