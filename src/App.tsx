@@ -10,6 +10,7 @@ import { AchievementToast } from './components/AchievementToast';
 import { useAchievements } from './contexts/AchievementContext';
 import { SetupCheck } from './components/SetupCheck';
 import { Login } from './components/Login';
+import { Onboarding } from './components/Onboarding';
 import { Layout } from './components/layout/Layout';
 import {
   LazyDashboard,
@@ -82,6 +83,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <Navigate to="/login" replace />;
   }
   
+  // Check if user needs onboarding
+  if (!user.is_onboarded) {
+    return <Navigate to="/onboarding" replace />;
+  }
+  
   return (
     <ErrorBoundary>
       <Layout>
@@ -115,6 +121,20 @@ const AppRoutes: React.FC = () => {
       <Route 
         path="/login" 
         element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
+      />
+      <Route 
+        path="/onboarding" 
+        element={
+          user ? (
+            user.is_onboarded ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Onboarding />
+            )
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } 
       />
       <Route
         path="/dashboard"
