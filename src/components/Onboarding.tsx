@@ -288,6 +288,7 @@ export const Onboarding: React.FC = () => {
         if (!formData.level) newErrors.level = 'Nível é obrigatório';
         if (!formData.admission_date) newErrors.admission_date = 'Data de admissão é obrigatória';
         if (!formData.area.trim()) newErrors.area = 'Área de atuação é obrigatória';
+        if (!formData.team_id) newErrors.team_id = 'Seleção de time é obrigatória';
         break;
 
       case 3:
@@ -350,7 +351,7 @@ export const Onboarding: React.FC = () => {
         level: formData.level,
         team_id: formData.team_id || null,
         admission_date: formData.admission_date,
-        manager_id: formData.manager_id || null,
+        manager_id: formData.manager_id || teams.find(t => t.id === formData.team_id)?.manager_id || null,
         area: formData.area,
         formation: formData.formation,
         certifications: formData.certifications,
@@ -543,8 +544,10 @@ export const Onboarding: React.FC = () => {
                 label="Time/Departamento"
                 value={formData.team_id}
                 onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
+                error={errors.team_id}
                 options={teams.map(team => ({ value: team.id, label: team.name }))}
                 placeholder="Selecione seu time"
+                required
               />
               
               <Input
@@ -559,7 +562,10 @@ export const Onboarding: React.FC = () => {
                 label="Gestor Direto"
                 value={formData.manager_id}
                 onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
-                options={managers.map(manager => ({ value: manager.id, label: manager.name }))}
+                options={[
+                  { value: '', label: 'Será atribuído automaticamente' },
+                  ...managers.map(manager => ({ value: manager.id, label: manager.name }))
+                ]}
                 placeholder="Selecione seu gestor"
               />
               

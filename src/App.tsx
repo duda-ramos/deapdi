@@ -29,7 +29,9 @@ import {
   LazyCareerTrackManagement,
   LazyCertificates,
   LazyMentalHealth,
-  LazyMentalHealthAdmin
+  LazyMentalHealthAdmin,
+  LazyTeamManagement,
+  LazyPeopleManagement
 } from './components/LazyComponents';
 
 const AchievementWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -181,6 +183,22 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <LazyUserManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/people"
+        element={
+          <ProtectedRoute>
+            <LazyPeopleManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teams"
+        element={
+          <ProtectedRoute>
+            <LazyTeamManagement />
           </ProtectedRoute>
         }
       />

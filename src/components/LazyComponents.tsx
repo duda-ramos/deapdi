@@ -19,5 +19,9 @@ export const LazyCertificates = lazy(() => import('../pages/Certificates'));
 export const LazyMentalHealth = lazy(() => import('../pages/MentalHealth'));
 export const LazyMentalHealthAdmin = lazy(() => import('../pages/MentalHealthAdmin'));
 
+// Team and People Management
+export const LazyTeamManagement = lazy(() => import('../pages/TeamManagement'));
+export const LazyPeopleManagement = lazy(() => import('../pages/PeopleManagement'));
+
 // Action Groups service
 export const LazyActionGroupService = lazy(() => import('../services/actionGroups'));
