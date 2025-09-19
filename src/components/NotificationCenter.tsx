@@ -118,7 +118,13 @@ export const NotificationCenter: React.FC = () => {
       setUnreadCount(unreadNotifications?.length || 0);
     } catch (error) {
       console.error('Error loading notifications:', error);
-    } finally {
+      
+      // Handle network connectivity issues
+      if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+        setError('Não foi possível conectar ao servidor. Verifique sua conexão com a internet ou se o Supabase está configurado corretamente.');
+      } else {
+        setError('Error loading notifications:\n\n' + error.message);
+      }
       setLoading(false);
     }
   };
