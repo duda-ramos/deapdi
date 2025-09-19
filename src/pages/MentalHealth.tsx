@@ -430,7 +430,6 @@ const MentalHealth: React.FC = () => {
             </Button>
           </div>
         )}
-      </div>
 
       {/* Wellness Overview */}
       {wellnessOverview && (
