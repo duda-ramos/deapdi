@@ -122,6 +122,10 @@ const Dashboard: React.FC = () => {
             )}
           </div>
         </Card>
+      </div>
+    );
+  }
+
   const competencyData = [
     { name: 'React', self: 8, manager: 7 },
     { name: 'TypeScript', self: 7, manager: 8 },
@@ -134,6 +138,8 @@ const Dashboard: React.FC = () => {
     { name: 'Concluído', value: 65, color: '#10B981' },
     { name: 'Em Progresso', value: 25, color: '#3B82F6' },
     { name: 'Pendente', value: 10, color: '#F59E0B' }
+  ];
+
   // Empty dashboard for regular users
   const dashboardStats = [
     {
@@ -165,7 +171,6 @@ const Dashboard: React.FC = () => {
       color: 'orange'
     }
   ];
-          <Button 
 
   return (
     <div className="space-y-4 md:space-y-8">
