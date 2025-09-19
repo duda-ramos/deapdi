@@ -131,6 +131,8 @@ export const NotificationCenter: React.FC = () => {
       setPreferences(prefs);
     } catch (error) {
       console.error('Error loading preferences:', error);
+      // Set default preferences if loading fails
+      setPreferences(notificationService.getDefaultPreferences(user.id));
     }
   };
 
@@ -142,6 +144,8 @@ export const NotificationCenter: React.FC = () => {
       setStats(statsData);
     } catch (error) {
       console.error('Error loading stats:', error);
+      // Set default stats if loading fails
+      setStats(notificationService.getDefaultStats());
     }
   };
 

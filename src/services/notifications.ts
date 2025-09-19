@@ -114,7 +114,14 @@ export const notificationService = {
         .eq('profile_id', profileId)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('🔔 Notifications: Error getting preferences:', error);
+        // If table doesn't exist, return default preferences
+        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+          return this.getDefaultPreferences(profileId);
+        }
+        throw error;
+      }
 
       // If no preferences exist, create default ones
       if (!data) {
@@ -124,43 +131,76 @@ export const notificationService = {
       return data;
     } catch (error) {
       console.error('🔔 Notifications: Error getting preferences:', error);
-      throw error;
+      // Return default preferences if there's any error
+      return this.getDefaultPreferences(profileId);
     }
+  },
+
+  getDefaultPreferences(profileId: string): NotificationPreferences {
+    return {
+      id: 'default',
+      profile_id: profileId,
+      pdi_approved: true,
+      pdi_rejected: true,
+      task_assigned: true,
+      achievement_unlocked: true,
+      mentorship_scheduled: true,
+      mentorship_cancelled: true,
+      group_invitation: true,
+      deadline_reminder: true,
+      email_notifications: true,
+      push_notifications: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
   },
 
   async updatePreferences(profileId: string, preferences: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Updating preferences for profile:', profileId);
 
-    return supabaseRequest(() => supabase
-      .from('notification_preferences')
-      .upsert({
-        profile_id: profileId,
-        ...preferences
-      })
-      .select()
-      .single(), 'updateNotificationPreferences');
+    try {
+      return await supabaseRequest(() => supabase
+        .from('notification_preferences')
+        .upsert({
+          profile_id: profileId,
+          ...preferences
+        })
+        .select()
+        .single(), 'updateNotificationPreferences');
+    } catch (error) {
+      console.error('🔔 Notifications: Error updating preferences:', error);
+      // Return current preferences with updates applied
+      const current = await this.getPreferences(profileId);
+      return { ...current, ...preferences };
+    }
   },
 
   async createDefaultPreferences(profileId: string): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Creating default preferences for profile:', profileId);
 
-    return supabaseRequest(() => supabase
-      .from('notification_preferences')
-      .insert({
-        profile_id: profileId,
-        pdi_approved: true,
-        pdi_rejected: true,
-        task_assigned: true,
-        achievement_unlocked: true,
-        mentorship_scheduled: true,
-        mentorship_cancelled: true,
-        group_invitation: true,
-        deadline_reminder: true,
-        email_notifications: true,
-        push_notifications: true
-      })
-      .select()
-      .single(), 'createDefaultNotificationPreferences');
+    try {
+      return await supabaseRequest(() => supabase
+        .from('notification_preferences')
+        .insert({
+          profile_id: profileId,
+          pdi_approved: true,
+          pdi_rejected: true,
+          task_assigned: true,
+          achievement_unlocked: true,
+          mentorship_scheduled: true,
+          mentorship_cancelled: true,
+          group_invitation: true,
+          deadline_reminder: true,
+          email_notifications: true,
+          push_notifications: true
+        })
+        .select()
+        .single(), 'createDefaultNotificationPreferences');
+    } catch (error) {
+      console.error('🔔 Notifications: Error creating default preferences:', error);
+      // Return default preferences object
+      return this.getDefaultPreferences(profileId);
+    }
   },
 
   // Statistics
@@ -172,7 +212,14 @@ export const notificationService = {
         p_profile_id: profileId
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('🔔 Notifications: Error getting stats:', error);
+        // If function doesn't exist, return default stats
+        if (error.code === 'PGRST202' || error.message.includes('Could not find the function')) {
+          return this.getDefaultStats();
+        }
+        throw error;
+      }
 
       return data?.[0] || {
         total_notifications: 0,
@@ -182,10 +229,18 @@ export const notificationService = {
       };
     } catch (error) {
       console.error('🔔 Notifications: Error getting stats:', error);
-      throw error;
+      return this.getDefaultStats();
     }
   },
 
+  getDefaultStats(): NotificationStats {
+    return {
+      total_notifications: 0,
+      unread_notifications: 0,
+      notifications_today: 0,
+      most_common_type: 'info'
+    };
+  },
   // Real-time subscription with enhanced error handling
   subscribeToNotifications(
     profileId: string, 
