@@ -66,6 +66,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error instanceof Error && error.message.includes('Refresh Token Not Found')) {
           try {
             await supabase.auth.signOut();
+            // Force full page reload to clear all client-side state
+            window.location.href = '/login';
+            return; // Exit early to prevent further execution
           } catch (signOutError) {
             console.error('Error clearing invalid session:', signOutError);
           }
