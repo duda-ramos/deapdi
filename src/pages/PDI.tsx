@@ -94,6 +94,8 @@ const PDI: React.FC = () => {
 
   const handleUpdateStatus = async (pdiId: string, newStatus: PDIType['status']) => {
     try {
+      const pdi = pdis.find(p => p.id === pdiId);
+      
       await databaseService.updatePDI(pdiId, { 
         status: newStatus,
         validated_by: newStatus === 'validated' ? user?.id : null
@@ -101,7 +103,6 @@ const PDI: React.FC = () => {
       
       // If completed or validated, award points
       if (newStatus === 'completed' || newStatus === 'validated') {
-        const pdi = pdis.find(p => p.id === pdiId);
         if (pdi && user) {
           await databaseService.updateProfile(user.id, {
             points: user.points + pdi.points

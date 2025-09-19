@@ -142,6 +142,8 @@ const ActionGroups: React.FC = () => {
       });
       
       await loadData();
+      
+      // Trigger will automatically create notification for assignee
     } catch (error) {
       console.error('Erro ao criar tarefa:', error);
     }

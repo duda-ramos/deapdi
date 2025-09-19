@@ -406,6 +406,9 @@ export interface Database {
           type: 'info' | 'success' | 'warning' | 'error'
           read: boolean
           action_url: string | null
+          category: string | null
+          related_id: string | null
+          metadata: Json | null
           created_at: string
         }
         Insert: {
@@ -416,6 +419,9 @@ export interface Database {
           type?: 'info' | 'success' | 'warning' | 'error'
           read?: boolean
           action_url?: string | null
+          category?: string | null
+          related_id?: string | null
+          metadata?: Json | null
           created_at?: string
         }
         Update: {
@@ -426,7 +432,60 @@ export interface Database {
           type?: 'info' | 'success' | 'warning' | 'error'
           read?: boolean
           action_url?: string | null
+          category?: string | null
+          related_id?: string | null
+          metadata?: Json | null
           created_at?: string
+        }
+      }
+      notification_preferences: {
+        Row: {
+          id: string
+          profile_id: string
+          pdi_approved: boolean
+          pdi_rejected: boolean
+          task_assigned: boolean
+          achievement_unlocked: boolean
+          mentorship_scheduled: boolean
+          mentorship_cancelled: boolean
+          group_invitation: boolean
+          deadline_reminder: boolean
+          email_notifications: boolean
+          push_notifications: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          pdi_approved?: boolean
+          pdi_rejected?: boolean
+          task_assigned?: boolean
+          achievement_unlocked?: boolean
+          mentorship_scheduled?: boolean
+          mentorship_cancelled?: boolean
+          group_invitation?: boolean
+          deadline_reminder?: boolean
+          email_notifications?: boolean
+          push_notifications?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          pdi_approved?: boolean
+          pdi_rejected?: boolean
+          task_assigned?: boolean
+          achievement_unlocked?: boolean
+          mentorship_scheduled?: boolean
+          mentorship_cancelled?: boolean
+          group_invitation?: boolean
+          deadline_reminder?: boolean
+          email_notifications?: boolean
+          push_notifications?: boolean
+          created_at?: string
+          updated_at?: string
         }
       }
     }

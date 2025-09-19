@@ -17,6 +17,22 @@ export type ActionGroup = Database['public']['Tables']['action_groups']['Row'];
 export type Task = Database['public']['Tables']['tasks']['Row'];
 export type PsychologicalRecord = Database['public']['Tables']['psychological_records']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
+export type NotificationPreferences = {
+  id: string;
+  profile_id: string;
+  pdi_approved: boolean;
+  pdi_rejected: boolean;
+  task_assigned: boolean;
+  achievement_unlocked: boolean;
+  mentorship_scheduled: boolean;
+  mentorship_cancelled: boolean;
+  group_invitation: boolean;
+  deadline_reminder: boolean;
+  email_notifications: boolean;
+  push_notifications: boolean;
+  created_at: string;
+  updated_at: string;
+};
 
 // Legacy types for backward compatibility (will be removed in Phase 2)
 export interface User {
