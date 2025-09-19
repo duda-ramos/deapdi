@@ -45,7 +45,7 @@ class AuthService {
       });
 
       if (error) {
-        console.error('🔐 AuthService: Signup error:', error);
+        console.warn('🔐 AuthService: Signup error:', this.formatError(error.message));
         return {
           success: false,
           error: this.formatError(error.message)
@@ -95,7 +95,7 @@ class AuthService {
       });
 
       if (error) {
-        console.error('🔐 AuthService: Signin error:', error);
+        console.warn('🔐 AuthService: Signin error:', this.formatError(error.message));
         return {
           success: false,
           error: this.formatError(error.message)
