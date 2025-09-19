@@ -341,13 +341,8 @@ export const actionGroupService = {
       });
 
       if (error) {
-        // Handle infinite recursion in contributions as well
-        if (error.message?.includes('infinite recursion')) {
-          console.warn('👥 ActionGroups: Infinite recursion in contributions, returning empty array');
-          return [];
-        }
         console.error('👥 ActionGroups: Error getting contributions:', error);
-        return [];
+        throw error;
       }
 
       console.log('👥 ActionGroups: Member contributions fetched:', data?.length);
