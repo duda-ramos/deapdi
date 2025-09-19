@@ -122,6 +122,23 @@ const Learning: React.FC = () => {
     }
   };
 
+  const handleDownloadCertificate = async (enrollmentId: string) => {
+    try {
+      const certificateId = await courseService.generateCertificate(enrollmentId);
+      const pdfUrl = await courseService.generateCertificatePDF(certificateId);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = `certificado-${certificateId}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Erro ao baixar certificado:', error);
+    }
+  };
+
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          course.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -526,6 +543,10 @@ const Learning: React.FC = () => {
               <div>
                 {selectedCourse.enrollment?.status === 'completed' && (
                   <Button variant="success">
+                    <Button 
+                      variant="success"
+                      onClick={() => handleDownloadCertificate(selectedCourse.enrollment!.id)}
+                    >
                     <Download size={16} className="mr-2" />
                     Baixar Certificado
                   </Button>
