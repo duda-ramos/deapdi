@@ -116,16 +116,18 @@ export const notificationService = {
 
       if (error) {
         console.error('🔔 Notifications: Error getting preferences:', error);
-        // If table doesn't exist, return default preferences
-        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-          return this.getDefaultPreferences(profileId);
-        }
-        throw error;
+        // Return default preferences for any database error
+        return this.getDefaultPreferences(profileId);
       }
 
       // If no preferences exist, create default ones
       if (!data) {
-        return this.createDefaultPreferences(profileId);
+        try {
+          return await this.createDefaultPreferences(profileId);
+        } catch (createError) {
+          console.error('🔔 Notifications: Error creating default preferences:', createError);
+          return this.getDefaultPreferences(profileId);
+        }
       }
 
       return data;
@@ -159,14 +161,23 @@ export const notificationService = {
     console.log('🔔 Notifications: Updating preferences for profile:', profileId);
 
     try {
-      return await supabaseRequest(() => supabase
+      const { data, error } = await supabase
         .from('notification_preferences')
         .upsert({
           profile_id: profileId,
           ...preferences
         })
         .select()
-        .single(), 'updateNotificationPreferences');
+        .single();
+
+      if (error) {
+        console.error('🔔 Notifications: Error updating preferences:', error);
+        // Return current preferences with updates applied
+        const current = await this.getPreferences(profileId);
+        return { ...current, ...preferences };
+      }
+
+      return data;
     } catch (error) {
       console.error('🔔 Notifications: Error updating preferences:', error);
       // Return current preferences with updates applied
@@ -179,7 +190,7 @@ export const notificationService = {
     console.log('🔔 Notifications: Creating default preferences for profile:', profileId);
 
     try {
-      return await supabaseRequest(() => supabase
+      const { data, error } = await supabase
         .from('notification_preferences')
         .insert({
           profile_id: profileId,
@@ -195,7 +206,14 @@ export const notificationService = {
           push_notifications: true
         })
         .select()
-        .single(), 'createDefaultNotificationPreferences');
+        .single();
+
+      if (error) {
+        console.error('🔔 Notifications: Error creating default preferences:', error);
+        return this.getDefaultPreferences(profileId);
+      }
+
+      return data;
     } catch (error) {
       console.error('🔔 Notifications: Error creating default preferences:', error);
       // Return default preferences object
@@ -214,11 +232,8 @@ export const notificationService = {
 
       if (error) {
         console.error('🔔 Notifications: Error getting stats:', error);
-        // If function doesn't exist, return default stats
-        if (error.code === 'PGRST202' || error.message.includes('Could not find the function')) {
-          return this.getDefaultStats();
-        }
-        throw error;
+        // Return default stats for any database error
+        return this.getDefaultStats();
       }
 
       return data?.[0] || {
