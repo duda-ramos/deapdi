@@ -10,7 +10,7 @@ import {
   Target,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
   DollarSign
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
