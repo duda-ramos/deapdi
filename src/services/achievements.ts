@@ -164,7 +164,7 @@ export const achievementService = {
     }
   },
 
-  private async getUserStats(profileId: string) {
+  async getUserStats(profileId: string) {
     try {
       // Get completed PDIs
       let completedPDIs = 0;
