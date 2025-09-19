@@ -303,6 +303,14 @@ const Dashboard: React.FC = () => {
             <Trophy size={24} />
             <span className="text-sm">Ranking</span>
           </Button>
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center py-4 space-y-2"
+            onClick={() => window.location.href = '/mental-health'}
+          >
+            <Heart size={24} />
+            <span className="text-sm">Bem-estar</span>
+          </Button>
         </div>
       </Card>
     </div>

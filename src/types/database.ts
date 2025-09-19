@@ -488,6 +488,150 @@ export interface Database {
           updated_at?: string
         }
       }
+      psychology_sessions: {
+        Row: {
+          id: string
+          employee_id: string
+          psychologist_id: string
+          scheduled_date: string
+          status: 'solicitada' | 'agendada' | 'realizada' | 'cancelada' | 'faltou'
+          session_notes: string | null
+          summary_for_employee: string | null
+          duration_minutes: number
+          session_type: 'presencial' | 'online' | 'emergencial' | 'follow_up'
+          urgency: 'normal' | 'prioritaria' | 'emergencial'
+          location: string | null
+          meeting_link: string | null
+          employee_feedback: string | null
+          rating: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          psychologist_id: string
+          scheduled_date: string
+          status?: 'solicitada' | 'agendada' | 'realizada' | 'cancelada' | 'faltou'
+          session_notes?: string | null
+          summary_for_employee?: string | null
+          duration_minutes?: number
+          session_type?: 'presencial' | 'online' | 'emergencial' | 'follow_up'
+          urgency?: 'normal' | 'prioritaria' | 'emergencial'
+          location?: string | null
+          meeting_link?: string | null
+          employee_feedback?: string | null
+          rating?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          psychologist_id?: string
+          scheduled_date?: string
+          status?: 'solicitada' | 'agendada' | 'realizada' | 'cancelada' | 'faltou'
+          session_notes?: string | null
+          summary_for_employee?: string | null
+          duration_minutes?: number
+          session_type?: 'presencial' | 'online' | 'emergencial' | 'follow_up'
+          urgency?: 'normal' | 'prioritaria' | 'emergencial'
+          location?: string | null
+          meeting_link?: string | null
+          employee_feedback?: string | null
+          rating?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      therapeutic_activities: {
+        Row: {
+          id: string
+          session_id: string
+          employee_id: string
+          title: string
+          description: string
+          instructions: string | null
+          due_date: string
+          status: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada'
+          employee_feedback: string | null
+          psychologist_notes: string | null
+          completion_evidence: string | null
+          completed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          employee_id: string
+          title: string
+          description: string
+          instructions?: string | null
+          due_date: string
+          status?: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada'
+          employee_feedback?: string | null
+          psychologist_notes?: string | null
+          completion_evidence?: string | null
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          employee_id?: string
+          title?: string
+          description?: string
+          instructions?: string | null
+          due_date?: string
+          status?: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada'
+          employee_feedback?: string | null
+          psychologist_notes?: string | null
+          completion_evidence?: string | null
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      emotional_checkins: {
+        Row: {
+          id: string
+          employee_id: string
+          mood_score: number
+          energy_level: number
+          stress_level: number
+          sleep_quality: number
+          notes: string | null
+          tags: string[]
+          checkin_date: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          mood_score: number
+          energy_level: number
+          stress_level: number
+          sleep_quality: number
+          notes?: string | null
+          tags?: string[]
+          checkin_date?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          mood_score?: number
+          energy_level?: number
+          stress_level?: number
+          sleep_quality?: number
+          notes?: string | null
+          tags?: string[]
+          checkin_date?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
