@@ -9,7 +9,8 @@ import {
   BookOpen,
   Star,
   Award,
-  Heart
+  Heart,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
