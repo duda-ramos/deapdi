@@ -254,7 +254,7 @@ export const Onboarding: React.FC = () => {
         : user.onboarding_progress;
       
       setFormData(prev => ({ ...prev, ...progress }));
-      setCurrentStep(progress.currentStep || 1);
+      setCurrentStep(progress.current_step || 1);
     } catch (error) {
       console.error('Error loading onboarding progress:', error);
     }
@@ -265,7 +265,7 @@ export const Onboarding: React.FC = () => {
     
     try {
       await databaseService.updateProfile(user.id, {
-        onboarding_progress: JSON.stringify({ ...formData, currentStep })
+        onboarding_progress: JSON.stringify({ ...formData, current_step: currentStep })
       });
     } catch (error) {
       console.error('Error saving progress:', error);
@@ -338,18 +338,38 @@ export const Onboarding: React.FC = () => {
     try {
       setLoading(true);
 
-      // Update profile with only database fields (exclude UI-specific fields)
-      const {
-        terms_accepted,
-        privacy_accepted,
-        ...profileData
-      } = formData;
-
-      await databaseService.updateProfile(user.id, {
-        ...profileData,
+      // Map form data to database fields
+      const profileData = {
+        name: formData.name,
+        birth_date: formData.birth_date,
+        phone: formData.phone,
+        location: formData.location,
+        avatar_url: formData.avatar_url,
+        bio: formData.bio,
+        position: formData.position,
+        level: formData.level,
+        team_id: formData.team_id || null,
+        admission_date: formData.admission_date,
+        manager_id: formData.manager_id || null,
+        area: formData.area,
+        formation: formData.formation,
+        certifications: formData.certifications,
+        hard_skills: formData.hard_skills,
+        soft_skills: formData.soft_skills,
+        languages: formData.languages,
+        emergency_contact: formData.emergency_contact,
+        mental_health_consent: formData.mental_health_consent,
+        preferred_session_type: formData.preferred_session_type,
+        career_objectives: formData.career_objectives,
+        development_interests: formData.development_interests,
+        mentorship_availability: formData.mentorship_availability,
         is_onboarded: true,
         onboarding_completed_at: new Date().toISOString(),
         onboarding_progress: null
+      };
+
+      await databaseService.updateProfile(user.id, {
+        ...profileData
       });
 
       // Create initial career track if needed
