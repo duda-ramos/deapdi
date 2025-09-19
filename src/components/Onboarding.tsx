@@ -265,7 +265,7 @@ export const Onboarding: React.FC = () => {
     
     try {
       await databaseService.updateProfile(user.id, {
-        onboarding_progress: { ...formData, currentStep }
+        onboarding_progress: JSON.stringify({ ...formData, currentStep })
       });
     } catch (error) {
       console.error('Error saving progress:', error);
