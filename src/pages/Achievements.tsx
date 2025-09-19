@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { supabaseRequest } from './api';
+import { supabaseRequest } from '../services/api';
 import type { Achievement } from '../types';
 
 export interface AchievementTemplate {

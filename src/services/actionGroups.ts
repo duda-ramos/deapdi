@@ -97,8 +97,69 @@ export const actionGroupService = {
         if (error.message?.includes('infinite recursion')) {
           console.error('👥 ActionGroups: Infinite recursion in policies detected, trying fallback query');
           
-          // Fallback: Get groups without participants to avoid policy issues
-          const fallbackQuery = supabase
+          // Fallback: Get only basic group info to avoid policy issues
+          try {
+            const { data: basicGroups, error: basicError } = await supabase
+              .from('action_groups')
+              .select('id, title, description, deadline, status, progress, created_by, created_at, updated_at')
+              .eq('created_by', profileId || '')
+              .order('created_at', { ascending: false });
+
+            if (basicError) {
+              console.error('👥 ActionGroups: Even basic query failed:', basicError);
+              return [];
+            }
+
+            // Return groups with minimal data structure
+            return (basicGroups || []).map(group => ({
+              ...group,
+              created_by_profile: { id: group.created_by, name: 'Usuário', avatar_url: null },
+              participants: [],
+              tasks: [],
+              member_contributions: []
+            }));
+          } catch (fallbackError) {
+            console.error('👥 ActionGroups: All queries failed:', fallbackError);
+            return [];
+          }
+        }
+        console.error('👥 ActionGroups: Error fetching groups:', error);
+        throw error;
+      }
+
+      // Get member contributions for each group
+      const groupsWithContributions = await Promise.all(
+        (data || []).map(async (group) => {
+          try {
+            const contributions = await this.getMemberContributions(group.id);
+            return {
+              ...group,
+              member_contributions: contributions
+            };
+          } catch (contributionError) {
+            console.warn('👥 ActionGroups: Error getting contributions for group:', group.id, contributionError);
+            return {
+              ...group,
+              member_contributions: []
+            };
+          }
+        })
+      );
+
+      console.log('👥 ActionGroups: Groups fetched:', groupsWithContributions.length);
+      return groupsWithContributions;
+    } catch (error) {
+      console.error('👥 ActionGroups: Critical error fetching groups:', error);
+      
+      // Final fallback - return empty array instead of throwing
+      if (error.message?.includes('infinite recursion')) {
+        console.warn('👥 ActionGroups: Returning empty array due to policy recursion');
+        return [];
+      }
+      
+      throw error;
+    }
+  },
             .from('action_groups')
             .select(`
               *,
@@ -331,8 +392,13 @@ export const actionGroupService = {
       });
 
       if (error) {
+        // Handle infinite recursion in contributions as well
+        if (error.message?.includes('infinite recursion')) {
+          console.warn('👥 ActionGroups: Infinite recursion in contributions, returning empty array');
+          return [];
+        }
         console.error('👥 ActionGroups: Error getting contributions:', error);
-        throw error;
+        return [];
       }
 
       console.log('👥 ActionGroups: Member contributions fetched:', data?.length);
