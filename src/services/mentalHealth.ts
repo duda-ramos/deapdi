@@ -589,27 +589,34 @@ export const mentalHealthService = {
     console.log('🧠 MentalHealth: Getting mental health statistics');
 
     try {
-      const { data, error } = await supabase.rpc('get_mental_health_stats');
-      
-      if (error) {
-        console.warn('🧠 MentalHealth: RPC function error, returning default stats:', error.message);
-        return {
-          total_employees_participating: 0,
-          average_mood_score: 0,
-          sessions_this_month: 0,
-          high_risk_responses: 0,
-          active_alerts: 0,
-          wellness_resources_accessed: 0
-        };
-      }
-      
-      return data || {
-        total_employees_participating: 0,
-        average_mood_score: 0,
-        sessions_this_month: 0,
-        high_risk_responses: 0,
-        active_alerts: 0,
-        wellness_resources_accessed: 0
+      // Calculate stats manually since RPC function has database schema issues
+      const [
+        employeesResult,
+        checkinsResult,
+        sessionsResult,
+        alertsResult
+      ] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('emotional_checkins').select('mood_rating').gte('checkin_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
+        supabase.from('psychology_sessions').select('id', { count: 'exact', head: true }).gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+        supabase.from('mental_health_alerts').select('id', { count: 'exact', head: true }).is('resolved_at', null)
+      ]);
+
+      const totalEmployees = employeesResult.count || 0;
+      const checkins = checkinsResult.data || [];
+      const averageMood = checkins.length > 0 
+        ? checkins.reduce((sum, c) => sum + (c.mood_rating || 0), 0) / checkins.length 
+        : 0;
+      const sessionsThisMonth = sessionsResult.count || 0;
+      const activeAlerts = alertsResult.count || 0;
+
+      return {
+        total_employees_participating: totalEmployees,
+        average_mood_score: averageMood,
+        sessions_this_month: sessionsThisMonth,
+        high_risk_responses: 0, // Cannot calculate without proper schema
+        active_alerts: activeAlerts,
+        wellness_resources_accessed: 0 // Cannot calculate without proper tracking
       };
     } catch (error) {
       console.warn('🧠 MentalHealth: Error getting stats, returning default stats:', error);
