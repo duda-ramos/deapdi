@@ -351,7 +351,7 @@ export const mentalHealthService = {
   async reviewFormResponse(id: string, notes: string, followUpNeeded = false): Promise<FormResponse> {
     console.log('🧠 MentalHealth: Reviewing form response:', id);
 
-    return supabaseRequest(() => supabase
+    return supabaseRequest(async () => supabase
       .from('form_responses')
       .update({
         reviewed_by: (await supabase.auth.getUser()).data.user?.id,
