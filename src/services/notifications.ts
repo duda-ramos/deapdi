@@ -214,22 +214,9 @@ export const notificationService = {
         p_profile_id: profileId
       });
 
-      if (error) {
-        console.error('🔔 Notifications: Error getting stats:', error);
-        // Return default stats for any database error
-        return this.getDefaultStats();
-      }
-
-      return data?.[0] || {
-        total_notifications: 0,
-        unread_notifications: 0,
-        notifications_today: 0,
-        most_common_type: 'info'
-      };
-    } catch (error) {
-      console.error('🔔 Notifications: Error getting stats:', error);
-      return this.getDefaultStats();
-    }
+    console.log('🔔 Notifications: Getting stats for profile:', profileId);
+    // Return default stats since get_notification_stats function doesn't exist yet
+    return this.getDefaultStats();
   },
 
   getDefaultStats(): NotificationStats {
