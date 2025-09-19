@@ -8,7 +8,8 @@ import {
   Calendar,
   BookOpen,
   Star,
-  Award
+  Award,
+  Heart
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
