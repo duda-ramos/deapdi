@@ -52,6 +52,13 @@ export const NotificationCenter: React.FC = () => {
   const setupNotificationSubscription = () => {
     if (!user) return;
     
+    // Check if Supabase is properly configured
+    if (!supabase) {
+      console.warn('🔔 NotificationCenter: Supabase not configured, skipping real-time subscription');
+      setSubscriptionStatus('disconnected');
+      return;
+    }
+    
     console.log('🔔 NotificationCenter: Setting up subscription, attempt:', reconnectAttempts + 1);
     setSubscriptionStatus('connecting');
     
@@ -107,6 +114,15 @@ export const NotificationCenter: React.FC = () => {
   const loadNotifications = async () => {
     if (!user) return;
     
+    // Check if Supabase is properly configured
+    if (!supabase) {
+      console.warn('🔔 NotificationCenter: Supabase not configured, skipping notifications');
+      setNotifications([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       const [allNotifications, unreadNotifications] = await Promise.all([
@@ -116,14 +132,19 @@ export const NotificationCenter: React.FC = () => {
       
       setNotifications(allNotifications || []);
       setUnreadCount(unreadNotifications?.length || 0);
+      setLoading(false);
     } catch (error) {
       console.error('Error loading notifications:', error);
       
       // Handle network connectivity issues
-      if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
-        setError('Não foi possível conectar ao servidor. Verifique sua conexão com a internet ou se o Supabase está configurado corretamente.');
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        console.warn('🔔 NotificationCenter: Network error, setting empty state');
+        setNotifications([]);
+        setUnreadCount(0);
       } else {
-        setError('Error loading notifications:\n\n' + error.message);
+        console.error('🔔 NotificationCenter: Unexpected error:', error);
+        setNotifications([]);
+        setUnreadCount(0);
       }
       setLoading(false);
     }
@@ -131,6 +152,12 @@ export const NotificationCenter: React.FC = () => {
 
   const loadPreferences = async () => {
     if (!user) return;
+    
+    // Check if Supabase is properly configured
+    if (!supabase) {
+      setPreferences(notificationService.getDefaultPreferences(user.id));
+      return;
+    }
     
     try {
       const prefs = await notificationService.getPreferences(user.id);
@@ -144,6 +171,12 @@ export const NotificationCenter: React.FC = () => {
 
   const loadStats = async () => {
     if (!user) return;
+    
+    // Check if Supabase is properly configured
+    if (!supabase) {
+      setStats(notificationService.getDefaultStats());
+      return;
+    }
     
     try {
       const statsData = await notificationService.getStats(user.id);
