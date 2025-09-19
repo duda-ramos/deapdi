@@ -15,7 +15,7 @@ export const sanitizeHtml = (dirty: string): string => {
  */
 export const sanitizeText = (input: string): string => {
   return input
-    .replace(/[<>]/g, '') // Remove potential HTML tags
+    .replace(/[<>]/g, '') // Remove only HTML tag brackets
     .trim()
     .substring(0, 1000); // Limit length
 };

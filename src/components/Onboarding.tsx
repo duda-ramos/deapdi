@@ -462,6 +462,7 @@ export const Onboarding: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
               placeholder="https://exemplo.com/foto.jpg"
               helperText="Cole o link de uma foto sua ou deixe em branco para usar o padrão"
+              sanitize={false}
             />
 
             <Textarea
@@ -470,6 +471,7 @@ export const Onboarding: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
               placeholder="Conte um pouco sobre sua trajetória profissional, experiências e interesses..."
               rows={4}
+              sanitize={false}
             />
           </div>
         );
@@ -701,6 +703,7 @@ export const Onboarding: React.FC = () => {
                           onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })}
                           error={errors.emergency_contact}
                           placeholder="Nome e telefone de contato de emergência"
+                          sanitize={false}
                         />
                       </div>
                     )}
@@ -740,6 +743,7 @@ export const Onboarding: React.FC = () => {
               error={errors.career_objectives}
               placeholder="Descreva seus objetivos profissionais e onde gostaria de estar em 2-3 anos..."
               rows={4}
+              sanitize={false}
             />
 
             <SkillInput

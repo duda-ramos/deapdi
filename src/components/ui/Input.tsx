@@ -12,7 +12,7 @@ export const Input: React.FC<InputProps> = ({
   label,
   error,
   helperText,
-  sanitize = true,
+  sanitize = false,
   className = '',
   onChange,
   ...props

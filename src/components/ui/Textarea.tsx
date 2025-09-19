@@ -12,7 +12,7 @@ export const Textarea: React.FC<TextareaProps> = ({
   label,
   error,
   helperText,
-  sanitize = true,
+  sanitize = false,
   className = '',
   onChange,
   ...props
