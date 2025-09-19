@@ -19,6 +19,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { notificationService, NotificationPreferences, NotificationStats } from '../services/notifications';
 import type { Notification } from '../types';
+import { supabase } from '../lib/supabase';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Modal } from './ui/Modal';
