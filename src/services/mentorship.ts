@@ -498,7 +498,7 @@ export const mentorshipService = {
   },
 
   // Helper Functions
-  private async getUserMentorshipIds(profileId: string): Promise<string> {
+  async getUserMentorshipIds(profileId: string): Promise<string> {
     try {
       const { data } = await supabase
         .from('mentorships')
@@ -513,7 +513,7 @@ export const mentorshipService = {
     }
   },
 
-  private calculateAverageRating(ratings: Array<{rating: number}>): number {
+  calculateAverageRating(ratings: Array<{rating: number}>): number {
     if (ratings.length === 0) return 0;
     const sum = ratings.reduce((acc, r) => acc + r.rating, 0);
     return Math.round((sum / ratings.length) * 10) / 10; // Round to 1 decimal
