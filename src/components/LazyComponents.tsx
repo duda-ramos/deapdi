@@ -15,6 +15,7 @@ export const LazyHRArea = lazy(() => import('../pages/HRArea'));
 export const LazyAdministration = lazy(() => import('../pages/Administration'));
 export const LazyUserManagement = lazy(() => import('../pages/UserManagement'));
 export const LazyCareerTrackManagement = lazy(() => import('../pages/CareerTrackManagement'));
+export const LazyCertificates = lazy(() => import('../pages/Certificates'));
 
 // Action Groups service
 export const LazyActionGroupService = lazy(() => import('../services/actionGroups'));
