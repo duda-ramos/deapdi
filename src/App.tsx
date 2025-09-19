@@ -5,6 +5,9 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { useErrorHandler } from './hooks/useErrorHandler';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AchievementProvider } from './contexts/AchievementContext';
+import { AchievementToast } from './components/AchievementToast';
+import { useAchievements } from './contexts/AchievementContext';
 import { SetupCheck } from './components/SetupCheck';
 import { Login } from './components/Login';
 import { Layout } from './components/layout/Layout';
@@ -24,6 +27,20 @@ import {
   LazyUserManagement,
   LazyCareerTrackManagement
 } from './components/LazyComponents';
+
+const AchievementWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { newAchievement, clearAchievement } = useAchievements();
+
+  return (
+    <>
+      {children}
+      <AchievementToast 
+        achievement={newAchievement} 
+        onClose={clearAchievement} 
+      />
+    </>
+  );
+};
 
 const useSupabaseSetup = () => {
   const [setupComplete, setSetupComplete] = React.useState(false);
@@ -218,9 +235,13 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
+        <AchievementProvider>
+          <Router>
+            <AchievementWrapper>
+              <AppRoutes />
+            </AchievementWrapper>
+          </Router>
+        </AchievementProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

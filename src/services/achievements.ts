@@ -28,8 +28,18 @@ export interface AchievementProgress {
   requirements: string[];
 }
 
+export interface AchievementNotification {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  points: number;
+  category: string;
+}
+
 export const achievementService = {
   async getTemplates() {
+    console.log('🏆 Achievements: Getting templates');
     return supabaseRequest(() => supabase
       .from('achievement_templates')
       .select('*')
@@ -37,6 +47,7 @@ export const achievementService = {
   },
 
   async getUserAchievements(profileId: string) {
+    console.log('🏆 Achievements: Getting user achievements for:', profileId);
     return supabaseRequest(() => supabase
       .from('achievements')
       .select(`
@@ -70,7 +81,17 @@ export const achievementService = {
       const completedTasks = tasksResult.data?.filter(t => t.status === 'done').length || 0;
       const maxCompetencyRating = competenciesResult.data?.reduce((max, c) => 
         Math.max(max, Math.max(c.self_rating || 0, c.manager_rating || 0)), 0) || 0;
+      const fiveStarCount = competenciesResult.data?.filter(c => 
+        Math.max(c.self_rating || 0, c.manager_rating || 0) === 5).length || 0;
       const careerProgress = careerResult.data?.progress || 0;
+
+      console.log('🏆 Achievements: User stats:', {
+        completedPDIs,
+        completedTasks,
+        maxCompetencyRating,
+        fiveStarCount,
+        careerProgress
+      });
 
       // Calculate progress for each template
       const progress: AchievementProgress[] = templates?.map(template => {
@@ -82,22 +103,28 @@ export const achievementService = {
         let requirements: string[] = [];
 
         switch (template.trigger_type) {
-          case 'pdi_completed':
-            maxProgress = condition.min_pdis;
-            currentProgress = Math.min(completedPDIs, maxProgress);
-            requirements = [`Completar ${maxProgress} PDI${maxProgress > 1 ? 's' : ''}`];
-            break;
-            
           case 'task_completed':
             maxProgress = condition.min_tasks;
             currentProgress = Math.min(completedTasks, maxProgress);
             requirements = [`Completar ${maxProgress} tarefa${maxProgress > 1 ? 's' : ''}`];
             break;
             
+          case 'pdi_completed':
+            maxProgress = condition.min_pdis;
+            currentProgress = Math.min(completedPDIs, maxProgress);
+            requirements = [`Completar ${maxProgress} PDI${maxProgress > 1 ? 's' : ''}`];
+            break;
+            
           case 'competency_rated':
-            maxProgress = condition.min_rating;
-            currentProgress = Math.min(maxCompetencyRating, maxProgress);
-            requirements = [`Receber avaliação ${maxProgress} estrelas`];
+            if (condition.min_count) {
+              maxProgress = condition.min_count;
+              currentProgress = Math.min(fiveStarCount, maxProgress);
+              requirements = [`Receber ${maxProgress} avaliação${maxProgress > 1 ? 'ões' : ''} 5 estrelas`];
+            } else {
+              maxProgress = condition.min_rating;
+              currentProgress = Math.min(maxCompetencyRating, maxProgress);
+              requirements = [`Receber avaliação ${maxProgress} estrelas`];
+            }
             break;
             
           case 'career_progress':
@@ -134,29 +161,63 @@ export const achievementService = {
     console.log('🏆 Achievements: Manual check for profile:', profileId);
     
     try {
-      // Check all trigger types
-      const triggerTypes = ['pdi_completed', 'task_completed', 'competency_rated', 'career_progress'];
-      
-      for (const triggerType of triggerTypes) {
-        const { error } = await supabase.rpc('check_and_unlock_achievements', {
-          p_profile_id: profileId,
-          p_trigger_type: triggerType
-        });
+      const { data, error } = await supabase.rpc('manual_check_achievements', {
+        p_profile_id: profileId
+      });
 
-        if (error) {
-          console.error(`🏆 Achievements: Error checking ${triggerType}:`, error);
-        }
+      if (error) {
+        console.error('🏆 Achievements: Manual check error:', error);
+        throw error;
       }
-      
-      console.log('🏆 Achievements: Manual check completed');
+
+      console.log('🏆 Achievements: Manual check result:', data);
+      return data?.[0] || { unlocked_count: 0, total_points: 0 };
     } catch (error) {
       console.error('🏆 Achievements: Manual check failed:', error);
       throw error;
     }
   },
 
+  // Subscribe to new achievements for real-time notifications
+  subscribeToAchievements(
+    profileId: string,
+    callback: (achievement: AchievementNotification) => void
+  ) {
+    console.log('🏆 Achievements: Setting up subscription for profile:', profileId);
+    
+    const channel = supabase
+      .channel(`achievements_${profileId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'achievements',
+          filter: `profile_id=eq.${profileId}`
+        },
+        (payload) => {
+          console.log('🏆 Achievements: New achievement unlocked:', payload);
+          if (payload.new) {
+            const achievement = payload.new as Achievement;
+            callback({
+              id: achievement.id,
+              title: achievement.title,
+              description: achievement.description,
+              icon: achievement.icon,
+              points: achievement.points,
+              category: 'achievement'
+            });
+          }
+        }
+      )
+      .subscribe();
+    
+    return channel;
+  },
+
   // Admin functions
   async createTemplate(template: Omit<AchievementTemplate, 'id' | 'created_at' | 'updated_at'>) {
+    console.log('🏆 Achievements: Creating template:', template.title);
     return supabaseRequest(() => supabase
       .from('achievement_templates')
       .insert(template)
@@ -165,6 +226,7 @@ export const achievementService = {
   },
 
   async updateTemplate(id: string, updates: Partial<AchievementTemplate>) {
+    console.log('🏆 Achievements: Updating template:', id);
     return supabaseRequest(() => supabase
       .from('achievement_templates')
       .update(updates)
@@ -174,6 +236,7 @@ export const achievementService = {
   },
 
   async deleteTemplate(id: string) {
+    console.log('🏆 Achievements: Deleting template:', id);
     return supabaseRequest(() => supabase
       .from('achievement_templates')
       .delete()

@@ -178,34 +178,51 @@ export const databaseService = {
 
   // Achievements
   async getAchievements(profileId: string) {
-    const { data, error } = await supabase
-      .from('achievements')
-      .select('*')
-      .eq('profile_id', profileId)
-      .order('unlocked_at', { ascending: false });
+    console.log('🗄️ Database: Getting achievements for profile:', profileId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('achievements')
+        .select(`
+          *,
+          template:achievement_templates(*)
+        `)
+        .eq('profile_id', profileId)
+        .order('unlocked_at', { ascending: false });
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('🗄️ Database: Error fetching achievements:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Achievements result:', { count: data?.length });
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error fetching achievements:', error);
+      throw error;
+    }
   },
 
   async unlockAchievement(profileId: string, achievementTemplate: string) {
-    // This would typically be called by a database function or trigger
-    // For now, we'll implement it as a simple insert
-    const { data, error } = await supabase
-      .from('achievements')
-      .insert({
-        profile_id: profileId,
-        title: achievementTemplate, // This should be looked up from templates
-        description: 'Achievement unlocked!',
-        icon: '🏆',
-        points: 100,
-        unlocked_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    console.log('🗄️ Database: Manually unlocking achievement:', achievementTemplate, 'for profile:', profileId);
+    
+    try {
+      // This is now handled by triggers, but keeping for manual testing
+      const { data, error } = await supabase.rpc('manual_check_achievements', {
+        p_profile_id: profileId
+      });
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('🗄️ Database: Error unlocking achievement:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Achievement unlock result:', data);
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error unlocking achievement:', error);
+      throw error;
+    }
   },
 
   // Salary History

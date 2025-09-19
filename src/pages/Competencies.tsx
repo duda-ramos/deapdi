@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, User, Users, Save, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAchievements } from '../contexts/AchievementContext';
 import { databaseService } from '../services/database';
 import { Competency } from '../types';
 import { Card } from '../components/ui/Card';
@@ -11,6 +12,7 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 
 const Competencies: React.FC = () => {
   const { user } = useAuth();
+  const { checkAchievements } = useAchievements();
   const [competencies, setCompetencies] = useState<Competency[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -64,6 +66,11 @@ const Competencies: React.FC = () => {
       }
 
       setEditingMode('view');
+      
+      // Check for new achievements after competency updates
+      setTimeout(() => {
+        checkAchievements();
+      }, 1000);
     } catch (error) {
       console.error('Erro ao salvar competências:', error);
     } finally {

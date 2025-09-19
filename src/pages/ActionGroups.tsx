@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Users, Calendar, CheckCircle, Clock, AlertTriangle, User, Target } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAchievements } from '../contexts/AchievementContext';
 import { databaseService } from '../services/database';
 import { ActionGroup, Profile, Task } from '../types';
 import { Card } from '../components/ui/Card';
@@ -16,6 +17,7 @@ import { Badge } from '../components/ui/Badge';
 
 const ActionGroups: React.FC = () => {
   const { user } = useAuth();
+  const { checkAchievements } = useAchievements();
   const [groups, setGroups] = useState<ActionGroup[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,11 @@ const ActionGroups: React.FC = () => {
       });
       
       loadGroups();
+      
+      // Check for achievements after creating group
+      setTimeout(() => {
+        checkAchievements();
+      }, 1000);
     } catch (error) {
       console.error('Erro ao criar grupo:', error);
     }

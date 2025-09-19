@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Star, Award, Target, Users, BookOpen, TrendingUp, Lock } from 'lucide-react';
+import { Trophy, Star, Award, Target, Users, BookOpen, TrendingUp, Lock, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { databaseService } from '../services/database';
+import { useAchievements } from '../contexts/AchievementContext';
+import { achievementService, AchievementProgress } from '../services/achievements';
 import { Achievement } from '../types';
 import { Card } from '../components/ui/Card';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
@@ -10,149 +11,38 @@ import { ErrorMessage } from '../utils/errorMessages';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 
-interface AchievementTemplate {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  points: number;
-  category: 'career' | 'learning' | 'collaboration' | 'leadership' | 'innovation';
-  requirements: string[];
-  unlocked: boolean;
-  progress?: number;
-  maxProgress?: number;
-}
-
 const Achievements: React.FC = () => {
   const { user } = useAuth();
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const { checkAchievements } = useAchievements();
+  const [achievementProgress, setAchievementProgress] = useState<AchievementProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  // Mock achievement templates - in real app, this would come from database
-  const achievementTemplates: AchievementTemplate[] = [
-    {
-      id: '1',
-      title: 'Primeira Conquista',
-      description: 'Complete seu primeiro PDI',
-      icon: '🚀',
-      points: 100,
-      category: 'career',
-      requirements: ['Concluir 1 PDI'],
-      unlocked: true,
-      progress: 1,
-      maxProgress: 1
-    },
-    {
-      id: '2',
-      title: 'Eterno Aprendiz',
-      description: 'Complete 5 cursos de capacitação',
-      icon: '📚',
-      points: 250,
-      category: 'learning',
-      requirements: ['Concluir 5 cursos'],
-      unlocked: true,
-      progress: 3,
-      maxProgress: 5
-    },
-    {
-      id: '3',
-      title: 'Team Player',
-      description: 'Participe de 3 grupos de ação',
-      icon: '🤝',
-      points: 200,
-      category: 'collaboration',
-      requirements: ['Participar de 3 grupos de ação'],
-      unlocked: true,
-      progress: 2,
-      maxProgress: 3
-    },
-    {
-      id: '4',
-      title: 'Mentor Dedicado',
-      description: 'Seja mentor em 5 PDIs',
-      icon: '🎯',
-      points: 300,
-      category: 'leadership',
-      requirements: ['Ser mentor em 5 PDIs'],
-      unlocked: false,
-      progress: 1,
-      maxProgress: 5
-    },
-    {
-      id: '5',
-      title: 'Inovador',
-      description: 'Proponha 3 melhorias implementadas',
-      icon: '💡',
-      points: 400,
-      category: 'innovation',
-      requirements: ['3 melhorias implementadas'],
-      unlocked: false,
-      progress: 0,
-      maxProgress: 3
-    },
-    {
-      id: '6',
-      title: 'Especialista',
-      description: 'Alcance nível 5 em todas as competências técnicas',
-      icon: '⭐',
-      points: 500,
-      category: 'career',
-      requirements: ['Nível 5 em todas competências técnicas'],
-      unlocked: false,
-      progress: 2,
-      maxProgress: 8
-    },
-    {
-      id: '7',
-      title: 'Comunicador',
-      description: 'Apresente 10 workshops internos',
-      icon: '🎤',
-      points: 350,
-      category: 'leadership',
-      requirements: ['Apresentar 10 workshops'],
-      unlocked: false,
-      progress: 0,
-      maxProgress: 10
-    },
-    {
-      id: '8',
-      title: 'Colaborador do Ano',
-      description: 'Acumule 2000 pontos em um ano',
-      icon: '🏆',
-      points: 1000,
-      category: 'career',
-      requirements: ['2000 pontos em 12 meses'],
-      unlocked: false,
-      progress: user?.points || 0,
-      maxProgress: 2000
-    }
-  ];
-
   const categories = [
     { id: 'all', label: 'Todas', icon: <Trophy size={16} /> },
-    { id: 'career', label: 'Carreira', icon: <TrendingUp size={16} /> },
-    { id: 'learning', label: 'Aprendizado', icon: <BookOpen size={16} /> },
-    { id: 'collaboration', label: 'Colaboração', icon: <Users size={16} /> },
-    { id: 'leadership', label: 'Liderança', icon: <Award size={16} /> },
-    { id: 'innovation', label: 'Inovação', icon: <Star size={16} /> }
+    { id: 'getting_started', label: 'Primeiros Passos', icon: <TrendingUp size={16} /> },
+    { id: 'development', label: 'Desenvolvimento', icon: <BookOpen size={16} /> },
+    { id: 'productivity', label: 'Produtividade', icon: <Users size={16} /> },
+    { id: 'competency', label: 'Competências', icon: <Award size={16} /> },
+    { id: 'career', label: 'Carreira', icon: <Star size={16} /> }
   ];
 
   useEffect(() => {
     if (user) {
-      loadAchievements();
+      loadAchievementProgress();
     }
   }, [user]);
 
-  const loadAchievements = async () => {
+  const loadAchievementProgress = async () => {
     if (!user) return;
 
     try {
       setLoading(true);
       setError('');
-      const data = await databaseService.getAchievements(user.id);
-      setAchievements(data || []);
+      const progress = await achievementService.getAchievementProgress(user.id);
+      setAchievementProgress(progress);
     } catch (error) {
       console.error('Erro ao carregar conquistas:', error);
       setError(error instanceof Error ? error.message : 'Erro ao carregar conquistas');
@@ -161,18 +51,36 @@ const Achievements: React.FC = () => {
     }
   };
 
-  const filteredAchievements = selectedCategory === 'all' 
-    ? achievementTemplates 
-    : achievementTemplates.filter(a => a.category === selectedCategory);
+  const handleManualCheck = async () => {
+    if (!user) return;
 
-  const unlockedCount = achievementTemplates.filter(a => a.unlocked).length;
-  const totalPoints = achievementTemplates
+    try {
+      setChecking(true);
+      await checkAchievements();
+      await loadAchievementProgress(); // Reload to see new achievements
+    } catch (error) {
+      console.error('Erro ao verificar conquistas:', error);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const filteredAchievements = selectedCategory === 'all' 
+    ? achievementProgress 
+    : achievementProgress.filter(a => a.category === selectedCategory);
+
+  const unlockedCount = achievementProgress.filter(a => a.unlocked).length;
+  const totalPoints = achievementProgress
     .filter(a => a.unlocked)
     .reduce((sum, a) => sum + a.points, 0);
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'career': return 'bg-blue-500';
+      case 'getting_started': return 'bg-green-500';
+      case 'development': return 'bg-blue-500';
+      case 'productivity': return 'bg-purple-500';
+      case 'competency': return 'bg-orange-500';
+      case 'career': return 'bg-yellow-500';
       case 'learning': return 'bg-green-500';
       case 'collaboration': return 'bg-purple-500';
       case 'leadership': return 'bg-orange-500';
@@ -183,7 +91,11 @@ const Achievements: React.FC = () => {
 
   const getCategoryBadgeVariant = (category: string) => {
     switch (category) {
-      case 'career': return 'info';
+      case 'getting_started': return 'success';
+      case 'development': return 'info';
+      case 'productivity': return 'default';
+      case 'competency': return 'warning';
+      case 'career': return 'danger';
       case 'learning': return 'success';
       case 'collaboration': return 'default';
       case 'leadership': return 'warning';
@@ -203,7 +115,7 @@ const Achievements: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Conquistas</h1>
           <p className="text-gray-600 mt-1">Acompanhe seu progresso e desbloqueie novas conquistas</p>
         </div>
-        <ErrorMessage error={error} onRetry={loadAchievements} />
+        <ErrorMessage error={error} onRetry={loadAchievementProgress} />
       </div>
     );
   }
@@ -214,6 +126,16 @@ const Achievements: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Conquistas</h1>
           <p className="text-gray-600 mt-1">Acompanhe seu progresso e desbloqueie novas conquistas</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <Button
+            onClick={handleManualCheck}
+            loading={checking}
+            variant="secondary"
+          >
+            <RefreshCw size={16} className="mr-2" />
+            Verificar Conquistas
+          </Button>
         </div>
       </div>
 
@@ -232,7 +154,7 @@ const Achievements: React.FC = () => {
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-gray-400 mr-3" />
             <div>
-              <div className="text-xl md:text-2xl font-bold text-gray-900">{achievementTemplates.length - unlockedCount}</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-900">{achievementProgress.length - unlockedCount}</div>
               <div className="text-sm text-gray-600">Bloqueadas</div>
             </div>
           </div>
@@ -251,6 +173,7 @@ const Achievements: React.FC = () => {
             <div className="w-3 h-3 rounded-full bg-green-500 mr-3" />
             <div>
               <div className="text-xl md:text-2xl font-bold text-gray-900">{Math.round((unlockedCount / achievementTemplates.length) * 100)}%</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-900">{Math.round((unlockedCount / achievementProgress.length) * 100)}%</div>
               <div className="text-sm text-gray-600">Progresso</div>
             </div>
           </div>
@@ -284,7 +207,7 @@ const Achievements: React.FC = () => {
             key={achievement.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: filteredAchievements.indexOf(achievement) * 0.1 }}
+            transition={{ delay: filteredAchievements.findIndex(a => a.templateId === achievement.templateId) * 0.1 }}
           >
             <Card className={`p-6 h-full transition-all ${
               achievement.unlocked 
@@ -367,7 +290,7 @@ const Achievements: React.FC = () => {
       <Card className="p-4 md:p-6">
         <h3 className="text-lg font-semibold mb-4">Próximas Conquistas</h3>
         <div className="space-y-3">
-          {achievementTemplates
+          {achievementProgress
             .filter(a => !a.unlocked && a.progress !== undefined)
             .sort((a, b) => {
               const progressA = a.maxProgress ? (a.progress! / a.maxProgress) : 0;
@@ -375,8 +298,8 @@ const Achievements: React.FC = () => {
               return progressB - progressA;
             })
             .slice(0, 3)
-            .map((achievement) => (
-              <div key={achievement.id} className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-3 bg-gray-50 rounded-lg">
+            .map((achievement, index) => (
+              <div key={achievement.templateId} className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-3 bg-gray-50 rounded-lg">
                 <div className="text-2xl grayscale opacity-50">{achievement.icon}</div>
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-900">{achievement.title}</h4>
@@ -384,11 +307,13 @@ const Achievements: React.FC = () => {
                   {achievement.maxProgress && (
                     <div className="mt-2">
                       <ProgressBar
-                        progress={(achievement.progress! / achievement.maxProgress) * 100}
+                        progress={(achievement.progress / achievement.maxProgress) * 100}
                         color="blue"
-                        showLabel
-                        className="text-xs"
                       />
+                      <div className="flex justify-between text-xs text-gray-600 mt-1">
+                        <span>Progresso</span>
+                        <span>{achievement.progress}/{achievement.maxProgress}</span>
+                      </div>
                     </div>
                   )}
                 </div>
