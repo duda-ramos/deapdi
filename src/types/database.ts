@@ -594,6 +594,38 @@ export interface Database {
           updated_at?: string
         }
       }
+      consent_records: {
+        Row: {
+          id: string
+          employee_id: string
+          consent_type: string
+          granted: boolean
+          consent_text: string
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          consent_type: string
+          granted: boolean
+          consent_text: string
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          consent_type?: string
+          granted?: boolean
+          consent_text?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+      }
       emotional_checkins: {
         Row: {
           id: string
