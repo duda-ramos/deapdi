@@ -564,6 +564,7 @@ export const Onboarding: React.FC = () => {
               error={errors.formation}
               placeholder="Graduação, pós-graduação, cursos técnicos..."
               rows={3}
+              sanitize={false}
             />
 
             <SkillInput
