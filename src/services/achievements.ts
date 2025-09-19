@@ -62,75 +62,85 @@ export const achievementService = {
     console.log('🏆 Achievements: Getting progress for profile:', profileId);
 
     try {
-      // Get all templates
-      const templates = await this.getTemplates();
-      
-      // Get user's unlocked achievements
-      const userAchievements = await this.getUserAchievements(profileId);
-      const unlockedTemplateIds = userAchievements?.map(a => a.template_id) || [];
+      const { data: templates, error: templatesError } = await supabase
+        .from('achievement_templates')
+        .select('*');
 
-      // Get user's current stats for progress calculation
-      const [pdisResult, tasksResult, competenciesResult, careerResult] = await Promise.all([
-        supabase.from('pdis').select('status').eq('profile_id', profileId),
-        supabase.from('tasks').select('status').eq('assignee_id', profileId),
-        supabase.from('competencies').select('self_rating, manager_rating').eq('profile_id', profileId),
-        supabase.from('career_tracks').select('progress').eq('profile_id', profileId).maybeSingle()
-      ]);
+      if (templatesError) throw templatesError;
 
-      const completedPDIs = pdisResult.data?.filter(p => p.status === 'completed' || p.status === 'validated').length || 0;
-      const completedTasks = tasksResult.data?.filter(t => t.status === 'done').length || 0;
-      const maxCompetencyRating = competenciesResult.data?.reduce((max, c) => 
-        Math.max(max, Math.max(c.self_rating || 0, c.manager_rating || 0)), 0) || 0;
-      const fiveStarCount = competenciesResult.data?.filter(c => 
-        Math.max(c.self_rating || 0, c.manager_rating || 0) === 5).length || 0;
-      const careerProgress = careerResult.data?.progress || 0;
+      const { data: userAchievements, error: achievementsError } = await supabase
+        .from('achievements')
+        .select('*')
+        .eq('profile_id', profileId);
 
-      console.log('🏆 Achievements: User stats:', {
-        completedPDIs,
-        completedTasks,
-        maxCompetencyRating,
-        fiveStarCount,
-        careerProgress
-      });
+      if (achievementsError) throw achievementsError;
 
-      // Calculate progress for each template
-      const progress: AchievementProgress[] = templates?.map(template => {
-        const isUnlocked = unlockedTemplateIds.includes(template.id);
-        const condition = template.trigger_condition;
+      // Get user stats for progress calculation
+      let stats;
+      try {
+        stats = await this.getUserStats(profileId);
+      } catch (error: any) {
+        // Handle infinite recursion or other policy errors
+        if (error?.message?.includes('infinite recursion')) {
+          console.warn('Policy recursion detected, using fallback stats');
+          stats = {
+            completedPDIs: 0,
+            completedTasks: 0,
+            completedCourses: 0,
+            competenciesRated: 0,
+            mentorshipSessions: 0,
+            careerProgressions: 0
+          };
+        } else {
+          throw error;
+        }
+      }
+
+      return templates.map(template => {
+        const userAchievement = userAchievements.find(a => a.template_id === template.id);
+        const isUnlocked = !!userAchievement;
         
         let currentProgress = 0;
         let maxProgress = 1;
         let requirements: string[] = [];
 
+        const condition = template.trigger_condition;
+
         switch (template.trigger_type) {
-          case 'task_completed':
-            maxProgress = condition.min_tasks;
-            currentProgress = Math.min(completedTasks, maxProgress);
-            requirements = [`Completar ${maxProgress} tarefa${maxProgress > 1 ? 's' : ''}`];
-            break;
-            
           case 'pdi_completed':
-            maxProgress = condition.min_pdis;
-            currentProgress = Math.min(completedPDIs, maxProgress);
+            maxProgress = condition.count || 1;
+            currentProgress = Math.min(stats.completedPDIs, maxProgress);
             requirements = [`Completar ${maxProgress} PDI${maxProgress > 1 ? 's' : ''}`];
             break;
             
-          case 'competency_rated':
-            if (condition.min_count) {
-              maxProgress = condition.min_count;
-              currentProgress = Math.min(fiveStarCount, maxProgress);
-              requirements = [`Receber ${maxProgress} avaliação${maxProgress > 1 ? 'ões' : ''} 5 estrelas`];
-            } else {
-              maxProgress = condition.min_rating;
-              currentProgress = Math.min(maxCompetencyRating, maxProgress);
-              requirements = [`Receber avaliação ${maxProgress} estrelas`];
-            }
+          case 'task_completed':
+            maxProgress = condition.count || 1;
+            currentProgress = Math.min(stats.completedTasks, maxProgress);
+            requirements = [`Completar ${maxProgress} tarefa${maxProgress > 1 ? 's' : ''}`];
             break;
             
-          case 'career_progress':
-            maxProgress = condition.min_progress;
-            currentProgress = Math.min(careerProgress, maxProgress);
-            requirements = [`Alcançar ${maxProgress}% de progresso na trilha`];
+          case 'course_completed':
+            maxProgress = condition.count || 1;
+            currentProgress = Math.min(stats.completedCourses, maxProgress);
+            requirements = [`Completar ${maxProgress} curso${maxProgress > 1 ? 's' : ''}`];
+            break;
+            
+          case 'competency_rated':
+            maxProgress = condition.count || 1;
+            currentProgress = Math.min(stats.competenciesRated, maxProgress);
+            requirements = [`Avaliar ${maxProgress} competência${maxProgress > 1 ? 's' : ''}`];
+            break;
+            
+          case 'mentorship_session':
+            maxProgress = condition.count || 1;
+            currentProgress = Math.min(stats.mentorshipSessions, maxProgress);
+            requirements = [`Participar de ${maxProgress} sessão${maxProgress > 1 ? 'ões' : ''} de mentoria`];
+            break;
+            
+          case 'career_progression':
+            maxProgress = condition.count || 1;
+            currentProgress = Math.min(stats.careerProgressions, maxProgress);
+            requirements = [`Progredir em ${maxProgress} trilha${maxProgress > 1 ? 's' : ''} de carreira`];
             break;
         }
 
@@ -146,14 +156,129 @@ export const achievementService = {
           maxProgress,
           requirements
         };
-      }) || [];
-
-      console.log('🏆 Achievements: Progress calculated for', progress.length, 'achievements');
-      return progress;
+      });
 
     } catch (error) {
       console.error('🏆 Achievements: Error getting progress:', error);
       throw error;
+    }
+  },
+
+  private async getUserStats(profileId: string) {
+    try {
+      // Get completed PDIs
+      let completedPDIs = 0;
+      try {
+        const { data: pdis, error: pdisError } = await supabase
+          .from('pdis')
+          .select('status')
+          .eq('profile_id', profileId);
+        
+        if (pdisError) throw pdisError;
+        completedPDIs = pdis?.filter(p => p.status === 'completed').length || 0;
+      } catch (error: any) {
+        if (!error?.message?.includes('infinite recursion')) throw error;
+      }
+
+      // Get completed tasks
+      let completedTasks = 0;
+      try {
+        const { data: tasks, error: tasksError } = await supabase
+          .from('tasks')
+          .select('status')
+          .eq('assignee_id', profileId);
+        
+        if (tasksError) throw tasksError;
+        completedTasks = tasks?.filter(t => t.status === 'done').length || 0;
+      } catch (error: any) {
+        if (!error?.message?.includes('infinite recursion')) throw error;
+      }
+
+      // Get completed courses
+      let completedCourses = 0;
+      try {
+        const { data: enrollments, error: enrollmentsError } = await supabase
+          .from('course_enrollments')
+          .select('status')
+          .eq('profile_id', profileId);
+        
+        if (enrollmentsError) throw enrollmentsError;
+        completedCourses = enrollments?.filter(e => e.status === 'completed').length || 0;
+      } catch (error: any) {
+        if (!error?.message?.includes('infinite recursion')) throw error;
+      }
+
+      // Get competencies with ratings
+      let competenciesRated = 0;
+      try {
+        const { data: competencies, error: competenciesError } = await supabase
+          .from('competencies')
+          .select('self_rating, manager_rating')
+          .eq('profile_id', profileId);
+        
+        if (competenciesError) throw competenciesError;
+        competenciesRated = competencies?.filter(c => c.self_rating || c.manager_rating).length || 0;
+      } catch (error: any) {
+        if (!error?.message?.includes('infinite recursion')) throw error;
+      }
+
+      // Get mentorship sessions
+      let mentorshipSessions = 0;
+      try {
+        const mentorshipIds = await this.getUserMentorshipIds(profileId);
+        if (mentorshipIds.length > 0) {
+          const { data: sessions, error: sessionsError } = await supabase
+            .from('mentorship_sessions')
+            .select('id')
+            .in('mentorship_id', mentorshipIds);
+          
+          if (sessionsError) throw sessionsError;
+          mentorshipSessions = sessions?.length || 0;
+        }
+      } catch (error: any) {
+        if (!error?.message?.includes('infinite recursion')) throw error;
+      }
+
+      // Get career track progress
+      let careerProgressions = 0;
+      try {
+        const { data: careerTracks, error: careerError } = await supabase
+          .from('career_tracks')
+          .select('progress')
+          .eq('profile_id', profileId);
+        
+        if (careerError) throw careerError;
+        careerProgressions = careerTracks?.filter(ct => ct.progress > 0).length || 0;
+      } catch (error: any) {
+        if (!error?.message?.includes('infinite recursion')) throw error;
+      }
+
+      return {
+        completedPDIs,
+        completedTasks,
+        completedCourses,
+        competenciesRated,
+        mentorshipSessions,
+        careerProgressions
+      };
+    } catch (error) {
+      console.error('Error getting user stats:', error);
+      throw error;
+    }
+  },
+
+  private async getUserMentorshipIds(profileId: string): Promise<string[]> {
+    try {
+      const { data: mentorships, error } = await supabase
+        .from('mentorships')
+        .select('id')
+        .or(`mentor_id.eq.${profileId},mentee_id.eq.${profileId}`);
+
+      if (error) throw error;
+      return mentorships?.map(m => m.id) || [];
+    } catch (error) {
+      console.error('Error getting mentorship IDs:', error);
+      return [];
     }
   },
 
