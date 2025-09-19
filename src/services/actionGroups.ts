@@ -74,13 +74,60 @@ export const actionGroupService = {
           )
         `);
 
+      // Handle potential infinite recursion by simplifying query
       if (profileId) {
-        query = query.or(`created_by.eq.${profileId},id.in.(${await this.getUserGroupIds(profileId)})`);
+        try {
+          const userGroupIds = await this.getUserGroupIds(profileId);
+          if (userGroupIds) {
+            query = query.or(`created_by.eq.${profileId},id.in.(${userGroupIds})`);
+          } else {
+            // Fallback: only show groups created by user
+            query = query.eq('created_by', profileId);
+          }
+        } catch (error) {
+          console.warn('👥 ActionGroups: Error getting user groups, showing only created groups:', error);
+          query = query.eq('created_by', profileId);
+        }
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
+        // Handle infinite recursion error specifically
+        if (error.message?.includes('infinite recursion')) {
+          console.error('👥 ActionGroups: Infinite recursion in policies detected, trying fallback query');
+          
+          // Fallback: Get groups without participants to avoid policy issues
+          const fallbackQuery = supabase
+            .from('action_groups')
+            .select(`
+              *,
+              created_by_profile:profiles!created_by(id, name, avatar_url),
+              tasks:tasks(
+                id,
+                title,
+                description,
+                deadline,
+                status,
+                assignee:profiles!assignee_id(id, name, avatar_url)
+              )
+            `)
+            .eq('created_by', profileId || '')
+            .order('created_at', { ascending: false });
+            
+          const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+          
+          if (fallbackError) {
+            throw fallbackError;
+          }
+          
+          // Return groups with empty participants array
+          return (fallbackData || []).map(group => ({
+            ...group,
+            participants: [],
+            member_contributions: []
+          }));
+        }
         console.error('👥 ActionGroups: Error fetching groups:', error);
         throw error;
       }
@@ -325,6 +372,11 @@ export const actionGroupService = {
         .eq('profile_id', profileId);
 
       if (error) {
+        // Handle infinite recursion error by returning empty string
+        if (error.message?.includes('infinite recursion')) {
+          console.warn('👥 ActionGroups: Infinite recursion detected in policies, skipping user groups');
+          return '';
+        }
         console.error('👥 ActionGroups: Error getting user group IDs:', error);
         return '';
       }

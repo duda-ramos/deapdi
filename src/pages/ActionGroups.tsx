@@ -85,7 +85,13 @@ const ActionGroups: React.FC = () => {
       setUserPDIs(pdisData || []);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-      setError(error instanceof Error ? error.message : 'Erro ao carregar grupos de ação');
+      
+      // Handle infinite recursion error with user-friendly message
+      if (error instanceof Error && error.message?.includes('infinite recursion')) {
+        setError('Erro de configuração no banco de dados. As políticas de segurança precisam ser corrigidas no Supabase. Entre em contato com o administrador do sistema.');
+      } else {
+        setError(error instanceof Error ? error.message : 'Erro ao carregar grupos de ação');
+      }
     } finally {
       setLoading(false);
     }
