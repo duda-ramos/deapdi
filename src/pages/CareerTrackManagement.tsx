@@ -71,7 +71,7 @@ const CareerTrackManagement: React.FC = () => {
   ];
 
   useEffect(() => {
-    if (user && (user.role === 'hr' || user.role === 'admin')) {
+    if (user && user.role === 'admin') {
       loadTemplates();
     }
   }, [user]);
@@ -253,12 +253,12 @@ const CareerTrackManagement: React.FC = () => {
     }
   ];
 
-  if (!user || (user.role !== 'hr' && user.role !== 'admin')) {
+  if (!user || user.role !== 'admin') {
     return (
       <div className="p-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Acesso Negado</h1>
-          <p className="text-gray-600">Você não tem permissão para gerenciar trilhas de carreira.</p>
+          <p className="text-gray-600">Apenas administradores podem gerenciar trilhas de carreira.</p>
         </div>
       </div>
     );
