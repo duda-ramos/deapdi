@@ -74,24 +74,32 @@ const ActionGroups: React.FC = () => {
       setLoading(true);
       setError('');
       
-      const [groupsData, profilesData, pdisData] = await Promise.all([
-        actionGroupService.getGroups(user?.id),
-        databaseService.getProfiles(),
-        user ? databaseService.getPDIs(user.id) : Promise.resolve([])
-      ]);
-
-      setGroups(groupsData || []);
-      setProfiles(profilesData || []);
-      setUserPDIs(pdisData || []);
+      // Simplifique o carregamento de dados
+      const groups = await actionGroupService.getGroups();
+      setGroups(groups);
+      
+      // Carregue profiles e PDIs separadamente para evitar problemas
+      try {
+        const profilesData = await databaseService.getProfiles();
+        setProfiles(profilesData || []);
+      } catch (profileError) {
+        console.error('Erro ao carregar profiles:', profileError);
+        setProfiles([]);
+      }
+      
+      if (user) {
+        try {
+          const pdisData = await databaseService.getPDIs(user.id);
+          setUserPDIs(pdisData || []);
+        } catch (pdiError) {
+          console.error('Erro ao carregar PDIs:', pdiError);
+          setUserPDIs([]);
+        }
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-      
-      // Handle infinite recursion error with user-friendly message
-      if (error instanceof Error && error.message?.includes('infinite recursion')) {
-        setError('Erro de configuração no banco de dados. As políticas de segurança precisam ser corrigidas no Supabase. Entre em contato com o administrador do sistema.');
-      } else {
-        setError(error instanceof Error ? error.message : 'Erro ao carregar grupos de ação');
-      }
+      setGroups([]);
+      setError('Erro ao carregar grupos de ação');
     } finally {
       setLoading(false);
     }
