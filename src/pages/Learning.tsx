@@ -305,7 +305,7 @@ const Learning: React.FC = () => {
               <BarChart3 size={16} className="mr-2" />
               Avaliar Competências Primeiro
             </Button>
-          </p>
+          </div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
