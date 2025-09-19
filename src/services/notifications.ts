@@ -220,22 +220,8 @@ export const notificationService = {
   // Statistics
   async getStats(profileId: string): Promise<NotificationStats> {
     console.log('🔔 Notifications: Getting stats for profile:', profileId);
-
-    try {
-      const { data, error } = await supabase.rpc('get_notification_stats', {
-        p_profile_id: profileId
-      });
-
-      if (error) {
-        console.error('🔔 Notifications: Error getting stats:', error);
-        return this.getDefaultStats();
-      }
-
-      return data;
-    } catch (error) {
-      console.error('🔔 Notifications: Error getting stats:', error);
-      return this.getDefaultStats();
-    }
+    console.log('🔔 Notifications: Using default stats (database function not available)');
+    return this.getDefaultStats();
   },
 
   getDefaultStats(): NotificationStats {
