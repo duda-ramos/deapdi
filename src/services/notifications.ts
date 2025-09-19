@@ -137,22 +137,6 @@ export const notificationService = {
       return this.getDefaultPreferences(profileId);
     }
   },
-      if (!data) {
-        try {
-          return await this.createDefaultPreferences(profileId);
-        } catch (createError) {
-          console.error('🔔 Notifications: Error creating default preferences:', createError);
-          return this.getDefaultPreferences(profileId);
-        }
-      }
-
-      return data;
-    } catch (error) {
-      console.error('🔔 Notifications: Error getting preferences:', error);
-      // Return default preferences if there's any error
-      return this.getDefaultPreferences(profileId);
-    }
-  },
 
   getDefaultPreferences(profileId: string): NotificationPreferences {
     return {
@@ -253,18 +237,6 @@ export const notificationService = {
       }
 
       return data?.[0] || {
-    try {
-      const { data, error } = await supabase.rpc('get_notification_stats', {
-        p_profile_id: profileId
-      });
-
-      if (error) {
-        console.error('🔔 Notifications: Error getting stats:', error);
-        // Return default stats for any database error
-        return this.getDefaultStats();
-      }
-
-      return data?.[0] || {
         total_notifications: 0,
         unread_notifications: 0,
         notifications_today: 0,
@@ -276,7 +248,15 @@ export const notificationService = {
     }
   },
 
+  getDefaultStats(): NotificationStats {
+    return {
+      total_notifications: 0,
+      unread_notifications: 0,
+      notifications_today: 0,
+      most_common_type: 'info'
+    };
   },
+
   // Real-time subscription with enhanced error handling
   subscribeToNotifications(
     profileId: string, 
