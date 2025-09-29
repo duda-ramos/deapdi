@@ -171,7 +171,7 @@ export const mentalHealthService = {
 
       return await supabaseRequest(() => query.order('scheduled_date', { ascending: false }), 'getSessions');
     } catch (error) {
-      console.warn('🧠 MentalHealth: psychology_sessions table not found, returning empty array');
+      console.error('🧠 MentalHealth: Error getting sessions:', error);
       return [];
     }
   },
@@ -247,7 +247,7 @@ export const mentalHealthService = {
         .select('*')
         .order('created_at', { ascending: false }), 'getActivities');
     } catch (error) {
-      console.warn('🧠 MentalHealth: therapeutic_activities table not found, returning empty array');
+      console.error('🧠 MentalHealth: Error getting activities:', error);
       return [];
     }
   },
@@ -347,7 +347,7 @@ export const mentalHealthService = {
 
       return await supabaseRequest(() => query.order('created_at', { ascending: false }), 'getFormResponses');
     } catch (error) {
-      console.warn('🧠 MentalHealth: form_responses table not found, returning empty array');
+      console.error('🧠 MentalHealth: Error getting form responses:', error);
       return [];
     }
   },
@@ -407,17 +407,17 @@ export const mentalHealthService = {
       return data.map((item: any) => ({
         id: item.id,
         employee_id: item.employee_id,
-        mood_score: item.mood_rating,
+        mood_score: item.mood_score,
         stress_level: item.stress_level,
         energy_level: item.energy_level,
         sleep_quality: item.sleep_quality,
         notes: item.notes,
-        tags: [],
+        tags: item.tags || [],
         checkin_date: item.checkin_date,
         created_at: item.created_at
       }));
     } catch (error) {
-      console.warn('🧠 MentalHealth: emotional_checkins table not found, returning empty array');
+      console.error('🧠 MentalHealth: Error getting emotional checkins:', error);
       return [];
     }
   },
@@ -425,24 +425,9 @@ export const mentalHealthService = {
   async createEmotionalCheckin(checkin: Omit<EmotionalCheckin, 'id' | 'created_at'>): Promise<EmotionalCheckin> {
     console.log('🧠 MentalHealth: Creating emotional checkin');
 
-    try {
-      return await supabaseRequest(() => supabase
-        .from('emotional_checkins')
-        .upsert({
-          employee_id: checkin.employee_id,
-          mood_rating: checkin.mood_score,
-          stress_level: checkin.stress_level,
-          energy_level: checkin.energy_level,
-          sleep_quality: checkin.sleep_quality,
-          notes: checkin.notes,
-          checkin_date: checkin.checkin_date
-        })
-        .select()
-        .single(), 'createEmotionalCheckin');
-    } catch (error) {
-      console.warn('🧠 MentalHealth: emotional_checkins table schema mismatch, returning mock data');
-      return {
-        id: 'mock-id',
+    return await supabaseRequest(() => supabase
+      .from('emotional_checkins')
+      .upsert({
         employee_id: checkin.employee_id,
         mood_score: checkin.mood_score,
         stress_level: checkin.stress_level,
@@ -450,10 +435,10 @@ export const mentalHealthService = {
         sleep_quality: checkin.sleep_quality,
         notes: checkin.notes,
         tags: checkin.tags,
-        checkin_date: checkin.checkin_date,
-        created_at: new Date().toISOString()
-      };
-    }
+        checkin_date: checkin.checkin_date
+      })
+      .select()
+      .single(), 'createEmotionalCheckin');
   },
 
   async getTodayCheckin(employeeId: string): Promise<EmotionalCheckin | null> {
@@ -465,11 +450,12 @@ export const mentalHealthService = {
         .select(`
           id,
           employee_id,
-          mood_rating,
+          mood_score,
           stress_level,
           energy_level,
           sleep_quality,
           notes,
+          tags,
           checkin_date,
           created_at
         `)
@@ -483,12 +469,12 @@ export const mentalHealthService = {
         return {
           id: data.id,
           employee_id: data.employee_id,
-          mood_score: data.mood_rating,
+          mood_score: data.mood_score,
           stress_level: data.stress_level,
           energy_level: data.energy_level,
           sleep_quality: data.sleep_quality,
           notes: data.notes,
-          tags: [],
+          tags: data.tags || [],
           checkin_date: data.checkin_date,
           created_at: data.created_at
         };
@@ -496,7 +482,7 @@ export const mentalHealthService = {
       
       return null;
     } catch (error) {
-      console.warn('🧠 MentalHealth: emotional_checkins table not found or error getting today checkin:', error);
+      console.error('🧠 MentalHealth: Error getting today checkin:', error);
       return null;
     }
   },
@@ -564,7 +550,7 @@ export const mentalHealthService = {
 
       return await supabaseRequest(() => query.order('created_at', { ascending: false }), 'getWellnessResources');
     } catch (error) {
-      console.warn('🧠 MentalHealth: wellness_resources table not found, returning empty array');
+      console.error('🧠 MentalHealth: Error getting wellness resources:', error);
       return [];
     }
   },
@@ -589,38 +575,24 @@ export const mentalHealthService = {
     console.log('🧠 MentalHealth: Getting mental health statistics');
 
     try {
-      // Calculate stats manually since RPC function has database schema issues
-      const [
-        employeesResult,
-        checkinsResult,
-        sessionsResult,
-        alertsResult
-      ] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('emotional_checkins').select('mood_rating').gte('checkin_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
-        supabase.from('psychology_sessions').select('id', { count: 'exact', head: true }).gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
-        supabase.from('mental_health_alerts').select('id', { count: 'exact', head: true }).is('resolved_at', null)
-      ]);
-
-      const totalEmployees = employeesResult.count || 0;
-      const checkins = checkinsResult.data || [];
-      const averageMood = checkins.length > 0 
-        ? checkins.reduce((sum, c) => sum + (c.mood_rating || 0), 0) / checkins.length 
-        : 0;
-      const sessionsThisMonth = sessionsResult.count || 0;
-      const activeAlerts = alertsResult.count || 0;
-
-      return {
-        total_employees_participating: totalEmployees,
-        average_mood_score: averageMood,
-        sessions_this_month: sessionsThisMonth,
-        high_risk_responses: 0, // Cannot calculate without proper schema
-        active_alerts: activeAlerts,
-        wellness_resources_accessed: 0 // Cannot calculate without proper tracking
+      // Use the new RPC function for accurate stats
+      const { data, error } = await supabase.rpc('get_mental_health_stats');
+      
+      if (error) {
+        console.error('🧠 MentalHealth: Error calling stats function:', error);
+        throw error;
+      }
+      
+      return data || {
+        total_employees_participating: 0,
+        average_mood_score: 0,
+        sessions_this_month: 0,
+        high_risk_responses: 0,
+        active_alerts: 0,
+        wellness_resources_accessed: 0
       };
     } catch (error) {
-      console.warn('🧠 MentalHealth: Error getting stats, returning default stats:', error);
-      // Return default stats if RPC function doesn't exist or has errors
+      console.error('🧠 MentalHealth: Error getting stats:', error);
       return {
         total_employees_participating: 0,
         average_mood_score: 0,
