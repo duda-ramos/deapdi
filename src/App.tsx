@@ -295,7 +295,7 @@ const AppRoutes: React.FC = () => {
         path="/qa"
         element={
           <ProtectedRoute>
-            <LazyQualityAssurance />
+            <QualityAssurance />
           </ProtectedRoute>
         }
       />
