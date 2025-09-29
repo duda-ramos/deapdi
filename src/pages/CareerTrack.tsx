@@ -35,9 +35,25 @@ const CareerTrack: React.FC = () => {
       console.log('🎯 CareerTrack: Loading career track for user:', user.id);
       
       const track = await databaseService.getCareerTrack(user.id);
-      setCareerTrack(track);
+      
+      if (!track) {
+        // Create default career track if none exists
+        const defaultTrack = await databaseService.createCareerTrack({
+          profession: user.position,
+          current_stage: user.level,
+          progress: 0,
+          track_type: 'development',
+          profile_id: user.id,
+          template_id: null,
+          competency_progress: 0,
+          pdi_progress: 0
+        });
+        setCareerTrack(defaultTrack);
+      } else {
+        setCareerTrack(track);
+      }
 
-      if (track) {
+      if (track || careerTrack) {
         const breakdown = await careerTrackService.calculateProgress(user.id);
         setProgressBreakdown(breakdown);
       }

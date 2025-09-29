@@ -351,17 +351,14 @@ export const mentorshipService = {
       if (requestError) throw requestError;
 
       // Create notification for mentor
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          profile_id: mentorId,
-          title: 'Nova Solicitação de Mentoria',
-          message: `Você recebeu uma solicitação de mentoria. Mensagem: ${message}`,
-          type: 'info',
-          action_url: '/mentorship/requests'
-        });
-
-      if (notificationError) throw notificationError;
+      const { notificationService } = await import('./notifications');
+      await notificationService.createNotification({
+        profile_id: mentorId,
+        title: 'Nova Solicitação de Mentoria',
+        message: `Você recebeu uma solicitação de mentoria. Mensagem: ${message}`,
+        type: 'info',
+        action_url: '/mentorship'
+      });
 
       console.log('🤝 Mentorship: Request sent successfully');
     } catch (error) {
@@ -390,19 +387,16 @@ export const mentorshipService = {
       }
 
       // Notify mentee
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          profile_id: request.mentee_id,
-          title: response === 'accepted' ? 'Mentoria Aceita!' : 'Solicitação Recusada',
-          message: response === 'accepted' 
-            ? 'Sua solicitação de mentoria foi aceita! Você já pode agendar sessões.'
-            : 'Sua solicitação de mentoria foi recusada. Tente com outro mentor.',
-          type: response === 'accepted' ? 'success' : 'warning',
-          action_url: '/mentorship'
-        });
-
-      if (notificationError) throw notificationError;
+      const { notificationService } = await import('./notifications');
+      await notificationService.createNotification({
+        profile_id: request.mentee_id,
+        title: response === 'accepted' ? 'Mentoria Aceita!' : 'Solicitação Recusada',
+        message: response === 'accepted' 
+          ? 'Sua solicitação de mentoria foi aceita! Você já pode agendar sessões.'
+          : 'Sua solicitação de mentoria foi recusada. Tente com outro mentor.',
+        type: response === 'accepted' ? 'success' : 'warning',
+        action_url: '/mentorship'
+      });
 
       console.log('🤝 Mentorship: Request response sent successfully');
     } catch (error) {

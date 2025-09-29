@@ -52,7 +52,7 @@ const Profile: React.FC = () => {
 
     try {
       setLoading(true);
-      await authService.updateProfile({
+      await authService.updateProfile(user.id, {
         name: formData.name,
         bio: formData.bio || null,
         formation: formData.formation || null,

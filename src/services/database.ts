@@ -294,5 +294,28 @@ export const databaseService = {
     console.warn('🗄️ Database: getActionGroups is deprecated, use actionGroupService.getGroups()');
     const { actionGroupService } = await import('../services/actionGroups');
     return actionGroupService.getGroups(profileId);
+  },
+
+  // Enhanced PDI methods
+  async getPendingPDIs(): Promise<PDI[]> {
+    console.log('🗄️ Database: Getting pending PDIs for validation');
+    
+    try {
+      const { data, error } = await supabase
+        .from('pdis')
+        .select(`
+          *,
+          profile:profiles!profile_id(name, position),
+          mentor:profiles!mentor_id(name)
+        `)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('🗄️ Database: Error getting pending PDIs:', error);
+      return [];
+    }
   }
 };

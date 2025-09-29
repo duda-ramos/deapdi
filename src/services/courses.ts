@@ -699,4 +699,54 @@ export const courseService = {
       throw error;
     }
   }
+
+  getSampleCourses(): Course[] {
+    return [
+      {
+        id: 'sample-1',
+        title: 'Fundamentos de React',
+        description: 'Aprenda os conceitos básicos do React, incluindo componentes, props, state e hooks.',
+        category: 'technical',
+        level: 'beginner',
+        duration_minutes: 180,
+        instructor: 'Ana Silva',
+        thumbnail_url: 'https://images.pexels.com/photos/11035380/pexels-photo-11035380.jpeg?w=300&h=200&fit=crop',
+        points: 150,
+        competency_mappings: [{ competency: 'React', rating_boost: 1 }],
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'sample-2',
+        title: 'Liderança Eficaz',
+        description: 'Desenvolva habilidades de liderança e gestão de equipes.',
+        category: 'leadership',
+        level: 'intermediate',
+        duration_minutes: 240,
+        instructor: 'Carlos Santos',
+        thumbnail_url: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?w=300&h=200&fit=crop',
+        points: 200,
+        competency_mappings: [{ competency: 'Liderança', rating_boost: 2 }],
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'sample-3',
+        title: 'Comunicação Assertiva',
+        description: 'Melhore suas habilidades de comunicação no ambiente de trabalho.',
+        category: 'soft-skills',
+        level: 'beginner',
+        duration_minutes: 120,
+        instructor: 'Maria Oliveira',
+        thumbnail_url: 'https://images.pexels.com/photos/3184338/pexels-photo-3184338.jpeg?w=300&h=200&fit=crop',
+        points: 100,
+        competency_mappings: [{ competency: 'Comunicação', rating_boost: 1 }],
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ];
+  }
 };

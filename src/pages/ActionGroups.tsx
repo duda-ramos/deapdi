@@ -74,11 +74,11 @@ const ActionGroups: React.FC = () => {
       setLoading(true);
       setError('');
       
-      // Simplifique o carregamento de dados
+      // Load groups with full details
       const groups = await actionGroupService.getGroups();
       setGroups(groups);
       
-      // Carregue profiles e PDIs separadamente para evitar problemas
+      // Load profiles and PDIs separately
       try {
         const profilesData = await databaseService.getProfiles();
         setProfiles(profilesData || []);

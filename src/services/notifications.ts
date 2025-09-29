@@ -106,30 +106,22 @@ export const notificationService = {
   // Preferences Management
   async getPreferences(profileId: string): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Getting preferences for profile:', profileId);
-    // Return default preferences since notification_preferences table doesn't exist yet
-    return this.getDefaultPreferences(profileId);
+    
     try {
       const { data, error } = await supabase
         .from('notification_preferences')
         .select('*')
         .eq('profile_id', profileId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('🔔 Notifications: Error getting preferences:', error);
-        // Try to create default preferences
-        try {
-          return await this.createDefaultPreferences(profileId);
-        } catch (createError) {
-          console.error('🔔 Notifications: Error creating default preferences:', createError);
-          return this.getDefaultPreferences(profileId);
-        }
+        return this.getDefaultPreferences(profileId);
       }
 
-      return data;
+      return data || this.getDefaultPreferences(profileId);
     } catch (error) {
       console.error('🔔 Notifications: Error getting preferences:', error);
-      // Return default preferences if there's any error
       return this.getDefaultPreferences(profileId);
     }
   },
@@ -220,8 +212,36 @@ export const notificationService = {
   // Statistics
   async getStats(profileId: string): Promise<NotificationStats> {
     console.log('🔔 Notifications: Getting stats for profile:', profileId);
-    console.log('🔔 Notifications: Using default stats (database function not available)');
-    return this.getDefaultStats();
+    
+    try {
+      // Calculate stats from actual notifications
+      const notifications = await this.getNotifications(profileId);
+      const today = new Date().toISOString().split('T')[0];
+      
+      const unreadCount = notifications.filter(n => !n.read).length;
+      const todayCount = notifications.filter(n => 
+        n.created_at.startsWith(today)
+      ).length;
+      
+      // Find most common type
+      const typeCounts = notifications.reduce((acc, n) => {
+        acc[n.type] = (acc[n.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const mostCommonType = Object.entries(typeCounts)
+        .sort(([,a], [,b]) => b - a)[0]?.[0] || 'info';
+
+      return {
+        total_notifications: notifications.length,
+        unread_notifications: unreadCount,
+        notifications_today: todayCount,
+        most_common_type: mostCommonType
+      };
+    } catch (error) {
+      console.error('🔔 Notifications: Error getting stats:', error);
+      return this.getDefaultStats();
+    }
   },
 
   getDefaultStats(): NotificationStats {

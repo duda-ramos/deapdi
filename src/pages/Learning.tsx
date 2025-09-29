@@ -66,10 +66,41 @@ const Learning: React.FC = () => {
 
     try {
       setLoading(true);
-      const data = await courseService.getCoursesWithProgress(user.id);
-      setCourses(data);
+      
+      // Get real courses from database
+      const coursesData = await courseService.getCourses();
+      
+      // Get user enrollments
+      const enrollments = await courseService.getUserEnrollments(user.id);
+      const enrollmentMap = new Map(enrollments.map(e => [e.course_id, e]));
+      
+      // Combine courses with enrollment data
+      const coursesWithProgress = await Promise.all(
+        coursesData.map(async (course) => {
+          const enrollment = enrollmentMap.get(course.id);
+          const modules = await courseService.getCourseModules(course.id);
+          
+          let completed_modules = 0;
+          if (enrollment) {
+            const progress = await courseService.getModuleProgress(enrollment.id);
+            completed_modules = progress.length;
+          }
+
+          return {
+            ...course,
+            enrollment,
+            modules,
+            completed_modules,
+            total_modules: modules.length
+          };
+        })
+      );
+      
+      setCourses(coursesWithProgress);
     } catch (error) {
       console.error('Erro ao carregar cursos:', error);
+      // Fallback to empty array if courses table doesn't exist
+      setCourses([]);
     } finally {
       setLoading(false);
     }

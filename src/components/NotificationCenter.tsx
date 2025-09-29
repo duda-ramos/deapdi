@@ -165,8 +165,14 @@ export const NotificationCenter: React.FC = () => {
       setPreferences(prefs);
     } catch (error) {
       console.error('Error loading preferences:', error);
-      // Set default preferences if loading fails
-      setPreferences(notificationService.getDefaultPreferences(user.id));
+      // Try to create default preferences if they don't exist
+      try {
+        const defaultPrefs = await notificationService.createDefaultPreferences(user.id);
+        setPreferences(defaultPrefs);
+      } catch (createError) {
+        console.error('Error creating default preferences:', createError);
+        setPreferences(notificationService.getDefaultPreferences(user.id));
+      }
     }
   };
 

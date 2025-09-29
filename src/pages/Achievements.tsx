@@ -30,7 +30,7 @@ const Achievements: React.FC = () => {
       setError(null);
 
       const [userAchievements, achievementProgress] = await Promise.all([
-        achievementService.getUserAchievements(user.id),
+        databaseService.getAchievements(user.id),
         achievementService.getAchievementProgress(user.id)
       ]);
 

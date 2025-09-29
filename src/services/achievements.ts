@@ -48,6 +48,25 @@ export const achievementService = {
 
   async getUserAchievements(profileId: string) {
     console.log('🏆 Achievements: Getting user achievements for:', profileId);
+    
+    try {
+      return await supabaseRequest(() => supabase
+        .from('achievements')
+        .select(`
+          *,
+          template:achievement_templates(*)
+        `)
+        .eq('profile_id', profileId)
+        .order('unlocked_at', { ascending: false }), 'getUserAchievements');
+    } catch (error) {
+      console.warn('🏆 Achievements: Error getting user achievements, returning empty array:', error);
+      return [];
+    }
+  },
+
+  async getUserAchievementsWithTemplate(profileId: string) {
+    console.log('🏆 Achievements: Getting user achievements with template for:', profileId);
+    
     return supabaseRequest(() => supabase
       .from('achievements')
       .select(`

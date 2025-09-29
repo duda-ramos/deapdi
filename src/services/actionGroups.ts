@@ -36,16 +36,39 @@ export const actionGroupService = {
   async getGroups(): Promise<any[]> {
     console.log('👥 ActionGroups: Getting groups with simple query');
     
-    const { data, error } = await supabase
-      .from('action_groups')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('👥 ActionGroups: Erro:', error);
+    try {
+      const { data: groups, error } = await supabase
+        .from('action_groups')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('👥 ActionGroups: Erro:', error);
+        return [];
+      }
+
+      // Enrich groups with participants and tasks data
+      const enrichedGroups = await Promise.all(
+        (groups || []).map(async (group) => {
+          const [participants, tasks] = await Promise.all([
+            this.getGroupParticipants(group.id),
+            this.getGroupTasks(group.id)
+          ]);
+
+          return {
+            ...group,
+            participants,
+            tasks,
+            member_contributions: await this.getMemberContributions(group.id)
+          };
+        })
+      );
+
+      return enrichedGroups;
+    } catch (error) {
+      console.error('👥 ActionGroups: Error getting groups:', error);
       return [];
     }
-    return data || [];
   },
 
   async getGroupWithDetails(groupId: string): Promise<any> {
@@ -93,7 +116,8 @@ export const actionGroupService = {
           description: data.description,
           deadline: data.deadline,
           created_by: createdBy,
-          status: 'active'
+          status: 'active',
+          linked_pdi_id: data.linked_pdi_id || null
         })
         .select()
         .single();
@@ -101,6 +125,14 @@ export const actionGroupService = {
       if (error) {
         console.error('👥 ActionGroups: Error creating group:', error);
         throw error;
+      }
+
+      // Add creator as leader
+      await this.addParticipant(group.id, createdBy, 'leader');
+      
+      // Add selected participants as members
+      for (const participantId of data.participants) {
+        await this.addParticipant(group.id, participantId, 'member');
       }
 
       return group;
@@ -226,6 +258,20 @@ export const actionGroupService = {
         .single();
 
       if (error) throw error;
+      
+      // Notify the assignee about the new task
+      try {
+        const { notificationService } = await import('./notifications');
+        await notificationService.notifyTaskAssigned(
+          taskData.assignee_id,
+          taskData.title,
+          data.id,
+          taskData.deadline
+        );
+      } catch (notificationError) {
+        console.warn('👥 ActionGroups: Could not send task notification:', notificationError);
+      }
+      
       return data;
     } catch (error) {
       console.error('👥 ActionGroups: Error creating task:', error);
@@ -287,11 +333,53 @@ export const actionGroupService = {
   },
 
   // Progress Tracking
+  async getGroupParticipants(groupId: string): Promise<any[]> {
+    console.log('👥 ActionGroups: Getting participants for group:', groupId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('action_group_participants')
+        .select(`
+          *,
+          profile:profiles(id, name, avatar_url, position)
+        `)
+        .eq('group_id', groupId);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('👥 ActionGroups: Error getting participants:', error);
+      return [];
+    }
+  },
+
   async getMemberContributions(groupId: string): Promise<any[]> {
     console.log('👥 ActionGroups: Getting member contributions for group:', groupId);
     
-    // Return empty array to avoid policy issues
-    return [];
+    try {
+      const participants = await this.getGroupParticipants(groupId);
+      const tasks = await this.getGroupTasks(groupId);
+
+      return participants.map(participant => {
+        const memberTasks = tasks.filter(t => t.assignee_id === participant.profile_id);
+        const completedTasks = memberTasks.filter(t => t.status === 'done').length;
+        const totalTasks = memberTasks.length;
+        const completion_rate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+        return {
+          profile_id: participant.profile_id,
+          name: participant.profile.name,
+          avatar_url: participant.profile.avatar_url,
+          role: participant.role,
+          total_tasks: totalTasks,
+          completed_tasks: completedTasks,
+          completion_rate
+        };
+      });
+    } catch (error) {
+      console.error('👥 ActionGroups: Error getting member contributions:', error);
+      return [];
+    }
   },
 
   async updateGroupProgress(groupId: string): Promise<void> {

@@ -46,12 +46,26 @@ const HRArea: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      const profilesData = await databaseService.getProfiles();
+      
+      const [profilesData, pendingPDIsData] = await Promise.all([
+        databaseService.getProfiles(),
+        // Get pending PDIs for validation
+        supabase
+          .from('pdis')
+          .select(`
+            *,
+            profile:profiles!profile_id(name, position),
+            mentor:profiles!mentor_id(name)
+          `)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+      ]);
+      
       setProfiles(profilesData || []);
       
-      // TODO: Load pending PDIs for validation
-      // const pendingPDIsData = await databaseService.getPendingPDIs();
-      // setPendingPDIs(pendingPDIsData || []);
+      if (pendingPDIsData.data) {
+        setPendingPDIs(pendingPDIsData.data);
+      }
     } catch (error) {
       console.error('Erro ao carregar dados do RH:', error);
       setError(error instanceof Error ? error.message : 'Erro ao carregar dados do RH');
@@ -70,21 +84,55 @@ const HRArea: React.FC = () => {
     loadHRData(); // Reload data to reflect changes
   };
   // Mock data for charts
-  const teamPerformanceData = [
-    { team: 'Desenvolvimento', performance: 85, members: 12 },
-    { team: 'Design', performance: 92, members: 8 },
-    { team: 'Marketing', performance: 78, members: 10 },
-    { team: 'Vendas', performance: 88, members: 15 },
-    { team: 'Suporte', performance: 90, members: 6 }
-  ];
+  const teamPerformanceData = React.useMemo(() => {
+    // Calculate real team performance based on profiles data
+    const teamMap = new Map();
+    
+    profiles.forEach(profile => {
+      if (profile.team?.name) {
+        const teamName = profile.team.name;
+        if (!teamMap.has(teamName)) {
+          teamMap.set(teamName, { members: [], totalPoints: 0 });
+        }
+        teamMap.get(teamName).members.push(profile);
+        teamMap.get(teamName).totalPoints += profile.points;
+      }
+    });
 
-  const competencyGapData = [
-    { competency: 'React', current: 3.2, target: 4.5 },
-    { competency: 'Liderança', current: 2.8, target: 4.0 },
-    { competency: 'Comunicação', current: 4.1, target: 4.5 },
-    { competency: 'TypeScript', current: 2.5, target: 4.0 },
-    { competency: 'Gestão de Projetos', current: 3.5, target: 4.2 }
-  ];
+    return Array.from(teamMap.entries()).map(([teamName, data]) => ({
+      team: teamName,
+      performance: Math.min(100, Math.round((data.totalPoints / data.members.length) / 10)), // Normalize to 0-100
+      members: data.members.length
+    }));
+  }, [profiles]);
+
+  const [competencyGapData, setCompetencyGapData] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    const loadCompetencyGaps = async () => {
+      try {
+        const { reportService } = await import('../services/reports');
+        const gaps = await reportService.generateCompetencyGapReport();
+        
+        // Transform for chart display
+        const chartData = gaps.slice(0, 5).map(gap => ({
+          competency: gap.competencyName,
+          current: gap.currentLevel,
+          target: gap.targetLevel
+        }));
+        
+        setCompetencyGapData(chartData);
+      } catch (error) {
+        console.error('Error loading competency gaps:', error);
+        // Fallback to empty array
+        setCompetencyGapData([]);
+      }
+    };
+
+    if (profiles.length > 0) {
+      loadCompetencyGaps();
+    }
+  }, [profiles]);
 
   const engagementData = [
     { month: 'Jan', engagement: 78, satisfaction: 82 },

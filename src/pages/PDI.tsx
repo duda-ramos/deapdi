@@ -4,6 +4,7 @@ import { Plus, Target, Calendar, User, CheckCircle, Clock, AlertCircle } from 'l
 import { useAuth } from '../contexts/AuthContext';
 import { useAchievements } from '../contexts/AchievementContext';
 import { databaseService } from '../services/database';
+import { notificationService } from '../services/notifications';
 import { PDI as PDIType, Profile } from '../types';
 import { Card } from '../components/ui/Card';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
@@ -100,6 +101,15 @@ const PDI: React.FC = () => {
         status: newStatus,
         validated_by: newStatus === 'validated' ? user?.id : null
       });
+      
+      // Send notifications based on status change
+      if (pdi && user) {
+        if (newStatus === 'validated') {
+          await notificationService.notifyPDIApproved(pdi.profile_id, pdi.title, pdiId);
+        } else if (newStatus === 'rejected') {
+          await notificationService.notifyPDIRejected(pdi.profile_id, pdi.title, pdiId);
+        }
+      }
       
       // If completed or validated, award points
       if (newStatus === 'completed' || newStatus === 'validated') {
