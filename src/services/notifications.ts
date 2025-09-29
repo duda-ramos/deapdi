@@ -107,15 +107,36 @@ export const notificationService = {
   async getPreferences(profileId: string): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Getting preferences for profile:', profileId);
     
+    // Check if Supabase is available and table exists
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, using default preferences');
+      return this.getDefaultPreferences(profileId);
+    }
+
     try {
-      return await supabaseRequest(() => supabase
+      const result = await supabaseRequest(() => supabase
         .from('notification_preferences')
         .select('*')
         .eq('profile_id', profileId)
         .single(), 'getNotificationPreferences');
+      return result;
     } catch (error) {
+      // Check if it's a table not found error
+      if (error instanceof Error && (
+        error.message.includes('Could not find the table') ||
+        error.message.includes('PGRST205')
+      )) {
+        console.warn('🔔 Notifications: notification_preferences table not found, using defaults');
+        return this.getDefaultPreferences(profileId);
+      }
+      
       console.log('🔔 Notifications: Preferences not found, creating defaults');
-      return await this.createDefaultPreferences(profileId);
+      try {
+        return await this.createDefaultPreferences(profileId);
+      } catch (createError) {
+        console.warn('🔔 Notifications: Could not create preferences, using defaults:', createError);
+        return this.getDefaultPreferences(profileId);
+      }
     }
   },
 
