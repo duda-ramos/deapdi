@@ -906,12 +906,47 @@ export const mentalHealthService = {
     console.log('🧠 MentalHealth: Getting mental health statistics');
 
     try {
-      return await supabaseRequest(() => supabase
-        .rpc('get_mental_health_stats'), 'getMentalHealthStats');
+      // Calculate stats manually since RPC function has column issues
+      const [
+        employeesResult,
+        checkinsResult,
+        sessionsResult,
+        responsesResult,
+        alertsResult
+      ] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('emotional_checkins').select('mood_rating'),
+        supabase.from('psychology_sessions')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+        supabase.from('form_responses').select('score'),
+        supabase.from('mental_health_alerts')
+          .select('id', { count: 'exact', head: true })
+          .is('acknowledged_at', null)
+      ]);
+
+      // Calculate average mood score
+      const moodScores = checkinsResult.data || [];
+      const averageMood = moodScores.length > 0 
+        ? moodScores.reduce((sum, checkin) => sum + (checkin.mood_rating || 0), 0) / moodScores.length
+        : 0;
+
+      // Calculate high risk responses (score >= 60)
+      const responses = responsesResult.data || [];
+      const highRiskCount = responses.filter(r => (r.score || 0) >= 60).length;
+
+      return {
+        total_employees_participating: employeesResult.count || 0,
+        average_mood_score: averageMood,
+        sessions_this_month: sessionsResult.count || 0,
+        high_risk_responses: highRiskCount,
+        active_alerts: alertsResult.count || 0,
+        wellness_resources_accessed: 0 // Not tracked in current schema
+      };
     } catch (error) {
-      console.warn('🧠 MentalHealth: RPC function not available, returning default stats:', error);
+      console.warn('🧠 MentalHealth: Error calculating stats, returning defaults:', error);
       
-      // Return default stats if RPC function doesn't exist or fails
+      // Return default stats if calculation fails
       return {
         total_employees_participating: 0,
         average_mood_score: 0,
