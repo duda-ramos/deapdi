@@ -423,6 +423,17 @@ export const notificationService = {
     });
   },
 
+  async notifyCareerAdvancement(profileId: string, newStage: string, points: number): Promise<void> {
+    await this.createNotification({
+      profile_id: profileId,
+      title: '🚀 Promoção de Carreira!',
+      message: `Parabéns! Você foi automaticamente promovido para o estágio "${newStage}" e ganhou ${points} pontos de bônus!`,
+      type: 'success',
+      category: 'career_advancement',
+      action_url: '/career'
+    });
+  },
+
   // Cleanup and maintenance
   async cleanupOldNotifications(): Promise<void> {
     console.log('🔔 Notifications: Cleaning up old notifications');

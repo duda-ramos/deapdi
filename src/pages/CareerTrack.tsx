@@ -336,11 +336,11 @@ const CareerTrack: React.FC = () => {
               <div className="flex items-center space-x-2 text-green-800">
                 <Award size={20} />
                 <span className="font-medium">
-                  Parabéns! Você está pronto para avançar para {progressBreakdown.nextStage}!
+                  Parabéns! Você atingiu os critérios para avançar para {progressBreakdown.nextStage}!
                 </span>
               </div>
               <p className="text-sm text-green-700 mt-1">
-                Entre em contato com seu gestor para formalizar a progressão.
+                O sistema avaliará automaticamente sua progressão. Continue desenvolvendo suas competências!
               </p>
             </div>
           ) : (
@@ -352,7 +352,7 @@ const CareerTrack: React.FC = () => {
                 </span>
               </div>
               <p className="text-sm text-blue-700 mt-1">
-                Você precisa atingir 80% de progresso para avançar para o próximo estágio.
+                Você precisa atingir 80% de progresso para avançar automaticamente para o próximo estágio.
               </p>
             </div>
           )}

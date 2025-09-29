@@ -122,6 +122,18 @@ const PDI: React.FC = () => {
           setTimeout(() => {
             checkAchievements();
           }, 1000);
+          
+          // Check for career progression after PDI completion
+          if (newStatus === 'validated') {
+            setTimeout(async () => {
+              try {
+                const { careerTrackService } = await import('../services/careerTrack');
+                await careerTrackService.checkProgression(user.id);
+              } catch (error) {
+                console.error('Error checking career progression:', error);
+              }
+            }, 1500);
+          }
         }
       }
       

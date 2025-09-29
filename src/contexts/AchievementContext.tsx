@@ -50,6 +50,16 @@ export const AchievementProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     try {
       await achievementService.manualCheckAchievements(user.id);
+      
+      // Also check for career progression when checking achievements
+      setTimeout(async () => {
+        try {
+          const { careerTrackService } = await import('../services/careerTrack');
+          await careerTrackService.checkProgression(user.id);
+        } catch (error) {
+          console.error('Error checking career progression from achievements:', error);
+        }
+      }, 500);
     } catch (error) {
       console.error('Error checking achievements:', error);
     }

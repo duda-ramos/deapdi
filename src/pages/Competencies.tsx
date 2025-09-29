@@ -71,6 +71,16 @@ const Competencies: React.FC = () => {
       setTimeout(() => {
         checkAchievements();
       }, 1000);
+      
+      // Check for career progression after competency updates
+      setTimeout(async () => {
+        try {
+          const { careerTrackService } = await import('../services/careerTrack');
+          await careerTrackService.checkProgression(user.id);
+        } catch (error) {
+          console.error('Error checking career progression:', error);
+        }
+      }, 1500);
     } catch (error) {
       console.error('Erro ao salvar competências:', error);
     } finally {
