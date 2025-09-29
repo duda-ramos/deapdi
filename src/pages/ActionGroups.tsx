@@ -1,22 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Plus, 
-  Users, 
-  Calendar, 
-  CheckCircle, 
-  Clock, 
-  AlertTriangle, 
-  User, 
-  Target,
-  Edit,
-  Trash2,
-  UserPlus,
-  UserMinus,
-  BarChart3,
-  Award,
-  RefreshCw
-} from 'lucide-react';
+import { Plus, Users, Calendar, CheckCircle, Clock, AlertTriangle, User, Target, CreditCard as Edit, Trash2, UserPlus, UserMinus, BarChart3, Award, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAchievements } from '../contexts/AchievementContext';
 import { actionGroupService, GroupWithDetails, CreateGroupData, CreateTaskData, MemberContribution } from '../services/actionGroups';

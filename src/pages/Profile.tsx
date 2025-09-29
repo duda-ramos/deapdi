@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Edit, Save, X, User, Briefcase, Calendar, TrendingUp } from 'lucide-react';
+import { CreditCard as Edit, Save, X, User, Briefcase, Calendar, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
 import { authService } from '../services/auth';
