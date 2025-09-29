@@ -32,7 +32,8 @@ import {
   LazyMentalHealthAdmin,
   LazyTeamManagement,
   LazyPeopleManagement,
-  LazyQualityAssurance
+  LazyQualityAssurance,
+  LazyHRCalendar
 } from './components/LazyComponents';
 
 const AchievementWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
