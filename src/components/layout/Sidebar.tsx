@@ -16,7 +16,8 @@ import {
   BarChart3,
   UserCog,
   FileText,
-  Building
+  Building,
+  TestTube
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../types';
