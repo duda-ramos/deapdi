@@ -42,6 +42,12 @@ export const notificationService = {
   async getNotifications(profileId: string, unreadOnly = false): Promise<Notification[]> {
     console.log('🔔 Notifications: Getting notifications for profile:', profileId, 'unreadOnly:', unreadOnly);
 
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, returning empty array');
+      return [];
+    }
+
     let query = supabase
       .from('notifications')
       .select('*')
@@ -57,6 +63,12 @@ export const notificationService = {
   async markAsRead(id: string): Promise<Notification> {
     console.log('🔔 Notifications: Marking as read:', id);
 
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, cannot mark as read');
+      throw new Error('Supabase not available');
+    }
+
     return supabaseRequest(() => supabase
       .from('notifications')
       .update({ read: true })
@@ -68,6 +80,12 @@ export const notificationService = {
   async markAllAsRead(profileId: string): Promise<void> {
     console.log('🔔 Notifications: Marking all as read for profile:', profileId);
 
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, cannot mark all as read');
+      return;
+    }
+
     return supabaseRequest(() => supabase
       .from('notifications')
       .update({ read: true })
@@ -78,6 +96,12 @@ export const notificationService = {
   async deleteNotification(id: string): Promise<void> {
     console.log('🔔 Notifications: Deleting notification:', id);
 
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, cannot delete notification');
+      return;
+    }
+
     return supabaseRequest(() => supabase
       .from('notifications')
       .delete()
@@ -86,6 +110,12 @@ export const notificationService = {
 
   async createNotification(notification: CreateNotificationData): Promise<Notification> {
     console.log('🔔 Notifications: Creating notification:', notification.title);
+
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, cannot create notification');
+      throw new Error('Supabase not available');
+    }
 
     return supabaseRequest(() => supabase
       .from('notifications')
@@ -363,6 +393,12 @@ export const notificationService = {
   async notifyMentorshipScheduled(mentorId: string, menteeId: string, sessionDate: string, sessionId: string): Promise<void> {
     const formattedDate = new Date(sessionDate).toLocaleString('pt-BR');
     
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, cannot notify mentorship scheduled');
+      return;
+    }
+
     // Get mentor and mentee names
     const { data: profiles } = await supabase
       .from('profiles')
@@ -438,6 +474,12 @@ export const notificationService = {
   async cleanupOldNotifications(): Promise<void> {
     console.log('🔔 Notifications: Cleaning up old notifications');
 
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, cannot cleanup notifications');
+      return;
+    }
+
     try {
       const { error } = await supabase.rpc('cleanup_old_notifications');
       if (error) throw error;
@@ -483,6 +525,12 @@ export const notificationService = {
   // Test functions for development
   async createTestNotifications(profileId: string): Promise<void> {
     console.log('🔔 Notifications: Creating test notifications for profile:', profileId);
+
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, cannot create test notifications');
+      return;
+    }
 
     const testNotifications = [
       {
