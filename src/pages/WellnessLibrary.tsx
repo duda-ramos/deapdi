@@ -34,7 +34,6 @@ const WellnessLibrary: React.FC = () => {
     resource_type: 'article' as WellnessResource['resource_type'],
     category: 'general',
     content_url: '',
-    content_text: '',
     tags: [] as string[],
     target_audience: [] as string[]
   });
@@ -179,7 +178,6 @@ const WellnessLibrary: React.FC = () => {
         resource_type: 'article',
         category: 'general',
         content_url: '',
-        content_text: '',
         tags: [],
         target_audience: []
       });
@@ -455,7 +453,6 @@ const WellnessLibrary: React.FC = () => {
                               resource_type: resource.resource_type,
                               category: resource.category,
                               content_url: resource.content_url || '',
-                              content_text: resource.content_text || '',
                               tags: resource.tags,
                               target_audience: resource.target_audience
                             });
@@ -541,17 +538,6 @@ const WellnessLibrary: React.FC = () => {
                 <div 
                   className="text-gray-700 leading-relaxed"
                   dangerouslySetInnerHTML={{ 
-                    __html: selectedResource.content_text
-                      .replace(/\n/g, '<br>')
-                      .replace(/## (.*)/g, '<h3 class="text-lg font-semibold text-gray-900 mt-4 mb-2">$1</h3>')
-                      .replace(/### (.*)/g, '<h4 class="text-md font-medium text-gray-800 mt-3 mb-1">$1</h4>')
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                  }}
-                />
-              </div>
-            )}
-
             {selectedResource.content_url && (
               <div className="mt-4">
                 <Button
@@ -616,15 +602,6 @@ const WellnessLibrary: React.FC = () => {
               placeholder="https://exemplo.com/video"
             />
           </div>
-
-          <Textarea
-            label="Conteúdo de Texto"
-            value={resourceForm.content_text}
-            onChange={(e) => setResourceForm({ ...resourceForm, content_text: e.target.value })}
-            placeholder="Cole ou digite o conteúdo completo aqui..."
-            rows={8}
-            helperText="Use ## para títulos e ### para subtítulos. Use **texto** para negrito."
-          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

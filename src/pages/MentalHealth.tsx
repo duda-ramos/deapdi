@@ -51,8 +51,7 @@ const MentalHealth: React.FC = () => {
     energy_level: 5,
     stress_level: 5,
     sleep_quality: 5,
-    notes: '',
-    tags: [] as string[]
+    notes: ''
   });
 
   const [requestForm, setRequestForm] = useState({
@@ -61,11 +60,6 @@ const MentalHealth: React.FC = () => {
     reason: '',
     preferred_times: [] as string[]
   });
-
-  const moodTags = [
-    'Motivado', 'Ansioso', 'Cansado', 'Focado', 'Estressado', 
-    'Feliz', 'Preocupado', 'Energizado', 'Sobrecarregado', 'Calmo'
-  ];
 
   const timeSlots = [
     '08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'
@@ -160,12 +154,11 @@ const MentalHealth: React.FC = () => {
 
       setShowCheckinModal(false);
       setCheckinForm({
-        mood_score: 5,
+        mood_rating: 5,
         energy_level: 5,
         stress_level: 5,
         sleep_quality: 5,
-        notes: '',
-        tags: []
+        notes: ''
       });
 
       loadWellnessData();
@@ -610,40 +603,6 @@ const MentalHealth: React.FC = () => {
               'Muito ruim',
               'Excelente'
             )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Como você se sente hoje? (Selecione até 3 tags)
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {moodTags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => {
-                    if (checkinForm.tags.includes(tag)) {
-                      setCheckinForm({
-                        ...checkinForm,
-                        tags: checkinForm.tags.filter(t => t !== tag)
-                      });
-                    } else if (checkinForm.tags.length < 3) {
-                      setCheckinForm({
-                        ...checkinForm,
-                        tags: [...checkinForm.tags, tag]
-                      });
-                    }
-                  }}
-                  className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                    checkinForm.tags.includes(tag)
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
           </div>
 
           <Textarea

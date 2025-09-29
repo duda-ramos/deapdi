@@ -278,51 +278,32 @@ export const WellnessResources: React.FC<WellnessResourcesProps> = ({ employeeId
             </p>
 
             {selectedResource.content_url && (
-              <div className="mb-4">
-                {selectedResource.content_type === 'video' && (
-                  <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <Play size={48} className="mx-auto mb-2 text-gray-400" />
-                      <p className="text-gray-600">Vídeo não disponível no preview</p>
-                      <Button
-                        onClick={() => window.open(selectedResource.content_url, '_blank')}
-                        className="mt-2"
-                      >
-                        Abrir Vídeo
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                
-                {selectedResource.content_type === 'audio' && (
-                  <div className="bg-purple-50 rounded-lg p-4 text-center">
-                    <Headphones size={48} className="mx-auto mb-2 text-purple-500" />
-                    <p className="text-purple-800 mb-2">Conteúdo de Áudio</p>
-                    <Button
-                      onClick={() => window.open(selectedResource.content_url, '_blank')}
-                    >
-                      Reproduzir Áudio
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {selectedResource.content_text && (
-              <div className="prose max-w-none">
-                <div 
-                  className="text-gray-700 leading-relaxed"
-                  dangerouslySetInnerHTML={{ 
-                    __html: selectedResource.content_text.replace(/\n/g, '<br>').replace(/## (.*)/g, '<h3 class="text-lg font-semibold text-gray-900 mt-4 mb-2">$1</h3>').replace(/### (.*)/g, '<h4 class="text-md font-medium text-gray-800 mt-3 mb-1">$1</h4>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')
-                  }}
-                />
+              <div className="bg-blue-50 rounded-lg p-4 text-center">
+                <div className="text-center">
+                  {selectedResource.resource_type === 'video' && <Play size={48} className="mx-auto mb-2 text-blue-500" />}
+                  {selectedResource.resource_type === 'audio' && <Headphones size={48} className="mx-auto mb-2 text-purple-500" />}
+                  {selectedResource.resource_type === 'article' && <BookOpen size={48} className="mx-auto mb-2 text-green-500" />}
+                  {selectedResource.resource_type === 'pdf' && <FileText size={48} className="mx-auto mb-2 text-red-500" />}
+                  
+                  <p className="text-gray-600 mb-2">
+                    {selectedResource.resource_type === 'video' ? 'Conteúdo em Vídeo' :
+                     selectedResource.resource_type === 'audio' ? 'Conteúdo em Áudio' :
+                     selectedResource.resource_type === 'article' ? 'Artigo' :
+                     selectedResource.resource_type === 'pdf' ? 'Documento PDF' : 'Conteúdo Externo'}
+                  </p>
+                  <Button
+                    onClick={() => window.open(selectedResource.content_url, '_blank')}
+                  >
+                    Acessar Conteúdo
+                  </Button>
+                </div>
               </div>
             )}
 
             <div className="flex items-center justify-between pt-4 border-t">
               <div className="text-sm text-gray-500">
                 Criado em {new Date(selectedResource.created_at).toLocaleDateString('pt-BR')}
-              </div>
+                  {new Date(resource.created_at).toLocaleDateString('pt-BR')}
               <div className="flex space-x-2">
                 <Button
                   variant="secondary"
@@ -338,13 +319,6 @@ export const WellnessResources: React.FC<WellnessResourcesProps> = ({ employeeId
                 >
                   Compartilhar
                 </Button>
-                {selectedResource.content_url && (
-                  <Button
-                    onClick={() => window.open(selectedResource.content_url, '_blank')}
-                  >
-                    Abrir Original
-                  </Button>
-                )}
               </div>
             </div>
           </div>

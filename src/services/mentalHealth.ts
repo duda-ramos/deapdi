@@ -96,12 +96,11 @@ export interface SessionRequest {
 export interface EmotionalCheckin {
   id: string;
   employee_id: string;
-  mood_rating: number;
+  mood_rating: number; // Maps to mood_rating in database
   energy_level: number;
   stress_level: number;
   sleep_quality: number;
   notes?: string;
-  tags: string[];
   checkin_date: string;
   created_at: string;
 }
@@ -126,9 +125,9 @@ export interface WellnessResource {
   id: string;
   title: string;
   description: string;
-  content_type: 'article' | 'video' | 'audio' | 'exercise';
+  resource_type: 'article' | 'video' | 'audio' | 'pdf' | 'link';
   content_url?: string;
-  content_text?: string;
+  thumbnail_url?: string;
   category: string;
   target_audience: string[];
   created_by: string;
@@ -441,7 +440,7 @@ export const mentalHealthService = {
         .select(`
           id,
           employee_id,
-          mood_score,
+          mood_rating,
           stress_level,
           energy_level,
           sleep_quality,
@@ -462,7 +461,6 @@ export const mentalHealthService = {
         energy_level: item.energy_level,
         sleep_quality: item.sleep_quality,
         notes: item.notes,
-        tags: item.tags || [],
         checkin_date: item.checkin_date,
         created_at: item.created_at
       }));
@@ -484,7 +482,6 @@ export const mentalHealthService = {
         energy_level: checkin.energy_level,
         sleep_quality: checkin.sleep_quality,
         notes: checkin.notes,
-        tags: checkin.tags,
         checkin_date: checkin.checkin_date
       })
       .select()
@@ -505,7 +502,6 @@ export const mentalHealthService = {
           energy_level,
           sleep_quality,
           notes,
-          tags,
           checkin_date,
           created_at
         `)
@@ -524,7 +520,6 @@ export const mentalHealthService = {
           energy_level: data.energy_level,
           sleep_quality: data.sleep_quality,
           notes: data.notes,
-          tags: data.tags || [],
           checkin_date: data.checkin_date,
           created_at: data.created_at
         };
@@ -596,7 +591,7 @@ export const mentalHealthService = {
         description,
         resource_type,
         content_url,
-        content_text,
+        thumbnail_url,
         category,
         target_audience,
         created_by,
@@ -647,8 +642,8 @@ export const mentalHealthService = {
   async viewResource(resourceId: string, employeeId: string, timeSpent = 0): Promise<void> {
     console.log('🧠 MentalHealth: Recording resource view');
 
-    // Note: view_count functionality disabled due to missing column
-    // This would need to be implemented when the database schema is updated
+    // Note: view tracking functionality disabled due to missing view_count column
+    // This would need to be implemented when the database schema includes view tracking
     console.log('View recorded for resource:', resourceId, 'by user:', employeeId);
   },
 

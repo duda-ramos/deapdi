@@ -25,20 +25,14 @@ export const EmotionalCheckin: React.FC<EmotionalCheckinProps> = ({
   employeeId 
 }) => {
   const [formData, setFormData] = useState({
-    mood_score: 5,
+    mood_rating: 5,
     energy_level: 5,
     stress_level: 5,
     sleep_quality: 5,
-    notes: '',
-    tags: [] as string[]
+    notes: ''
   });
 
   const [submitting, setSubmitting] = useState(false);
-
-  const moodTags = [
-    'Motivado', 'Ansioso', 'Cansado', 'Focado', 'Estressado', 
-    'Feliz', 'Preocupado', 'Energizado', 'Sobrecarregado', 'Calmo'
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,9 +114,9 @@ export const EmotionalCheckin: React.FC<EmotionalCheckinProps> = ({
         <div className="space-y-6">
           {renderScaleInput(
             'Como está seu humor hoje?',
-            formData.mood_score,
-            (value) => setFormData({ ...formData, mood_score: value }),
-            getMoodIcon(formData.mood_score),
+            formData.mood_rating,
+            (value) => setFormData({ ...formData, mood_rating: value }),
+            getMoodIcon(formData.mood_rating),
             'Muito baixo',
             'Excelente'
           )}
@@ -153,40 +147,6 @@ export const EmotionalCheckin: React.FC<EmotionalCheckinProps> = ({
             'Muito ruim',
             'Excelente'
           )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Como você se sente hoje? (Selecione até 3 tags)
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {moodTags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => {
-                  if (formData.tags.includes(tag)) {
-                    setFormData({
-                      ...formData,
-                      tags: formData.tags.filter(t => t !== tag)
-                    });
-                  } else if (formData.tags.length < 3) {
-                    setFormData({
-                      ...formData,
-                      tags: [...formData.tags, tag]
-                    });
-                  }
-                }}
-                className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                  formData.tags.includes(tag)
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
         </div>
 
         <Textarea
