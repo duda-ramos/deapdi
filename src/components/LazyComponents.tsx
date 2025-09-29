@@ -19,6 +19,12 @@ export const LazyCertificates = lazy(() => import('../pages/Certificates'));
 export const LazyMentalHealth = lazy(() => import('../pages/MentalHealth'));
 export const LazyMentalHealthAdmin = lazy(() => import('../pages/MentalHealthAdmin'));
 
+// Quality Assurance
+export const LazyQualityAssurance = lazy(() => import('../pages/QualityAssurance'));
+
+// Quality Assurance
+export const LazyQualityAssurance = lazy(() => import('../pages/QualityAssurance'));
+
 // Team and People Management
 export const LazyTeamManagement = lazy(() => import('../pages/TeamManagement'));
 export const LazyPeopleManagement = lazy(() => import('../pages/PeopleManagement'));
