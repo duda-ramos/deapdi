@@ -10,21 +10,25 @@ declare global {
 export const analytics = {
   // Track page views
   trackPageView(pageName: string, userId?: string) {
-    if (import.meta.env.VITE_ANALYTICS_ID && import.meta.env.PROD) {
+    if (import.meta.env.VITE_ANALYTICS_ID && import.meta.env.VITE_ENABLE_ANALYTICS === 'true') {
       window.gtag?.('config', import.meta.env.VITE_ANALYTICS_ID, {
         page_title: pageName,
         page_location: window.location.href,
-        user_id: userId
+        user_id: userId,
+        custom_map: {
+          user_role: 'dimension1'
+        }
       });
     }
   },
 
   // Track custom events
   trackEvent(eventName: string, parameters?: Record<string, any>) {
-    if (import.meta.env.VITE_ANALYTICS_ID && import.meta.env.PROD) {
+    if (import.meta.env.VITE_ANALYTICS_ID && import.meta.env.VITE_ENABLE_ANALYTICS === 'true') {
       window.gtag?.('event', eventName, {
         event_category: 'user_interaction',
         event_label: eventName,
+        send_to: import.meta.env.VITE_ANALYTICS_ID,
         ...parameters
       });
     }
@@ -36,7 +40,8 @@ export const analytics = {
       action,
       category,
       label,
-      value
+      value,
+      timestamp: Date.now()
     });
   },
 
@@ -45,7 +50,8 @@ export const analytics = {
     this.trackEvent('pdi_action', {
       action,
       pdi_id: pdiId,
-      event_category: 'pdi'
+      event_category: 'pdi',
+      timestamp: Date.now()
     });
   },
 
@@ -55,7 +61,8 @@ export const analytics = {
       competency_name: competencyName,
       rating,
       evaluation_type: type,
-      event_category: 'competency'
+      event_category: 'competency',
+      timestamp: Date.now()
     });
   },
 
@@ -64,7 +71,30 @@ export const analytics = {
     this.trackEvent('achievement_unlocked', {
       achievement_title: achievementTitle,
       points,
-      event_category: 'gamification'
+      event_category: 'gamification',
+      timestamp: Date.now()
+    });
+  },
+
+  // Track performance metrics
+  trackPerformance(metric: string, value: number, context?: string) {
+    this.trackEvent('performance_metric', {
+      metric_name: metric,
+      metric_value: value,
+      context: context || 'general',
+      event_category: 'performance',
+      timestamp: Date.now()
+    });
+  },
+
+  // Track errors
+  trackError(error: string, context: string, severity: 'low' | 'medium' | 'high' | 'critical') {
+    this.trackEvent('application_error', {
+      error_message: error,
+      error_context: context,
+      error_severity: severity,
+      event_category: 'error',
+      timestamp: Date.now()
     });
   }
 };

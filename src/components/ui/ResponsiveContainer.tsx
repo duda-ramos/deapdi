@@ -1,5 +1,5 @@
 import React from 'react';
-import { useResponsive } from '../../utils/responsive';
+import { useResponsive } from '../../hooks/useResponsive';
 
 interface ResponsiveContainerProps {
   children: React.ReactNode;

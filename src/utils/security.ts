@@ -42,13 +42,17 @@ class RateLimiter {
   private requests: Map<string, number[]> = new Map();
   private readonly maxRequests: number;
   private readonly windowMs: number;
+  private readonly enabled: boolean;
 
-  constructor(maxRequests = 100, windowMs = 60000) {
+  constructor(maxRequests = 100, windowMs = 60000, enabled = true) {
     this.maxRequests = maxRequests;
     this.windowMs = windowMs;
+    this.enabled = enabled && import.meta.env.VITE_ENABLE_RATE_LIMITING === 'true';
   }
 
   canMakeRequest(key: string): boolean {
+    if (!this.enabled) return true;
+    
     const now = Date.now();
     const requests = this.requests.get(key) || [];
     
@@ -56,6 +60,7 @@ class RateLimiter {
     const validRequests = requests.filter(time => now - time < this.windowMs);
     
     if (validRequests.length >= this.maxRequests) {
+      console.warn(`Rate limit exceeded for key: ${key}`);
       return false;
     }
     
@@ -63,6 +68,23 @@ class RateLimiter {
     this.requests.set(key, validRequests);
     return true;
   }
-}
 
-export const apiRateLimiter = new RateLimiter(100, 60000); // 100 requests per minute
+  getRemainingRequests(key: string): number {
+    if (!this.enabled) return this.maxRequests;
+    
+    const now = Date.now();
+    const requests = this.requests.get(key) || [];
+    const validRequests = requests.filter(time => now - time < this.windowMs);
+    return Math.max(0, this.maxRequests - validRequests.length);
+  }
+
+  getResetTime(key: string): number {
+    if (!this.enabled) return 0;
+    
+    const requests = this.requests.get(key) || [];
+    if (requests.length === 0) return 0;
+    
+    const oldestRequest = Math.min(...requests);
+    return oldestRequest + this.windowMs;
+  }
+}

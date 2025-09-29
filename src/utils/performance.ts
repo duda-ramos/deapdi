@@ -2,6 +2,13 @@
  * Performance monitoring utilities
  */
 
+// Performance thresholds
+const PERFORMANCE_THRESHOLDS = {
+  SLOW_RENDER: 100, // ms
+  SLOW_API: 3000, // ms
+  MEMORY_WARNING: 50 * 1024 * 1024, // 50MB
+  BUNDLE_WARNING: 1000 * 1024 // 1MB
+};
 export const performance = {
   // Measure component render time
   measureRender(componentName: string, renderFn: () => void) {
@@ -9,7 +16,13 @@ export const performance = {
       const start = Date.now();
       renderFn();
       const end = Date.now();
-      console.log(`🚀 Performance: ${componentName} rendered in ${end - start}ms`);
+      const duration = end - start;
+      
+      if (duration > PERFORMANCE_THRESHOLDS.SLOW_RENDER) {
+        console.warn(`🐌 Performance: Slow render detected - ${componentName} took ${duration}ms`);
+      } else {
+        console.log(`🚀 Performance: ${componentName} rendered in ${duration}ms`);
+      }
     } else {
       renderFn();
     }
@@ -25,20 +38,43 @@ export const performance = {
     try {
       const result = await apiCall();
       const end = Date.now();
+      const duration = end - start;
       
       if (import.meta.env.DEV) {
-        console.log(`🚀 Performance: ${operation} completed in ${end - start}ms`);
+        if (duration > PERFORMANCE_THRESHOLDS.SLOW_API) {
+          console.warn(`🐌 Performance: Slow API call - ${operation} took ${duration}ms`);
+        } else {
+          console.log(`🚀 Performance: ${operation} completed in ${duration}ms`);
+        }
       }
       
       // Track slow operations in production
-      if (import.meta.env.PROD && end - start > 3000) {
-        console.warn(`Slow operation detected: ${operation} took ${end - start}ms`);
+      if (import.meta.env.PROD && duration > PERFORMANCE_THRESHOLDS.SLOW_API) {
+        // Send to monitoring service
+        if (window.gtag) {
+          window.gtag('event', 'slow_api_call', {
+            event_category: 'performance',
+            event_label: operation,
+            value: duration
+          });
+        }
       }
       
       return result;
     } catch (error) {
       const end = Date.now();
-      console.error(`❌ Performance: ${operation} failed after ${end - start}ms`, error);
+      const duration = end - start;
+      console.error(`❌ Performance: ${operation} failed after ${duration}ms`, error);
+      
+      // Track failed operations in production
+      if (import.meta.env.PROD && window.gtag) {
+        window.gtag('event', 'api_call_failed', {
+          event_category: 'error',
+          event_label: operation,
+          value: duration
+        });
+      }
+      
       throw error;
     }
   },
@@ -64,6 +100,32 @@ export const performance = {
       img.onerror = reject;
       img.src = src;
     });
+  },
+
+  // Monitor Core Web Vitals
+  monitorWebVitals() {
+    if (import.meta.env.PROD && 'web-vitals' in window) {
+      import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+        getCLS(this.sendToAnalytics);
+        getFID(this.sendToAnalytics);
+        getFCP(this.sendToAnalytics);
+        getLCP(this.sendToAnalytics);
+        getTTFB(this.sendToAnalytics);
+      }).catch(() => {
+        // Silently fail if web-vitals is not available
+      });
+    }
+  },
+
+  sendToAnalytics(metric: any) {
+    if (window.gtag) {
+      window.gtag('event', metric.name, {
+        event_category: 'Web Vitals',
+        value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
+        event_label: metric.id,
+        non_interaction: true,
+      });
+    }
   }
 };
 
@@ -74,11 +136,28 @@ export const memoryMonitor = {
   logMemoryUsage(context: string) {
     if (import.meta.env.DEV && 'memory' in performance) {
       const memory = (performance as any).memory;
+      const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
+      const totalMB = Math.round(memory.totalJSHeapSize / 1024 / 1024);
+      const limitMB = Math.round(memory.jsHeapSizeLimit / 1024 / 1024);
+      
       console.log(`💾 Memory (${context}):`, {
-        used: `${Math.round(memory.usedJSHeapSize / 1024 / 1024)}MB`,
-        total: `${Math.round(memory.totalJSHeapSize / 1024 / 1024)}MB`,
-        limit: `${Math.round(memory.jsHeapSizeLimit / 1024 / 1024)}MB`
+        used: `${usedMB}MB`,
+        total: `${totalMB}MB`,
+        limit: `${limitMB}MB`
       });
+      
+      // Warn about high memory usage
+      if (memory.usedJSHeapSize > PERFORMANCE_THRESHOLDS.MEMORY_WARNING) {
+        console.warn(`🚨 Memory: High memory usage detected - ${usedMB}MB used`);
+      }
+    }
+  },
+
+  startMemoryMonitoring() {
+    if (import.meta.env.DEV) {
+      setInterval(() => {
+        this.logMemoryUsage('periodic-check');
+      }, 30000); // Check every 30 seconds
     }
   }
 };

@@ -2,63 +2,7 @@
  * Responsive utilities and breakpoint management
  */
 
-import React from 'react';
-
-export const breakpoints = {
-  sm: 640,
-  md: 768,
-  lg: 1024,
-  xl: 1280,
-  '2xl': 1536
-} as const;
-
-export type Breakpoint = keyof typeof breakpoints;
-
-export const useResponsive = () => {
-  const [screenSize, setScreenSize] = React.useState<{
-    width: number;
-    height: number;
-    breakpoint: Breakpoint;
-  }>({
-    width: window.innerWidth,
-    height: window.innerHeight,
-    breakpoint: getCurrentBreakpoint(window.innerWidth)
-  });
-
-  React.useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      const breakpoint = getCurrentBreakpoint(width);
-      
-      setScreenSize({ width, height, breakpoint });
-      
-      // Log for responsive testing
-      if (import.meta.env.DEV) {
-        console.log(`📱 Responsive: ${width}x${height} (${breakpoint})`);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  return {
-    ...screenSize,
-    isMobile: screenSize.width < breakpoints.md,
-    isTablet: screenSize.width >= breakpoints.md && screenSize.width < breakpoints.lg,
-    isDesktop: screenSize.width >= breakpoints.lg,
-    isSmallScreen: screenSize.width < breakpoints.lg
-  };
-};
-
-function getCurrentBreakpoint(width: number): Breakpoint {
-  if (width >= breakpoints['2xl']) return '2xl';
-  if (width >= breakpoints.xl) return 'xl';
-  if (width >= breakpoints.lg) return 'lg';
-  if (width >= breakpoints.md) return 'md';
-  return 'sm';
-}
+import { breakpoints, type Breakpoint } from '../hooks/useResponsive';
 
 export const responsive = {
   // Test different screen sizes programmatically

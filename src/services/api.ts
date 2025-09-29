@@ -10,18 +10,23 @@ export const apiRequest = async (
 ): Promise<Response> => {
   // Apply rate limiting if key provided
   if (rateLimitKey && !apiRateLimiter.canMakeRequest(rateLimitKey)) {
-    throw new Error('Rate limit exceeded. Please try again later.');
+    const resetTime = apiRateLimiter.getResetTime(rateLimitKey);
+    const waitTime = Math.ceil((resetTime - Date.now()) / 1000);
+    throw new Error(`Rate limit exceeded. Please try again in ${waitTime} seconds.`);
   }
 
   // Add default headers
   const defaultHeaders = {
     'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+    'Cache-Control': 'no-cache',
     ...options.headers
   };
 
   // Add timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  const timeout = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000');
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
     const response = await fetch(url, {
@@ -33,6 +38,10 @@ export const apiRequest = async (
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      // Log failed requests in production for monitoring
+      if (import.meta.env.PROD) {
+        console.error(`API Request failed: ${response.status} ${response.statusText} - ${url}`);
+      }
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
@@ -42,6 +51,11 @@ export const apiRequest = async (
     
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Request timeout. Please check your connection.');
+    }
+    
+    // Network error handling
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('Network error. Please check your internet connection.');
     }
     
     throw error;
