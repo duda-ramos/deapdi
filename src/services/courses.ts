@@ -698,7 +698,7 @@ export const courseService = {
       console.error('📚 Courses: Error getting course with progress:', error);
       throw error;
     }
-  }
+  },
 
   getSampleCourses(): Course[] {
     return [
