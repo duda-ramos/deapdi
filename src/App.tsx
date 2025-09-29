@@ -290,6 +290,14 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/qa"
+        element={
+          <ProtectedRoute>
+            <LazyQualityAssurance />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </ErrorBoundary>
