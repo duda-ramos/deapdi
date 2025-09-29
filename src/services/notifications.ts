@@ -107,16 +107,16 @@ export const notificationService = {
   async getPreferences(profileId: string): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Getting preferences for profile:', profileId);
     
-    // Check if Supabase is available
-    if (!supabase) {
-      console.warn('🔔 Notifications: Supabase not available, using default preferences');
-      return this.getDefaultPreferences(profileId);
+    try {
+      return await supabaseRequest(() => supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('profile_id', profileId)
+        .single(), 'getNotificationPreferences');
+    } catch (error) {
+      console.log('🔔 Notifications: Preferences not found, creating defaults');
+      return await this.createDefaultPreferences(profileId);
     }
-
-    // For now, always return default preferences since the table doesn't exist
-    // This avoids making failed requests to the database
-    console.log('🔔 Notifications: Using default preferences (table not available)');
-    return this.getDefaultPreferences(profileId);
   },
 
   getDefaultPreferences(profileId: string): NotificationPreferences {
@@ -141,27 +141,44 @@ export const notificationService = {
   async updatePreferences(profileId: string, preferences: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Updating preferences for profile:', profileId);
 
-    // Check if Supabase is available
-    if (!supabase) {
-      console.warn('🔔 Notifications: Supabase not available, returning updated defaults');
-      const current = this.getDefaultPreferences(profileId);
-      return { ...current, ...preferences };
-    }
-
-    // For now, simulate the update locally since the table doesn't exist
-    // This avoids making failed requests to the database
-    console.log('🔔 Notifications: Simulating preference update locally (table not available)');
-    const current = this.getDefaultPreferences(profileId);
-    return { ...current, ...preferences };
+    return supabaseRequest(() => supabase
+      .from('notification_preferences')
+      .upsert({
+        profile_id: profileId,
+        ...preferences,
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single(), 'updateNotificationPreferences');
   },
 
   async createDefaultPreferences(profileId: string): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Creating default preferences for profile:', profileId);
 
-    // For now, always return default preferences since the table doesn't exist
-    // This avoids making failed requests to the database
-    console.log('🔔 Notifications: Returning default preferences (table not available)');
-    return this.getDefaultPreferences(profileId);
+    const defaultPrefs = this.getDefaultPreferences(profileId);
+    
+    try {
+      return await supabaseRequest(() => supabase
+        .from('notification_preferences')
+        .insert({
+          profile_id: profileId,
+          pdi_approved: defaultPrefs.pdi_approved,
+          pdi_rejected: defaultPrefs.pdi_rejected,
+          task_assigned: defaultPrefs.task_assigned,
+          achievement_unlocked: defaultPrefs.achievement_unlocked,
+          mentorship_scheduled: defaultPrefs.mentorship_scheduled,
+          mentorship_cancelled: defaultPrefs.mentorship_cancelled,
+          group_invitation: defaultPrefs.group_invitation,
+          deadline_reminder: defaultPrefs.deadline_reminder,
+          email_notifications: defaultPrefs.email_notifications,
+          push_notifications: defaultPrefs.push_notifications
+        })
+        .select()
+        .single(), 'createDefaultNotificationPreferences');
+    } catch (error) {
+      console.warn('🔔 Notifications: Error creating preferences, using defaults:', error);
+      return defaultPrefs;
+    }
   },
 
   // Statistics
