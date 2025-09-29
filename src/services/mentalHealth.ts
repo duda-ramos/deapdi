@@ -24,16 +24,14 @@ export interface PsychologySession {
 
 export interface TherapeuticActivity {
   id: string;
-  session_id?: string;
   title: string;
-  description?: string;
-  instructions?: string;
-  due_date: string;
-  status: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada';
-  employee_feedback?: string;
-  psychologist_notes?: string;
-  completion_evidence?: string;
-  completed_at?: string;
+  description: string;
+  category: string;
+  duration_minutes: number;
+  difficulty_level: string;
+  instructions: string | null;
+  benefits: string | null;
+  active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -128,7 +126,6 @@ export interface WellnessResource {
   content_url?: string;
   thumbnail_url?: string;
   category: string;
-  created_by: string;
   active: boolean;
   tags: string[];
   created_at: string;
@@ -285,59 +282,14 @@ export const mentalHealthService = {
   },
 
   // Therapeutic Activities
-  async getActivities(employeeId: string): Promise<TherapeuticActivity[]> {
-    console.log('🧠 MentalHealth: Getting activities for employee:', employeeId);
-
-    try {
-      return await supabaseRequest(() => supabase
-        .from('therapeutic_activities')
-        .select(`
-          *,
-          psychology_sessions!inner(employee_id)
-        `)
-        .eq('psychology_sessions.employee_id', employeeId)
-        .order('created_at', { ascending: false }), 'getActivities');
-    } catch (error) {
-      console.error('🧠 MentalHealth: Error getting activities:', error);
-      return [];
-    }
-  },
-
-  async createActivity(activity: Omit<TherapeuticActivity, 'id' | 'created_at' | 'updated_at'>): Promise<TherapeuticActivity> {
-    console.log('🧠 MentalHealth: Creating therapeutic activity');
+  async getTherapeuticActivities(): Promise<TherapeuticActivity[]> {
+    console.log('🧠 MentalHealth: Getting therapeutic activities library');
 
     return supabaseRequest(() => supabase
       .from('therapeutic_activities')
-      .insert(activity)
-      .select()
-      .single(), 'createActivity');
-  },
-
-  async updateActivity(id: string, updates: Partial<TherapeuticActivity>): Promise<TherapeuticActivity> {
-    console.log('🧠 MentalHealth: Updating activity:', id);
-
-    return supabaseRequest(() => supabase
-      .from('therapeutic_activities')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single(), 'updateActivity');
-  },
-
-  async completeActivity(id: string, feedback: string, evidence?: string): Promise<TherapeuticActivity> {
-    console.log('🧠 MentalHealth: Completing activity:', id);
-
-    return supabaseRequest(() => supabase
-      .from('therapeutic_activities')
-      .update({
-        status: 'concluida',
-        employee_feedback: feedback,
-        completion_evidence: evidence,
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single(), 'completeActivity');
+      .select('*')
+      .eq('active', true)
+      .order('created_at', { ascending: false }), 'getTherapeuticActivities');
   },
 
   // Psychological Forms
@@ -595,7 +547,6 @@ export const mentalHealthService = {
         content_url,
         thumbnail_url,
         category,
-        created_by,
         active,
         tags,
         created_at,
@@ -686,52 +637,11 @@ export const mentalHealthService = {
 
   // Therapeutic Tasks
   async getTherapeuticTasks(userId: string): Promise<TherapeuticActivity[]> {
-    console.log('🧠 MentalHealth: Getting therapeutic activities for user:', userId);
-
-    return supabaseRequest(() => supabase
-      .from('therapeutic_activities')
-      .select(`
-        *,
-        psychology_sessions!inner(employee_id)
-      `)
-      .eq('psychology_sessions.employee_id', userId)
-      .order('due_date'), 'getTherapeuticTasks');
-  },
-
-  async createTherapeuticTask(task: Omit<TherapeuticActivity, 'id' | 'created_at' | 'updated_at'>): Promise<TherapeuticActivity> {
-    console.log('🧠 MentalHealth: Creating therapeutic activity:', task.title);
-
-    return supabaseRequest(() => supabase
-      .from('therapeutic_activities')
-      .insert(task)
-      .select()
-      .single(), 'createTherapeuticTask');
-  },
-
-  async updateTherapeuticTask(id: string, updates: Partial<TherapeuticActivity>): Promise<TherapeuticActivity> {
-    console.log('🧠 MentalHealth: Updating therapeutic activity:', id);
-
-    return supabaseRequest(() => supabase
-      .from('therapeutic_activities')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single(), 'updateTherapeuticTask');
-  },
-
-  async completeTherapeuticTask(id: string, feedback?: string): Promise<TherapeuticActivity> {
-    console.log('🧠 MentalHealth: Completing therapeutic activity:', id);
-
-    return supabaseRequest(() => supabase
-      .from('therapeutic_activities')
-      .update({
-        status: 'concluida',
-        employee_feedback: feedback,
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single(), 'completeTherapeuticTask');
+    console.log('🧠 MentalHealth: Getting therapeutic activities library (no user-specific tasks available)');
+    
+    // Since therapeutic_activities is a library table without employee assignments,
+    // return empty array for now
+    return [];
   },
 
   // Check-in Settings
@@ -1006,17 +916,15 @@ export const mentalHealthService = {
   async getEmployeeWellnessOverview(employeeId: string): Promise<{
     recent_checkins: EmotionalCheckin[];
     upcoming_sessions: PsychologySession[];
-    pending_activities: TherapeuticActivity[];
     recent_responses: FormResponse[];
     wellness_trend: 'improving' | 'stable' | 'declining';
   }> {
     console.log('🧠 MentalHealth: Getting wellness overview for employee:', employeeId);
 
     try {
-      const [checkins, sessions, activities, responses] = await Promise.all([
+      const [checkins, sessions, responses] = await Promise.all([
         this.getEmotionalCheckins(employeeId, 7),
         this.getSessions(employeeId),
-        this.getTherapeuticTasks(employeeId),
         this.getFormSubmissions({ targetUser: employeeId })
       ]);
 
@@ -1038,7 +946,6 @@ export const mentalHealthService = {
         upcoming_sessions: sessions.filter(s => 
           s.status === 'scheduled' && new Date(s.scheduled_date) > new Date()
         ).slice(0, 3),
-        pending_activities: activities.filter(a => a.status === 'pendente').slice(0, 5),
         recent_responses: responses.slice(0, 3),
         wellness_trend: trend
       };

@@ -601,46 +601,40 @@ export interface Database {
       therapeutic_activities: {
         Row: {
           id: string
-          session_id: string
           title: string
           description: string
+          category: string
+          duration_minutes: number
+          difficulty_level: string
           instructions: string | null
-          due_date: string
-          status: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada'
-          employee_feedback: string | null
-          psychologist_notes: string | null
-          completion_evidence: string | null
-          completed_at: string | null
+          benefits: string | null
+          active: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          session_id: string
           title: string
           description: string
+          category?: string
+          duration_minutes?: number
+          difficulty_level?: string
           instructions?: string | null
-          due_date: string
-          status?: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada'
-          employee_feedback?: string | null
-          psychologist_notes?: string | null
-          completion_evidence?: string | null
-          completed_at?: string | null
+          benefits?: string | null
+          active?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          session_id?: string
           title?: string
           description?: string
+          category?: string
+          duration_minutes?: number
+          difficulty_level?: string
           instructions?: string | null
-          due_date?: string
-          status?: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada'
-          employee_feedback?: string | null
-          psychologist_notes?: string | null
-          completion_evidence?: string | null
-          completed_at?: string | null
+          benefits?: string | null
+          active?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -767,7 +761,6 @@ export interface Database {
           thumbnail_url: string | null
           tags: string[]
           active: boolean
-          created_by: string | null
           created_at: string
           updated_at: string
         }
@@ -781,7 +774,6 @@ export interface Database {
           thumbnail_url?: string | null
           tags?: string[]
           active?: boolean
-          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -795,7 +787,6 @@ export interface Database {
           thumbnail_url?: string | null
           tags?: string[]
           active?: boolean
-          created_by?: string | null
           created_at?: string
           updated_at?: string
         }

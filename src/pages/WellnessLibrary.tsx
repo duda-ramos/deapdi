@@ -34,8 +34,7 @@ const WellnessLibrary: React.FC = () => {
     resource_type: 'article' as WellnessResource['resource_type'],
     category: 'general',
     content_url: '',
-    tags: [] as string[],
-    target_audience: [] as string[]
+    tags: [] as string[]
   });
 
   const categories = [
@@ -61,10 +60,6 @@ const WellnessLibrary: React.FC = () => {
     'ansiedade', 'estresse', 'sono', 'mindfulness', 'relacionamentos',
     'produtividade', 'foco', 'respiracao', 'meditacao', 'relaxamento',
     'autoestima', 'comunicacao', 'lideranca', 'burnout', 'equilibrio'
-  ];
-
-  const targetAudiences = [
-    'todos', 'gestores', 'colaboradores', 'rh', 'novos_funcionarios'
   ];
 
   useEffect(() => {
@@ -166,8 +161,12 @@ const WellnessLibrary: React.FC = () => {
 
     try {
       await mentalHealthService.createWellnessResource({
-        ...resourceForm,
-        created_by: user.id,
+        title: resourceForm.title,
+        description: resourceForm.description,
+        resource_type: resourceForm.resource_type,
+        category: resourceForm.category,
+        content_url: resourceForm.content_url,
+        tags: resourceForm.tags,
         active: true
       });
 
@@ -178,8 +177,7 @@ const WellnessLibrary: React.FC = () => {
         resource_type: 'article',
         category: 'general',
         content_url: '',
-        tags: [],
-        target_audience: []
+        tags: []
       });
       loadResources();
     } catch (error) {
@@ -636,40 +634,6 @@ const WellnessLibrary: React.FC = () => {
                     ×
                   </button>
                 </Badge>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Público-alvo
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {targetAudiences.map((audience) => (
-                <button
-                  key={audience}
-                  type="button"
-                  onClick={() => {
-                    if (resourceForm.target_audience.includes(audience)) {
-                      setResourceForm(prev => ({
-                        ...prev,
-                        target_audience: prev.target_audience.filter(a => a !== audience)
-                      }));
-                    } else {
-                      setResourceForm(prev => ({
-                        ...prev,
-                        target_audience: [...prev.target_audience, audience]
-                      }));
-                    }
-                  }}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    resourceForm.target_audience.includes(audience)
-                      ? 'bg-green-100 text-green-700 border border-green-300'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {audience.replace('_', ' ')}
-                </button>
               ))}
             </div>
           </div>

@@ -39,6 +39,7 @@ const MentalHealth: React.FC = () => {
   const [wellnessOverview, setWellnessOverview] = useState<any>(null);
   const [todayCheckin, setTodayCheckin] = useState<EmotionalCheckin | null>(null);
   const [wellnessResources, setWellnessResources] = useState<WellnessResource[]>([]);
+  const [therapeuticActivities, setTherapeuticActivities] = useState<TherapeuticActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [showCheckinModal, setShowCheckinModal] = useState(false);
@@ -100,15 +101,17 @@ const MentalHealth: React.FC = () => {
       setLoading(true);
       setError('');
 
-      const [overview, checkin, resources] = await Promise.all([
+      const [overview, checkin, resources, activities] = await Promise.all([
         mentalHealthService.getEmployeeWellnessOverview(user.id),
         mentalHealthService.getTodayCheckin(user.id),
-        mentalHealthService.getWellnessResources()
+        mentalHealthService.getWellnessResources(),
+        mentalHealthService.getTherapeuticActivities()
       ]);
 
       setWellnessOverview(overview);
       setTodayCheckin(checkin);
       setWellnessResources(resources || []);
+      setTherapeuticActivities(activities || []);
     } catch (error) {
       console.error('Error loading wellness data:', error);
       setError(error instanceof Error ? error.message : 'Erro ao carregar dados de bem-estar');
@@ -457,12 +460,12 @@ const MentalHealth: React.FC = () => {
                   <Line type="monotone" dataKey="energy_level" stroke="#10B981" name="Energia" />
                   <Line type="monotone" dataKey="stress_level" stroke="#F59E0B" name="Estresse" />
                 </LineChart>
-              </ResponsiveContainer>
+                    <Badge variant="info" size="sm">{activity.difficulty_level}</Badge>
             ) : (
               <div className="text-center text-gray-500 py-8">
                 <Activity size={32} className="mx-auto mb-2 text-gray-300" />
                 <p>Faça check-ins diários para ver sua tendência</p>
-              </div>
+              <p className="text-sm text-gray-500">Nenhuma atividade disponível</p>
             )}
           </Card>
 
@@ -495,14 +498,14 @@ const MentalHealth: React.FC = () => {
                 <div className="space-y-2">
                   {wellnessOverview.upcoming_sessions.map((session: PsychologySession) => (
                     <div key={session.id} className="p-2 bg-blue-50 rounded-lg">
-                      <p className="text-sm font-medium text-blue-900">
+            {therapeuticActivities.length > 0 ? (
                         {new Date(session.scheduled_date).toLocaleDateString('pt-BR')}
-                      </p>
+                {therapeuticActivities.slice(0, 3).map((activity: TherapeuticActivity) => (
                       <p className="text-xs text-blue-700">
                         {new Date(session.scheduled_date).toLocaleTimeString('pt-BR', { 
                           hour: '2-digit', 
                           minute: '2-digit' 
-                        })} - {session.session_type}
+                        Duração: {activity.duration_minutes} min
                       </p>
                     </div>
                   ))}
