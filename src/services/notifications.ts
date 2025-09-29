@@ -178,6 +178,12 @@ export const notificationService = {
 
     const defaultPrefs = this.getDefaultPreferences(profileId);
     
+    // Check if Supabase is available and table exists
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, returning default preferences');
+      return defaultPrefs;
+    }
+
     try {
       return await supabaseRequest(() => supabase
         .from('notification_preferences')
@@ -197,6 +203,15 @@ export const notificationService = {
         .select()
         .single(), 'createDefaultNotificationPreferences');
     } catch (error) {
+      // Check if it's a table not found error
+      if (error instanceof Error && (
+        error.message.includes('Could not find the table') ||
+        error.message.includes('PGRST205')
+      )) {
+        console.warn('🔔 Notifications: notification_preferences table not found, using defaults');
+        return defaultPrefs;
+      }
+      
       console.warn('🔔 Notifications: Error creating preferences, using defaults:', error);
       return defaultPrefs;
     }
