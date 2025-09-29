@@ -107,34 +107,16 @@ export const notificationService = {
   async getPreferences(profileId: string): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Getting preferences for profile:', profileId);
     
-    try {
-      // Check if Supabase is available and table exists
-      if (!supabase) {
-        console.warn('🔔 Notifications: Supabase not available, using default preferences');
-        return this.getDefaultPreferences(profileId);
-      }
-
-      const { data, error } = await supabase
-        .from('notification_preferences')
-        .select('*')
-        .eq('profile_id', profileId)
-        .maybeSingle();
-
-      if (error) {
-        console.warn('🔔 Notifications: Table not found or error getting preferences:', error.message);
-        // If table doesn't exist, return default preferences
-        if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
-          console.log('🔔 Notifications: Using default preferences as table does not exist');
-          return this.getDefaultPreferences(profileId);
-        }
-        return this.getDefaultPreferences(profileId);
-      }
-
-      return data || this.getDefaultPreferences(profileId);
-    } catch (error) {
-      console.warn('🔔 Notifications: Error getting preferences, using defaults:', error);
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, using default preferences');
       return this.getDefaultPreferences(profileId);
     }
+
+    // For now, always return default preferences since the table doesn't exist
+    // This avoids making failed requests to the database
+    console.log('🔔 Notifications: Using default preferences (table not available)');
+    return this.getDefaultPreferences(profileId);
   },
 
   getDefaultPreferences(profileId: string): NotificationPreferences {
@@ -159,89 +141,27 @@ export const notificationService = {
   async updatePreferences(profileId: string, preferences: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Updating preferences for profile:', profileId);
 
-    try {
-      // Check if Supabase is available
-      if (!supabase) {
-        console.warn('🔔 Notifications: Supabase not available, returning updated defaults');
-        const current = this.getDefaultPreferences(profileId);
-        return { ...current, ...preferences };
-      }
-
-      const { data, error } = await supabase
-        .from('notification_preferences')
-        .upsert({
-          profile_id: profileId,
-          ...preferences
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.warn('🔔 Notifications: Error updating preferences:', error.message);
-        // If table doesn't exist, simulate the update locally
-        if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
-          console.log('🔔 Notifications: Simulating preference update locally');
-          const current = this.getDefaultPreferences(profileId);
-          return { ...current, ...preferences };
-        }
-        // Return current preferences with updates applied
-        const current = await this.getPreferences(profileId);
-        return { ...current, ...preferences };
-      }
-
-      return data;
-    } catch (error) {
-      console.warn('🔔 Notifications: Error updating preferences, using local fallback:', error);
-      // Return current preferences with updates applied
-      const current = await this.getPreferences(profileId);
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, returning updated defaults');
+      const current = this.getDefaultPreferences(profileId);
       return { ...current, ...preferences };
     }
+
+    // For now, simulate the update locally since the table doesn't exist
+    // This avoids making failed requests to the database
+    console.log('🔔 Notifications: Simulating preference update locally (table not available)');
+    const current = this.getDefaultPreferences(profileId);
+    return { ...current, ...preferences };
   },
 
   async createDefaultPreferences(profileId: string): Promise<NotificationPreferences> {
     console.log('🔔 Notifications: Creating default preferences for profile:', profileId);
 
-    try {
-      // Check if Supabase is available
-      if (!supabase) {
-        console.warn('🔔 Notifications: Supabase not available, returning default preferences');
-        return this.getDefaultPreferences(profileId);
-      }
-
-      const { data, error } = await supabase
-        .from('notification_preferences')
-        .insert({
-          profile_id: profileId,
-          pdi_approved: true,
-          pdi_rejected: true,
-          task_assigned: true,
-          achievement_unlocked: true,
-          mentorship_scheduled: true,
-          mentorship_cancelled: true,
-          group_invitation: true,
-          deadline_reminder: true,
-          email_notifications: true,
-          push_notifications: true
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.warn('🔔 Notifications: Error creating default preferences:', error.message);
-        // If table doesn't exist, return default preferences object
-        if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
-          console.log('🔔 Notifications: Returning default preferences as table does not exist');
-          return this.getDefaultPreferences(profileId);
-        }
-        return this.getDefaultPreferences(profileId);
-      }
-
-      return data;
-    } catch (error) {
-      console.warn('🔔 Notifications: Error creating default preferences, using defaults:', error);
-      // Return default preferences object
-      return this.getDefaultPreferences(profileId);
-    }
+    // For now, always return default preferences since the table doesn't exist
+    // This avoids making failed requests to the database
+    console.log('🔔 Notifications: Returning default preferences (table not available)');
+    return this.getDefaultPreferences(profileId);
   },
 
   // Statistics
