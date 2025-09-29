@@ -142,6 +142,47 @@ export type GroupStatus = 'active' | 'completed' | 'cancelled';
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 
+// HR Calendar types
+export interface CalendarEvent {
+  id: string;
+  type: 'aniversario' | 'aniversario_empresa' | 'ferias' | 'feriado' | 'evento' | 'day_off' | 'ferias_coletivas';
+  title: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  all_day: boolean;
+  category: string;
+  status: 'pending' | 'approved' | 'rejected' | 'confirmed';
+  created_by?: string;
+  approved_by?: string;
+  user_id?: string;
+  team_id?: string;
+  is_public: boolean;
+  color: string;
+  metadata?: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CalendarRequest {
+  id: string;
+  event_type: 'ferias' | 'day_off';
+  requester_id: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  manager_approval?: boolean;
+  hr_approval?: boolean;
+  comments?: string;
+  rejection_reason?: string;
+  days_requested: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   data: T | null;

@@ -9,6 +9,7 @@ import {
   Users, 
   Heart, 
   Brain,
+  Calendar,
   Trophy,
   Award,
   Settings,

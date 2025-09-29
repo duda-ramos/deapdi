@@ -299,6 +299,14 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/hr-calendar"
+        element={
+          <ProtectedRoute>
+            <LazyHRCalendar />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </ErrorBoundary>
