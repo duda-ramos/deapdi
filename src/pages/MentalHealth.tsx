@@ -460,12 +460,12 @@ const MentalHealth: React.FC = () => {
                   <Line type="monotone" dataKey="energy_level" stroke="#10B981" name="Energia" />
                   <Line type="monotone" dataKey="stress_level" stroke="#F59E0B" name="Estresse" />
                 </LineChart>
-                    <Badge variant="info" size="sm">{activity.difficulty_level}</Badge>
+              </ResponsiveContainer>
             ) : (
               <div className="text-center text-gray-500 py-8">
                 <Activity size={32} className="mx-auto mb-2 text-gray-300" />
                 <p>Faça check-ins diários para ver sua tendência</p>
-              <p className="text-sm text-gray-500">Nenhuma atividade disponível</p>
+              </div>
             )}
           </Card>
 
@@ -498,14 +498,14 @@ const MentalHealth: React.FC = () => {
                 <div className="space-y-2">
                   {wellnessOverview.upcoming_sessions.map((session: PsychologySession) => (
                     <div key={session.id} className="p-2 bg-blue-50 rounded-lg">
-            {therapeuticActivities.length > 0 ? (
+                      <p className="text-sm font-medium text-blue-900">
                         {new Date(session.scheduled_date).toLocaleDateString('pt-BR')}
-                {therapeuticActivities.slice(0, 3).map((activity: TherapeuticActivity) => (
+                      </p>
                       <p className="text-xs text-blue-700">
                         {new Date(session.scheduled_date).toLocaleTimeString('pt-BR', { 
                           hour: '2-digit', 
                           minute: '2-digit' 
-                        Duração: {activity.duration_minutes} min
+                        })}
                       </p>
                     </div>
                   ))}
@@ -517,6 +517,45 @@ const MentalHealth: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Therapeutic Activities */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Atividades Terapêuticas</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {therapeuticActivities.length > 0 ? (
+            therapeuticActivities.slice(0, 3).map((activity: TherapeuticActivity) => (
+              <motion.div
+                key={activity.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: therapeuticActivities.indexOf(activity) * 0.1 }}
+                className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <h4 className="font-medium text-gray-900 text-sm">{activity.title}</h4>
+                  <Badge variant="info" size="sm">{activity.difficulty_level}</Badge>
+                </div>
+                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                  {activity.description}
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">
+                    Duração: {activity.duration_minutes} min
+                  </span>
+                  <Badge variant="default" size="sm">
+                    {activity.category}
+                  </Badge>
+                </div>
+              </motion.div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8">
+              <FileText size={32} className="mx-auto mb-2 text-gray-300" />
+              <p className="text-sm text-gray-500">Nenhuma atividade disponível</p>
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* Wellness Resources */}
       <Card className="p-6">
