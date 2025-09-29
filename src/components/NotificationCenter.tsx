@@ -154,25 +154,12 @@ export const NotificationCenter: React.FC = () => {
   const loadPreferences = async () => {
     if (!user) return;
     
-    // Check if Supabase is properly configured
-    if (!supabase) {
-      setPreferences(notificationService.getDefaultPreferences(user.id));
-      return;
-    }
-    
     try {
       const prefs = await notificationService.getPreferences(user.id);
       setPreferences(prefs);
     } catch (error) {
-      console.error('Error loading preferences:', error);
-      // Try to create default preferences if they don't exist
-      try {
-        const defaultPrefs = await notificationService.createDefaultPreferences(user.id);
-        setPreferences(defaultPrefs);
-      } catch (createError) {
-        console.error('Error creating default preferences:', createError);
-        setPreferences(notificationService.getDefaultPreferences(user.id));
-      }
+      console.warn('Error loading preferences, using defaults:', error);
+      setPreferences(notificationService.getDefaultPreferences(user.id));
     }
   };
 
@@ -243,7 +230,11 @@ export const NotificationCenter: React.FC = () => {
       const updated = await notificationService.updatePreferences(user.id, updates);
       setPreferences(updated);
     } catch (error) {
-      console.error('Error updating preferences:', error);
+      console.warn('Error updating preferences:', error);
+      // Update local state even if backend fails
+      if (preferences) {
+        setPreferences({ ...preferences, ...updates });
+      }
     }
   };
 

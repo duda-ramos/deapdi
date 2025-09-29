@@ -108,6 +108,12 @@ export const notificationService = {
     console.log('🔔 Notifications: Getting preferences for profile:', profileId);
     
     try {
+      // Check if Supabase is available and table exists
+      if (!supabase) {
+        console.warn('🔔 Notifications: Supabase not available, using default preferences');
+        return this.getDefaultPreferences(profileId);
+      }
+
       const { data, error } = await supabase
         .from('notification_preferences')
         .select('*')
@@ -115,13 +121,18 @@ export const notificationService = {
         .maybeSingle();
 
       if (error) {
-        console.error('🔔 Notifications: Error getting preferences:', error);
+        console.warn('🔔 Notifications: Table not found or error getting preferences:', error.message);
+        // If table doesn't exist, return default preferences
+        if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
+          console.log('🔔 Notifications: Using default preferences as table does not exist');
+          return this.getDefaultPreferences(profileId);
+        }
         return this.getDefaultPreferences(profileId);
       }
 
       return data || this.getDefaultPreferences(profileId);
     } catch (error) {
-      console.error('🔔 Notifications: Error getting preferences:', error);
+      console.warn('🔔 Notifications: Error getting preferences, using defaults:', error);
       return this.getDefaultPreferences(profileId);
     }
   },
@@ -149,6 +160,13 @@ export const notificationService = {
     console.log('🔔 Notifications: Updating preferences for profile:', profileId);
 
     try {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('🔔 Notifications: Supabase not available, returning updated defaults');
+        const current = this.getDefaultPreferences(profileId);
+        return { ...current, ...preferences };
+      }
+
       const { data, error } = await supabase
         .from('notification_preferences')
         .upsert({
@@ -159,7 +177,13 @@ export const notificationService = {
         .single();
 
       if (error) {
-        console.error('🔔 Notifications: Error updating preferences:', error);
+        console.warn('🔔 Notifications: Error updating preferences:', error.message);
+        // If table doesn't exist, simulate the update locally
+        if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
+          console.log('🔔 Notifications: Simulating preference update locally');
+          const current = this.getDefaultPreferences(profileId);
+          return { ...current, ...preferences };
+        }
         // Return current preferences with updates applied
         const current = await this.getPreferences(profileId);
         return { ...current, ...preferences };
@@ -167,7 +191,7 @@ export const notificationService = {
 
       return data;
     } catch (error) {
-      console.error('🔔 Notifications: Error updating preferences:', error);
+      console.warn('🔔 Notifications: Error updating preferences, using local fallback:', error);
       // Return current preferences with updates applied
       const current = await this.getPreferences(profileId);
       return { ...current, ...preferences };
@@ -178,6 +202,12 @@ export const notificationService = {
     console.log('🔔 Notifications: Creating default preferences for profile:', profileId);
 
     try {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('🔔 Notifications: Supabase not available, returning default preferences');
+        return this.getDefaultPreferences(profileId);
+      }
+
       const { data, error } = await supabase
         .from('notification_preferences')
         .insert({
@@ -197,13 +227,18 @@ export const notificationService = {
         .single();
 
       if (error) {
-        console.error('🔔 Notifications: Error creating default preferences:', error);
+        console.warn('🔔 Notifications: Error creating default preferences:', error.message);
+        // If table doesn't exist, return default preferences object
+        if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
+          console.log('🔔 Notifications: Returning default preferences as table does not exist');
+          return this.getDefaultPreferences(profileId);
+        }
         return this.getDefaultPreferences(profileId);
       }
 
       return data;
     } catch (error) {
-      console.error('🔔 Notifications: Error creating default preferences:', error);
+      console.warn('🔔 Notifications: Error creating default preferences, using defaults:', error);
       // Return default preferences object
       return this.getDefaultPreferences(profileId);
     }
