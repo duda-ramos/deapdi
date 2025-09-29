@@ -18,10 +18,13 @@ import {
   Frown,
   Battery,
   Moon,
-  Zap
+  Zap,
+  BookOpen,
+  Play,
+  Headphones
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { mentalHealthService, EmotionalCheckin, PsychologySession, TherapeuticActivity, FormResponse, WellnessResource } from '../services/mentalHealth';
+import { mentalHealthService } from '../services/mentalHealth';
 import { Card } from '../components/ui/Card';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { ErrorMessage } from '../utils/errorMessages';
@@ -34,9 +37,49 @@ import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+interface EmotionalCheckin {
+  id: string;
+  employee_id: string;
+  mood_rating: number;
+  stress_level: number;
+  energy_level: number;
+  sleep_quality: number;
+  notes?: string;
+  checkin_date: string;
+  created_at: string;
+}
+
+interface WellnessResource {
+  id: string;
+  title: string;
+  description: string;
+  resource_type: 'article' | 'video' | 'audio' | 'pdf' | 'link';
+  category: string;
+  content_url?: string;
+  thumbnail_url?: string;
+  tags: string[];
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TherapeuticActivity {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  duration_minutes: number;
+  difficulty_level: string;
+  instructions?: string;
+  benefits?: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 const MentalHealth: React.FC = () => {
   const { user } = useAuth();
-  const [wellnessOverview, setWellnessOverview] = useState<any>(null);
+  const [recentCheckins, setRecentCheckins] = useState<EmotionalCheckin[]>([]);
   const [todayCheckin, setTodayCheckin] = useState<EmotionalCheckin | null>(null);
   const [wellnessResources, setWellnessResources] = useState<WellnessResource[]>([]);
   const [therapeuticActivities, setTherapeuticActivities] = useState<TherapeuticActivity[]>([]);
@@ -82,7 +125,8 @@ const MentalHealth: React.FC = () => {
     if (!user) return;
 
     try {
-      const consent = await mentalHealthService.getConsent(user.id, 'mental_health_participation');
+      // Check if user has mental health consent
+      const consent = user.mental_health_consent || false;
       setHasConsent(consent);
       
       if (!consent) {
@@ -101,15 +145,15 @@ const MentalHealth: React.FC = () => {
       setLoading(true);
       setError('');
 
-      const [overview, checkin, resources, activities] = await Promise.all([
-        mentalHealthService.getEmployeeWellnessOverview(user.id),
+      const [checkins, todayData, resources, activities] = await Promise.all([
+        mentalHealthService.getEmotionalCheckins(user.id, 7),
         mentalHealthService.getTodayCheckin(user.id),
         mentalHealthService.getWellnessResources(),
         mentalHealthService.getTherapeuticActivities()
       ]);
 
-      setWellnessOverview(overview);
-      setTodayCheckin(checkin);
+      setRecentCheckins(checkins || []);
+      setTodayCheckin(todayData);
       setWellnessResources(resources || []);
       setTherapeuticActivities(activities || []);
     } catch (error) {
@@ -214,6 +258,22 @@ const MentalHealth: React.FC = () => {
     }
   };
 
+  const calculateTrend = (): 'improving' | 'stable' | 'declining' => {
+    if (recentCheckins.length < 3) return 'stable';
+    
+    const recent = recentCheckins.slice(0, 3);
+    const older = recentCheckins.slice(3, 6);
+    
+    if (older.length === 0) return 'stable';
+    
+    const recentAvg = recent.reduce((sum, c) => sum + c.mood_rating, 0) / recent.length;
+    const olderAvg = older.reduce((sum, c) => sum + c.mood_rating, 0) / older.length;
+    
+    if (recentAvg > olderAvg + 1) return 'improving';
+    if (recentAvg < olderAvg - 1) return 'declining';
+    return 'stable';
+  };
+
   const renderScaleInput = (
     label: string,
     value: number,
@@ -248,6 +308,39 @@ const MentalHealth: React.FC = () => {
       </div>
     </div>
   );
+
+  const getContentIcon = (type: string) => {
+    switch (type) {
+      case 'article': return <BookOpen size={20} className="text-blue-500" />;
+      case 'video': return <Play size={20} className="text-red-500" />;
+      case 'audio': return <Headphones size={20} className="text-purple-500" />;
+      case 'exercise': return <Activity size={20} className="text-green-500" />;
+      default: return <BookOpen size={20} className="text-gray-500" />;
+    }
+  };
+
+  const getContentTypeLabel = (type: string) => {
+    switch (type) {
+      case 'article': return 'Artigo';
+      case 'video': return 'Vídeo';
+      case 'audio': return 'Áudio';
+      case 'exercise': return 'Exercício';
+      default: return type;
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case 'anxiety': return 'Ansiedade';
+      case 'stress': return 'Estresse';
+      case 'mindfulness': return 'Mindfulness';
+      case 'sleep': return 'Sono';
+      case 'productivity': return 'Produtividade';
+      case 'relationships': return 'Relacionamentos';
+      case 'general': return 'Geral';
+      default: return category;
+    }
+  };
 
   if (!hasConsent) {
     return (
@@ -337,6 +430,8 @@ const MentalHealth: React.FC = () => {
       </div>
     );
   }
+
+  const trend = calculateTrend();
 
   return (
     <div className="space-y-6">
@@ -428,94 +523,37 @@ const MentalHealth: React.FC = () => {
         )}
       </Card>
 
-      {/* Wellness Overview */}
-      {wellnessOverview && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Trend Chart */}
-          <Card className="lg:col-span-2 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Tendência de Bem-estar (7 dias)</h3>
-              <div className="flex items-center space-x-2">
-                {getTrendIcon(wellnessOverview.wellness_trend)}
-                <span className="text-sm text-gray-600 capitalize">
-                  {wellnessOverview.wellness_trend === 'improving' ? 'Melhorando' :
-                   wellnessOverview.wellness_trend === 'declining' ? 'Declinando' : 'Estável'}
-                </span>
-              </div>
+      {/* Wellness Trend */}
+      {recentCheckins.length > 0 && (
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Tendência de Bem-estar (7 dias)</h3>
+            <div className="flex items-center space-x-2">
+              {getTrendIcon(trend)}
+              <span className="text-sm text-gray-600 capitalize">
+                {trend === 'improving' ? 'Melhorando' :
+                 trend === 'declining' ? 'Declinando' : 'Estável'}
+              </span>
             </div>
-            
-            {wellnessOverview.recent_checkins.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={wellnessOverview.recent_checkins.reverse()}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="checkin_date" 
-                    tickFormatter={(date) => new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                  />
-                  <YAxis domain={[1, 10]} />
-                  <Tooltip 
-                    labelFormatter={(date) => new Date(date).toLocaleDateString('pt-BR')}
-                  />
-                  <Line type="monotone" dataKey="mood_rating" stroke="#3B82F6" name="Humor" />
-                  <Line type="monotone" dataKey="energy_level" stroke="#10B981" name="Energia" />
-                  <Line type="monotone" dataKey="stress_level" stroke="#F59E0B" name="Estresse" />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-center text-gray-500 py-8">
-                <Activity size={32} className="mx-auto mb-2 text-gray-300" />
-                <p>Faça check-ins diários para ver sua tendência</p>
-              </div>
-            )}
-          </Card>
-
-          {/* Quick Stats */}
-          <div className="space-y-4">
-            <Card className="p-4">
-              <h4 className="font-medium text-gray-900 mb-3">Próximas Atividades</h4>
-              {wellnessOverview.pending_activities.length > 0 ? (
-                <div className="space-y-2">
-                  {wellnessOverview.pending_activities.slice(0, 3).map((activity: TherapeuticActivity) => (
-                    <div key={activity.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                        <p className="text-xs text-gray-500">
-                          Prazo: {new Date(activity.due_date).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                      <Badge variant="warning" size="sm">Pendente</Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">Nenhuma atividade pendente</p>
-              )}
-            </Card>
-
-            <Card className="p-4">
-              <h4 className="font-medium text-gray-900 mb-3">Próximas Sessões</h4>
-              {wellnessOverview.upcoming_sessions.length > 0 ? (
-                <div className="space-y-2">
-                  {wellnessOverview.upcoming_sessions.map((session: PsychologySession) => (
-                    <div key={session.id} className="p-2 bg-blue-50 rounded-lg">
-                      <p className="text-sm font-medium text-blue-900">
-                        {new Date(session.scheduled_date).toLocaleDateString('pt-BR')}
-                      </p>
-                      <p className="text-xs text-blue-700">
-                        {new Date(session.scheduled_date).toLocaleTimeString('pt-BR', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">Nenhuma sessão agendada</p>
-              )}
-            </Card>
           </div>
-        </div>
+          
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={recentCheckins.reverse()}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="checkin_date" 
+                tickFormatter={(date) => new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+              />
+              <YAxis domain={[1, 10]} />
+              <Tooltip 
+                labelFormatter={(date) => new Date(date).toLocaleDateString('pt-BR')}
+              />
+              <Line type="monotone" dataKey="mood_rating" stroke="#3B82F6" name="Humor" />
+              <Line type="monotone" dataKey="energy_level" stroke="#10B981" name="Energia" />
+              <Line type="monotone" dataKey="stress_level" stroke="#F59E0B" name="Estresse" />
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
       )}
 
       {/* Therapeutic Activities */}
@@ -523,7 +561,7 @@ const MentalHealth: React.FC = () => {
         <h3 className="text-lg font-semibold mb-4">Atividades Terapêuticas</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {therapeuticActivities.length > 0 ? (
-            therapeuticActivities.slice(0, 3).map((activity: TherapeuticActivity) => (
+            therapeuticActivities.slice(0, 6).map((activity) => (
               <motion.div
                 key={activity.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -540,7 +578,7 @@ const MentalHealth: React.FC = () => {
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">
-                    Duração: {activity.duration_minutes} min
+                    {activity.duration_minutes} min
                   </span>
                   <Badge variant="default" size="sm">
                     {activity.category}
@@ -568,14 +606,19 @@ const MentalHealth: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: wellnessResources.indexOf(resource) * 0.1 }}
               className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-              onClick={() => mentalHealthService.viewResource(resource.id, user!.id)}
+              onClick={() => {
+                if (resource.content_url) {
+                  window.open(resource.content_url, '_blank');
+                }
+              }}
             >
               <div className="flex items-start justify-between mb-2">
-                <h4 className="font-medium text-gray-900 text-sm">{resource.title}</h4>
+                <div className="flex items-center space-x-2">
+                  {getContentIcon(resource.resource_type)}
+                  <h4 className="font-medium text-gray-900 text-sm">{resource.title}</h4>
+                </div>
                 <Badge variant="info" size="sm">
-                  {resource.content_type === 'article' ? 'Artigo' :
-                   resource.content_type === 'exercise' ? 'Exercício' :
-                   resource.content_type === 'video' ? 'Vídeo' : 'Áudio'}
+                  {getContentTypeLabel(resource.resource_type)}
                 </Badge>
               </div>
               <p className="text-xs text-gray-600 mb-3 line-clamp-2">
@@ -583,15 +626,23 @@ const MentalHealth: React.FC = () => {
               </p>
               <div className="flex items-center justify-between">
                 <Badge variant="default" size="sm">
-                  {resource.category}
+                  {getCategoryLabel(resource.category)}
                 </Badge>
-                <span className="text-xs text-gray-500">
-                  {resource.view_count} visualizações
-                </span>
+                {resource.tags.length > 0 && (
+                  <span className="text-xs text-gray-500">
+                    {resource.tags.slice(0, 2).join(', ')}
+                  </span>
+                )}
               </div>
             </motion.div>
           ))}
         </div>
+        {wellnessResources.length === 0 && (
+          <div className="text-center py-8">
+            <BookOpen size={32} className="mx-auto mb-2 text-gray-300" />
+            <p className="text-sm text-gray-500">Nenhum recurso disponível</p>
+          </div>
+        )}
       </Card>
 
       {/* Daily Check-in Modal */}

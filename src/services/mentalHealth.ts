@@ -539,19 +539,7 @@ export const mentalHealthService = {
 
     let query = supabase
       .from('wellness_resources')
-      .select(`
-        id,
-        title,
-        description,
-        resource_type,
-        content_url,
-        thumbnail_url,
-        category,
-        active,
-        tags,
-        created_at,
-        updated_at
-      `)
+      .select('*')
       .eq('active', true);
 
     if (category) {
@@ -594,9 +582,11 @@ export const mentalHealthService = {
   async viewResource(resourceId: string, employeeId: string, timeSpent = 0): Promise<void> {
     console.log('🧠 MentalHealth: Recording resource view');
 
-    // Note: view tracking functionality disabled due to missing view_count column
-    // This would need to be implemented when the database schema includes view tracking
+    // View tracking functionality - simplified logging only
     console.log('View recorded for resource:', resourceId, 'by user:', employeeId);
+    
+    // In a real implementation, this could create a separate view_logs table
+    // or increment a counter in a different way
   },
 
   // Resource Favorites
@@ -635,13 +625,13 @@ export const mentalHealthService = {
       .eq('resource_id', resourceId), 'removeFromFavorites');
   },
 
-  // Therapeutic Tasks
+  // Therapeutic Tasks (Library-based, no assignments)
   async getTherapeuticTasks(userId: string): Promise<TherapeuticActivity[]> {
-    console.log('🧠 MentalHealth: Getting therapeutic activities library (no user-specific tasks available)');
+    console.log('🧠 MentalHealth: Getting therapeutic activities library for user:', userId);
     
     // Since therapeutic_activities is a library table without employee assignments,
-    // return empty array for now
-    return [];
+    // return the general library of activities
+    return this.getTherapeuticActivities();
   },
 
   // Check-in Settings
@@ -729,13 +719,12 @@ export const mentalHealthService = {
   },
 
   // Form Submissions
-  async getFormSubmissions(filters?: {
+  async getFormResponses(employeeId?: string, filters?: {
     templateId?: string;
-    submittedBy?: string;
-    targetUser?: string;
+    formId?: string;
     riskLevel?: string;
   }): Promise<FormResponse[]> {
-    console.log('🧠 MentalHealth: Getting form responses with filters:', filters);
+    console.log('🧠 MentalHealth: Getting form responses for employee:', employeeId);
 
     let query = supabase
       .from('form_responses')
@@ -746,14 +735,15 @@ export const mentalHealthService = {
         reviewer:profiles!reviewed_by(name, avatar_url)
       `);
 
+    if (employeeId) {
+      query = query.eq('employee_id', employeeId);
+    }
+
     if (filters?.templateId) {
       query = query.eq('form_id', filters.templateId);
     }
-    if (filters?.submittedBy) {
-      query = query.eq('employee_id', filters.submittedBy);
-    }
-    if (filters?.targetUser) {
-      query = query.eq('employee_id', filters.targetUser);
+    if (filters?.formId) {
+      query = query.eq('form_id', filters.formId);
     }
 
     return supabaseRequest(() => query.order('created_at', { ascending: false }), 'getFormResponses');
@@ -838,13 +828,13 @@ export const mentalHealthService = {
     checkins: EmotionalCheckin[];
     sessions: PsychologySession[];
     alerts: MentalHealthAlert[];
-    submissions: FormResponse[];
-    tasks: TherapeuticActivity[];
+    responses: FormResponse[];
+    activities: TherapeuticActivity[];
     timeline: any[];
   }> {
     console.log('🧠 MentalHealth: Getting digital record for user:', userId);
 
-    const [checkins, sessions, alerts, submissions, tasks] = await Promise.all([
+    const [checkins, sessions, alerts, responses, activities] = await Promise.all([
       this.getEmotionalCheckins(userId, 365), // Last year
       this.getSessions(userId),
       supabaseRequest(() => supabase
@@ -852,8 +842,8 @@ export const mentalHealthService = {
         .select('*')
         .eq('employee_id', userId)
         .order('created_at', { ascending: false }), 'getUserAlerts'),
-      this.getFormSubmissions({ targetUser: userId }),
-      this.getTherapeuticTasks(userId)
+      this.getFormResponses(userId),
+      this.getTherapeuticActivities()
     ]);
 
     // Create unified timeline
@@ -879,17 +869,17 @@ export const mentalHealthService = {
         title: a.title,
         data: a
       })),
-      ...submissions.map(s => ({
+      ...responses.map(s => ({
         id: s.id,
         type: 'response',
         date: s.created_at,
         title: 'Formulário Respondido',
         data: s
       })),
-      ...tasks.map(t => ({
+      ...activities.slice(0, 5).map(t => ({
         id: t.id,
         type: 'activity',
-        date: t.due_date,
+        date: t.created_at,
         title: t.title,
         data: t
       }))
@@ -899,8 +889,8 @@ export const mentalHealthService = {
       checkins,
       sessions,
       alerts,
-      submissions,
-      tasks,
+      responses,
+      activities,
       timeline
     };
   },
