@@ -1,26 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Calendar, 
-  Plus, 
-  Filter, 
-  Download, 
-  Upload,
-  Users,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Gift,
-  Briefcase,
-  Sun,
-  Coffee,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Edit,
-  Trash2
-} from 'lucide-react';
+import { Calendar, Plus, Filter, Download, Upload, Users, Clock, CheckCircle, AlertTriangle, Gift, Briefcase, Sun, Coffee, Settings, ChevronLeft, ChevronRight, Eye, CreditCard as Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { hrCalendarService, CalendarEvent, CalendarRequest, CalendarStats } from '../services/hrCalendar';
 import { Card } from '../components/ui/Card';
