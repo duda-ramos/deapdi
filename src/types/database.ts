@@ -602,7 +602,6 @@ export interface Database {
         Row: {
           id: string
           session_id: string
-          employee_id: string
           title: string
           description: string
           instructions: string | null
@@ -618,7 +617,6 @@ export interface Database {
         Insert: {
           id?: string
           session_id: string
-          employee_id: string
           title: string
           description: string
           instructions?: string | null
@@ -634,7 +632,6 @@ export interface Database {
         Update: {
           id?: string
           session_id?: string
-          employee_id?: string
           title?: string
           description?: string
           instructions?: string | null
@@ -718,56 +715,6 @@ export interface Database {
           created_at?: string
         }
       }
-      therapeutic_activities: {
-        Row: {
-          id: string
-          session_id: string
-          employee_id: string
-          title: string
-          description: string
-          instructions: string | null
-          due_date: string
-          status: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada'
-          employee_feedback: string | null
-          psychologist_notes: string | null
-          completion_evidence: string | null
-          completed_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          session_id: string
-          employee_id: string
-          title: string
-          description: string
-          instructions?: string | null
-          due_date: string
-          status?: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada'
-          employee_feedback?: string | null
-          psychologist_notes?: string | null
-          completion_evidence?: string | null
-          completed_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          session_id?: string
-          employee_id?: string
-          title?: string
-          description?: string
-          instructions?: string | null
-          due_date?: string
-          status?: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada'
-          employee_feedback?: string | null
-          psychologist_notes?: string | null
-          completion_evidence?: string | null
-          completed_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
       session_requests: {
         Row: {
           id: string
@@ -817,12 +764,9 @@ export interface Database {
           resource_type: 'article' | 'video' | 'audio' | 'pdf' | 'link'
           category: string
           content_url: string | null
-          content_text: string | null
           thumbnail_url: string | null
           tags: string[]
-          target_audience: string[]
           active: boolean
-          view_count: number
           created_by: string | null
           created_at: string
           updated_at: string
@@ -834,12 +778,9 @@ export interface Database {
           resource_type?: 'article' | 'video' | 'audio' | 'pdf' | 'link'
           category?: string
           content_url?: string | null
-          content_text?: string | null
           thumbnail_url?: string | null
           tags?: string[]
-          target_audience?: string[]
           active?: boolean
-          view_count?: number
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -851,12 +792,9 @@ export interface Database {
           resource_type?: 'article' | 'video' | 'audio' | 'pdf' | 'link'
           category?: string
           content_url?: string | null
-          content_text?: string | null
           thumbnail_url?: string | null
           tags?: string[]
-          target_audience?: string[]
           active?: boolean
-          view_count?: number
           created_by?: string | null
           created_at?: string
           updated_at?: string

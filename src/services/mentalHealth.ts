@@ -25,7 +25,6 @@ export interface PsychologySession {
 export interface TherapeuticActivity {
   id: string;
   session_id?: string;
-  employee_id: string;
   title: string;
   description?: string;
   instructions?: string;
@@ -129,7 +128,6 @@ export interface WellnessResource {
   content_url?: string;
   thumbnail_url?: string;
   category: string;
-  target_audience: string[];
   created_by: string;
   active: boolean;
   tags: string[];
