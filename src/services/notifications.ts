@@ -148,8 +148,14 @@ export const notificationService = {
         .from('notification_preferences')
         .select('*')
         .eq('profile_id', profileId)
-        .single(), 'getNotificationPreferences');
-      return result;
+        .maybeSingle(), 'getNotificationPreferences');
+      
+      if (result) {
+        return result;
+      } else {
+        // No preferences found, create defaults
+        return await this.createDefaultPreferences(profileId);
+      }
     } catch (error) {
       // Check if it's a table not found error
       if (error instanceof Error && (
@@ -217,7 +223,7 @@ export const notificationService = {
     try {
       return await supabaseRequest(() => supabase
         .from('notification_preferences')
-        .insert({
+        .upsert({
           profile_id: profileId,
           pdi_approved: defaultPrefs.pdi_approved,
           pdi_rejected: defaultPrefs.pdi_rejected,
@@ -229,6 +235,8 @@ export const notificationService = {
           deadline_reminder: defaultPrefs.deadline_reminder,
           email_notifications: defaultPrefs.email_notifications,
           push_notifications: defaultPrefs.push_notifications
+        }, {
+          onConflict: 'profile_id'
         })
         .select()
         .single(), 'createDefaultNotificationPreferences');

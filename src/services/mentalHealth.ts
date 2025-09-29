@@ -348,7 +348,13 @@ export const mentalHealthService = {
         query = query.eq('form_id', formId);
       }
 
-      return await supabaseRequest(() => query.order('created_at', { ascending: false }), 'getFormResponses');
+      const responses = await supabaseRequest(() => query.order('created_at', { ascending: false }), 'getFormResponses');
+      
+      // Add risk_level based on score since it doesn't exist in database
+      return responses.map(response => ({
+        ...response,
+        risk_level: this.calculateRiskLevel(response.score || 0)
+      }));
     } catch (error) {
       console.error('🧠 MentalHealth: Error getting form responses:', error);
       return [];
@@ -899,8 +905,22 @@ export const mentalHealthService = {
   async getMentalHealthStats(): Promise<MentalHealthStats> {
     console.log('🧠 MentalHealth: Getting mental health statistics');
 
-    return supabaseRequest(() => supabase
-      .rpc('get_mental_health_stats'), 'getMentalHealthStats');
+    try {
+      return await supabaseRequest(() => supabase
+        .rpc('get_mental_health_stats'), 'getMentalHealthStats');
+    } catch (error) {
+      console.warn('🧠 MentalHealth: RPC function not available, returning default stats:', error);
+      
+      // Return default stats if RPC function doesn't exist or fails
+      return {
+        total_employees_participating: 0,
+        average_mood_score: 0,
+        sessions_this_month: 0,
+        high_risk_responses: 0,
+        active_alerts: 0,
+        wellness_resources_accessed: 0
+      };
+    }
   },
 
   async getEmployeeWellnessOverview(employeeId: string): Promise<{
@@ -1040,5 +1060,12 @@ export const mentalHealthService = {
       case 'faltou': return 'Faltou';
       default: return status;
     }
+  },
+
+  calculateRiskLevel(score: number): 'baixo' | 'medio' | 'alto' | 'critico' {
+    if (score >= 80) return 'critico';
+    if (score >= 60) return 'alto';
+    if (score >= 40) return 'medio';
+    return 'baixo';
   }
 };
