@@ -47,7 +47,7 @@ const MentalHealth: React.FC = () => {
   const [hasConsent, setHasConsent] = useState(false);
 
   const [checkinForm, setCheckinForm] = useState({
-    mood_score: 5,
+    mood_rating: 5,
     energy_level: 5,
     stress_level: 5,
     sleep_quality: 5,
@@ -377,10 +377,10 @@ const MentalHealth: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="flex justify-center mb-2">
-                {getMoodIcon(todayCheckin.mood_score)}
+                {getMoodIcon(todayCheckin.mood_rating)}
               </div>
-              <div className={`text-2xl font-bold ${getMoodColor(todayCheckin.mood_score)}`}>
-                {todayCheckin.mood_score}/10
+              <div className={`text-2xl font-bold ${getMoodColor(todayCheckin.mood_rating)}`}>
+                {todayCheckin.mood_rating}/10
               </div>
               <div className="text-sm text-gray-600">Humor</div>
             </div>
@@ -460,7 +460,7 @@ const MentalHealth: React.FC = () => {
                   <Tooltip 
                     labelFormatter={(date) => new Date(date).toLocaleDateString('pt-BR')}
                   />
-                  <Line type="monotone" dataKey="mood_score" stroke="#3B82F6" name="Humor" />
+                  <Line type="monotone" dataKey="mood_rating" stroke="#3B82F6" name="Humor" />
                   <Line type="monotone" dataKey="energy_level" stroke="#10B981" name="Energia" />
                   <Line type="monotone" dataKey="stress_level" stroke="#F59E0B" name="Estresse" />
                 </LineChart>
@@ -577,9 +577,9 @@ const MentalHealth: React.FC = () => {
           <div className="space-y-6">
             {renderScaleInput(
               'Como está seu humor hoje?',
-              checkinForm.mood_score,
-              (value) => setCheckinForm({ ...checkinForm, mood_score: value }),
-              getMoodIcon(checkinForm.mood_score),
+              checkinForm.mood_rating,
+              (value) => setCheckinForm({ ...checkinForm, mood_rating: value }),
+              getMoodIcon(checkinForm.mood_rating),
               'Muito baixo',
               'Excelente'
             )}

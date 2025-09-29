@@ -98,13 +98,6 @@ export const WellnessResources: React.FC<WellnessResourcesProps> = ({ employeeId
     
     // Record the view
     await mentalHealthService.viewResource(resource.id, employeeId);
-    
-    // Update view count locally
-    setResources(prev => prev.map(r => 
-      r.id === resource.id 
-        ? { ...r, view_count: r.view_count + 1 }
-        : r
-    ));
   };
 
   const getContentIcon = (type: string) => {
@@ -225,9 +218,8 @@ export const WellnessResources: React.FC<WellnessResourcesProps> = ({ employeeId
                 </p>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <Eye size={14} />
-                    <span>{resource.view_count} visualizações</span>
+                  <div className="text-sm text-gray-500">
+                    Criado em {new Date(resource.created_at).toLocaleDateString('pt-BR')}
                   </div>
                   <Button
                     size="sm"
@@ -328,9 +320,8 @@ export const WellnessResources: React.FC<WellnessResourcesProps> = ({ employeeId
             )}
 
             <div className="flex items-center justify-between pt-4 border-t">
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <Eye size={14} />
-                <span>{selectedResource.view_count} visualizações</span>
+              <div className="text-sm text-gray-500">
+                Criado em {new Date(selectedResource.created_at).toLocaleDateString('pt-BR')}
               </div>
               <div className="flex space-x-2">
                 <Button

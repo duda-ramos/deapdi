@@ -24,10 +24,10 @@ export interface PsychologySession {
 
 export interface TherapeuticActivity {
   id: string;
-  session_id: string;
+  session_id?: string;
   employee_id: string;
   title: string;
-  description: string;
+  description?: string;
   instructions?: string;
   due_date: string;
   status: 'pendente' | 'em_progresso' | 'concluida' | 'cancelada';
@@ -67,15 +67,14 @@ export interface FormResponse {
   form_id: string;
   employee_id: string;
   responses: any;
-  score: number;
-  risk_level: 'baixo' | 'medio' | 'alto' | 'critico';
+  score?: number;
+  interpretation?: string;
+  status?: string;
   reviewed_by?: string;
-  psychologist_notes?: string;
-  requires_attention: boolean;
-  follow_up_scheduled: boolean;
-  created_at: string;
   reviewed_at?: string;
-  form?: PsychologicalForm;
+  review_notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SessionRequest {
@@ -97,7 +96,7 @@ export interface SessionRequest {
 export interface EmotionalCheckin {
   id: string;
   employee_id: string;
-  mood_score: number;
+  mood_rating: number;
   energy_level: number;
   stress_level: number;
   sleep_quality: number;
@@ -130,33 +129,11 @@ export interface WellnessResource {
   content_type: 'article' | 'video' | 'audio' | 'exercise';
   content_url?: string;
   content_text?: string;
-  content_text?: string;
   category: string;
   target_audience: string[];
   created_by: string;
   active: boolean;
-  view_count: number;
-  target_audience: string[];
-  created_by: string;
-  active: boolean;
-  view_count: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TherapeuticTask {
-  id: string;
-  title: string;
-  description?: string;
-  task_type: 'formulario' | 'meditacao' | 'exercicio' | 'leitura' | 'reflexao' | 'anotacao';
-  content: any;
-  instructions?: string;
-  assigned_to: string[];
-  assigned_by: string;
-  due_date: string;
-  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
-  status: 'active' | 'paused' | 'completed' | 'cancelled';
-  completion_tracking: any;
+  tags: string[];
   created_at: string;
   updated_at: string;
 }
@@ -197,23 +174,6 @@ export interface FormTemplate {
   updated_at: string;
 }
 
-export interface FormSubmission {
-  id: string;
-  template_id: string;
-  submitted_by: string;
-  target_user?: string;
-  responses: any;
-  calculated_score?: number;
-  risk_level?: 'baixo' | 'medio' | 'alto' | 'critico';
-  auto_alerts_triggered: boolean;
-  reviewed_by?: string;
-  review_notes?: string;
-  reviewed_at?: string;
-  submission_type: 'auto_avaliacao' | 'feedback' | 'avaliacao';
-  created_at: string;
-  updated_at: string;
-}
-
 export interface AlertRule {
   id: string;
   name: string;
@@ -235,7 +195,6 @@ export interface MentalHealthStats {
   sessions_this_month: number;
   high_risk_responses: number;
   active_alerts: number;
-  wellness_resources_accessed: number;
   wellness_resources_accessed: number;
 }
 
@@ -482,7 +441,7 @@ export const mentalHealthService = {
         .select(`
           id,
           employee_id,
-          mood_rating,
+          mood_score,
           stress_level,
           energy_level,
           sleep_quality,
@@ -498,7 +457,7 @@ export const mentalHealthService = {
       return data.map((item: any) => ({
         id: item.id,
         employee_id: item.employee_id,
-        mood_score: item.mood_score,
+        mood_rating: item.mood_rating,
         stress_level: item.stress_level,
         energy_level: item.energy_level,
         sleep_quality: item.sleep_quality,
@@ -520,7 +479,7 @@ export const mentalHealthService = {
       .from('emotional_checkins')
       .upsert({
         employee_id: checkin.employee_id,
-        mood_score: checkin.mood_score,
+        mood_rating: checkin.mood_rating,
         stress_level: checkin.stress_level,
         energy_level: checkin.energy_level,
         sleep_quality: checkin.sleep_quality,
@@ -541,7 +500,7 @@ export const mentalHealthService = {
         .select(`
           id,
           employee_id,
-          mood_score,
+          mood_rating,
           stress_level,
           energy_level,
           sleep_quality,
@@ -560,7 +519,7 @@ export const mentalHealthService = {
         return {
           id: data.id,
           employee_id: data.employee_id,
-          mood_score: data.mood_score,
+          mood_rating: data.mood_rating,
           stress_level: data.stress_level,
           energy_level: data.energy_level,
           sleep_quality: data.sleep_quality,
@@ -631,25 +590,36 @@ export const mentalHealthService = {
 
     let query = supabase
       .from('wellness_resources')
-      .select('*')
+      .select(`
+        id,
+        title,
+        description,
+        resource_type,
+        content_url,
+        content_text,
+        category,
+        target_audience,
+        created_by,
+        active,
+        tags,
+        created_at,
+        updated_at
+      `)
       .eq('active', true);
 
     if (category) {
       query = query.eq('category', category);
     }
 
-    return supabaseRequest(() => query.order('view_count', { ascending: false }), 'getWellnessResources');
+    return supabaseRequest(() => query.order('created_at', { ascending: false }), 'getWellnessResources');
   },
 
-  async createWellnessResource(resource: Omit<WellnessResource, 'id' | 'created_at' | 'updated_at' | 'view_count'>): Promise<WellnessResource> {
+  async createWellnessResource(resource: Omit<WellnessResource, 'id' | 'created_at' | 'updated_at'>): Promise<WellnessResource> {
     console.log('🧠 MentalHealth: Creating wellness resource:', resource.title);
 
     return supabaseRequest(() => supabase
       .from('wellness_resources')
-      .insert({
-        ...resource,
-        view_count: 0
-      })
+      .insert(resource)
       .select()
       .single(), 'createWellnessResource');
   },
@@ -677,8 +647,9 @@ export const mentalHealthService = {
   async viewResource(resourceId: string, employeeId: string, timeSpent = 0): Promise<void> {
     console.log('🧠 MentalHealth: Recording resource view');
 
-    return supabaseRequest(() => supabase
-      .rpc('increment_resource_view_count', { resource_id: resourceId }), 'incrementResourceViewCount');
+    // Note: view_count functionality disabled due to missing column
+    // This would need to be implemented when the database schema is updated
+    console.log('View recorded for resource:', resourceId, 'by user:', employeeId);
   },
 
   // Resource Favorites
@@ -718,51 +689,46 @@ export const mentalHealthService = {
   },
 
   // Therapeutic Tasks
-  async getTherapeuticTasks(userId: string): Promise<TherapeuticTask[]> {
-    console.log('🧠 MentalHealth: Getting therapeutic tasks for user:', userId);
+  async getTherapeuticTasks(userId: string): Promise<TherapeuticActivity[]> {
+    console.log('🧠 MentalHealth: Getting therapeutic activities for user:', userId);
 
     return supabaseRequest(() => supabase
-      .from('therapeutic_tasks')
+      .from('therapeutic_activities')
       .select('*')
-      .contains('assigned_to', [userId])
+      .eq('employee_id', userId)
       .order('due_date'), 'getTherapeuticTasks');
   },
 
-  async createTherapeuticTask(task: Omit<TherapeuticTask, 'id' | 'created_at' | 'updated_at' | 'completion_tracking'>): Promise<TherapeuticTask> {
-    console.log('🧠 MentalHealth: Creating therapeutic task:', task.title);
+  async createTherapeuticTask(task: Omit<TherapeuticActivity, 'id' | 'created_at' | 'updated_at'>): Promise<TherapeuticActivity> {
+    console.log('🧠 MentalHealth: Creating therapeutic activity:', task.title);
 
     return supabaseRequest(() => supabase
-      .from('therapeutic_tasks')
-      .insert({
-        ...task,
-        completion_tracking: {}
-      })
+      .from('therapeutic_activities')
+      .insert(task)
       .select()
       .single(), 'createTherapeuticTask');
   },
 
-  async updateTherapeuticTask(id: string, updates: Partial<TherapeuticTask>): Promise<TherapeuticTask> {
-    console.log('🧠 MentalHealth: Updating therapeutic task:', id);
+  async updateTherapeuticTask(id: string, updates: Partial<TherapeuticActivity>): Promise<TherapeuticActivity> {
+    console.log('🧠 MentalHealth: Updating therapeutic activity:', id);
 
     return supabaseRequest(() => supabase
-      .from('therapeutic_tasks')
+      .from('therapeutic_activities')
       .update(updates)
       .eq('id', id)
       .select()
       .single(), 'updateTherapeuticTask');
   },
 
-  async completeTherapeuticTask(id: string, feedback?: string): Promise<TherapeuticTask> {
-    console.log('🧠 MentalHealth: Completing therapeutic task:', id);
+  async completeTherapeuticTask(id: string, feedback?: string): Promise<TherapeuticActivity> {
+    console.log('🧠 MentalHealth: Completing therapeutic activity:', id);
 
     return supabaseRequest(() => supabase
-      .from('therapeutic_tasks')
+      .from('therapeutic_activities')
       .update({
-        status: 'completed',
-        completion_tracking: {
-          completed_at: new Date().toISOString(),
-          feedback: feedback
-        }
+        status: 'concluida',
+        employee_feedback: feedback,
+        completed_at: new Date().toISOString()
       })
       .eq('id', id)
       .select()
@@ -859,52 +825,46 @@ export const mentalHealthService = {
     submittedBy?: string;
     targetUser?: string;
     riskLevel?: string;
-  }): Promise<FormSubmission[]> {
-    console.log('🧠 MentalHealth: Getting form submissions with filters:', filters);
+  }): Promise<FormResponse[]> {
+    console.log('🧠 MentalHealth: Getting form responses with filters:', filters);
 
     let query = supabase
-      .from('form_submissions')
+      .from('form_responses')
       .select(`
         *,
-        template:form_templates(title, form_type),
-        submitter:profiles!submitted_by(name, avatar_url),
-        target:profiles!target_user(name, avatar_url, position)
+        form:psychological_forms(title, form_type),
+        employee:profiles!employee_id(name, avatar_url),
+        reviewer:profiles!reviewed_by(name, avatar_url)
       `);
 
     if (filters?.templateId) {
-      query = query.eq('template_id', filters.templateId);
+      query = query.eq('form_id', filters.templateId);
     }
     if (filters?.submittedBy) {
-      query = query.eq('submitted_by', filters.submittedBy);
+      query = query.eq('employee_id', filters.submittedBy);
     }
     if (filters?.targetUser) {
-      query = query.eq('target_user', filters.targetUser);
-    }
-    if (filters?.riskLevel) {
-      query = query.eq('risk_level', filters.riskLevel);
+      query = query.eq('employee_id', filters.targetUser);
     }
 
-    return supabaseRequest(() => query.order('created_at', { ascending: false }), 'getFormSubmissions');
+    return supabaseRequest(() => query.order('created_at', { ascending: false }), 'getFormResponses');
   },
 
-  async submitForm(submission: Omit<FormSubmission, 'id' | 'created_at' | 'updated_at' | 'calculated_score' | 'risk_level' | 'auto_alerts_triggered'>): Promise<FormSubmission> {
-    console.log('🧠 MentalHealth: Submitting form');
+  async submitForm(submission: Omit<FormResponse, 'id' | 'created_at' | 'updated_at'>): Promise<FormResponse> {
+    console.log('🧠 MentalHealth: Submitting form response');
 
     return supabaseRequest(() => supabase
-      .from('form_submissions')
-      .insert({
-        ...submission,
-        auto_alerts_triggered: false
-      })
+      .from('form_responses')
+      .insert(submission)
       .select()
       .single(), 'submitForm');
   },
 
-  async reviewFormSubmission(id: string, reviewNotes: string, reviewerId: string): Promise<FormSubmission> {
-    console.log('🧠 MentalHealth: Reviewing form submission:', id);
+  async reviewFormSubmission(id: string, reviewNotes: string, reviewerId: string): Promise<FormResponse> {
+    console.log('🧠 MentalHealth: Reviewing form response:', id);
 
     return supabaseRequest(() => supabase
-      .from('form_submissions')
+      .from('form_responses')
       .update({
         reviewed_by: reviewerId,
         review_notes: reviewNotes,
@@ -969,8 +929,8 @@ export const mentalHealthService = {
     checkins: EmotionalCheckin[];
     sessions: PsychologySession[];
     alerts: MentalHealthAlert[];
-    submissions: FormSubmission[];
-    tasks: TherapeuticTask[];
+    submissions: FormResponse[];
+    tasks: TherapeuticActivity[];
     timeline: any[];
   }> {
     console.log('🧠 MentalHealth: Getting digital record for user:', userId);
@@ -1012,14 +972,14 @@ export const mentalHealthService = {
       })),
       ...submissions.map(s => ({
         id: s.id,
-        type: 'submission',
+        type: 'response',
         date: s.created_at,
         title: 'Formulário Respondido',
         data: s
       })),
       ...tasks.map(t => ({
         id: t.id,
-        type: 'task',
+        type: 'activity',
         date: t.due_date,
         title: t.title,
         data: t
@@ -1067,8 +1027,8 @@ export const mentalHealthService = {
         const recent = checkins.slice(0, 3);
         const older = checkins.slice(3, 6);
         
-        const recentAvg = recent.reduce((sum, c) => sum + c.mood_score, 0) / recent.length;
-        const olderAvg = older.length > 0 ? older.reduce((sum, c) => sum + c.mood_score, 0) / older.length : recentAvg;
+        const recentAvg = recent.reduce((sum, c) => sum + c.mood_rating, 0) / recent.length;
+        const olderAvg = older.length > 0 ? older.reduce((sum, c) => sum + c.mood_rating, 0) / older.length : recentAvg;
         
         if (recentAvg > olderAvg + 1) trend = 'improving';
         else if (recentAvg < olderAvg - 1) trend = 'declining';
@@ -1079,7 +1039,7 @@ export const mentalHealthService = {
         upcoming_sessions: sessions.filter(s => 
           s.status === 'scheduled' && new Date(s.scheduled_date) > new Date()
         ).slice(0, 3),
-        pending_activities: activities.filter(a => a.status === 'active').slice(0, 5),
+        pending_activities: activities.filter(a => a.status === 'pendente').slice(0, 5),
         recent_responses: responses.slice(0, 3),
         wellness_trend: trend
       };
