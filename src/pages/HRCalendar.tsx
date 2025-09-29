@@ -300,7 +300,7 @@ const HRCalendar: React.FC = () => {
                 <div className="text-sm text-gray-600">Ausentes Hoje</div>
               </div>
             </div>
-          </div>
+          </Card>
           <Card className="p-4">
             <div className="flex items-center">
               <div className="w-3 h-3 rounded-full bg-indigo-500 mr-3" />
