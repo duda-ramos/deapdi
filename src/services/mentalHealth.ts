@@ -293,7 +293,11 @@ export const mentalHealthService = {
     try {
       return await supabaseRequest(() => supabase
         .from('therapeutic_activities')
-        .select('*')
+        .select(`
+          *,
+          psychology_sessions!inner(employee_id)
+        `)
+        .eq('psychology_sessions.employee_id', employeeId)
         .order('created_at', { ascending: false }), 'getActivities');
     } catch (error) {
       console.error('🧠 MentalHealth: Error getting activities:', error);
@@ -593,7 +597,6 @@ export const mentalHealthService = {
         content_url,
         thumbnail_url,
         category,
-        target_audience,
         created_by,
         active,
         tags,
@@ -689,8 +692,11 @@ export const mentalHealthService = {
 
     return supabaseRequest(() => supabase
       .from('therapeutic_activities')
-      .select('*')
-      .eq('employee_id', userId)
+      .select(`
+        *,
+        psychology_sessions!inner(employee_id)
+      `)
+      .eq('psychology_sessions.employee_id', userId)
       .order('due_date'), 'getTherapeuticTasks');
   },
 
