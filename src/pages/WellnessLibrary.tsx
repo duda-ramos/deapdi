@@ -451,8 +451,7 @@ const WellnessLibrary: React.FC = () => {
                               resource_type: resource.resource_type,
                               category: resource.category,
                               content_url: resource.content_url || '',
-                              tags: resource.tags,
-                              target_audience: resource.target_audience
+                              tags: resource.tags
                             });
                             setShowCreateModal(true);
                           }}
@@ -536,6 +535,12 @@ const WellnessLibrary: React.FC = () => {
                 <div 
                   className="text-gray-700 leading-relaxed"
                   dangerouslySetInnerHTML={{ 
+                    __html: selectedResource.content_text 
+                  }}
+                />
+              </div>
+            )}
+
             {selectedResource.content_url && (
               <div className="mt-4">
                 <Button
