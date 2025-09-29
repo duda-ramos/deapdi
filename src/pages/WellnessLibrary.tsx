@@ -1,24 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  BookOpen, 
-  Play, 
-  Headphones, 
-  Activity, 
-  Heart, 
-  Search,
-  Filter,
-  Star,
-  Eye,
-  Plus,
-  Edit,
-  Trash2,
-  Upload,
-  Download,
-  Tag,
-  Clock,
-  User
-} from 'lucide-react';
+import { BookOpen, Play, Headphones, Activity, Heart, Search, Filter, Star, Eye, Plus, CreditCard as Edit, Trash2, Upload, Download, Tag, Clock, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { mentalHealthService, WellnessResource, ResourceFavorite } from '../services/mentalHealth';
 import { Card } from '../components/ui/Card';
@@ -49,7 +31,7 @@ const WellnessLibrary: React.FC = () => {
   const [resourceForm, setResourceForm] = useState({
     title: '',
     description: '',
-    content_type: 'article' as WellnessResource['content_type'],
+    resource_type: 'article' as WellnessResource['resource_type'],
     category: 'general',
     content_url: '',
     content_text: '',
@@ -138,7 +120,7 @@ const WellnessLibrary: React.FC = () => {
     }
 
     if (selectedType !== 'all') {
-      filtered = filtered.filter(resource => resource.content_type === selectedType);
+      filtered = filtered.filter(resource => resource.resource_type === selectedType);
     }
 
     if (showFavoritesOnly) {
@@ -154,7 +136,12 @@ const WellnessLibrary: React.FC = () => {
     
     if (user) {
       await mentalHealthService.viewResource(resource.id, user.id);
-      // Note: view_count functionality disabled due to missing column
+      // Update view count locally
+      setResources(prev => prev.map(r => 
+        r.id === resource.id 
+          ? { ...r, view_count: r.view_count + 1 }
+          : r
+      ));
     }
   };
 
@@ -189,7 +176,7 @@ const WellnessLibrary: React.FC = () => {
       setResourceForm({
         title: '',
         description: '',
-        content_type: 'article',
+        resource_type: 'article',
         category: 'general',
         content_url: '',
         content_text: '',
@@ -313,7 +300,7 @@ const WellnessLibrary: React.FC = () => {
             <div className="w-3 h-3 rounded-full bg-green-500 mr-3" />
             <div>
               <div className="text-2xl font-bold text-gray-900">
-                {resources.filter(r => r.content_type === 'article').length}
+                {resources.filter(r => r.resource_type === 'article').length}
               </div>
               <div className="text-sm text-gray-600">Artigos</div>
             </div>
@@ -324,7 +311,7 @@ const WellnessLibrary: React.FC = () => {
             <div className="w-3 h-3 rounded-full bg-purple-500 mr-3" />
             <div>
               <div className="text-2xl font-bold text-gray-900">
-                {resources.filter(r => r.content_type === 'exercise').length}
+                {resources.filter(r => r.resource_type === 'exercise').length}
               </div>
               <div className="text-sm text-gray-600">Exercícios</div>
             </div>
@@ -406,7 +393,7 @@ const WellnessLibrary: React.FC = () => {
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-2">
-                      {getContentIcon(resource.content_type)}
+                      {getContentIcon(resource.resource_type)}
                       <Badge variant={getCategoryColor(resource.category)} size="sm">
                         {getCategoryLabel(resource.category)}
                       </Badge>
@@ -423,7 +410,7 @@ const WellnessLibrary: React.FC = () => {
                         <Star size={16} fill={favorites.includes(resource.id) ? 'currentColor' : 'none'} />
                       </button>
                       <Badge variant="default" size="sm">
-                        {getContentTypeLabel(resource.content_type)}
+                        {getContentTypeLabel(resource.resource_type)}
                       </Badge>
                     </div>
                   </div>
@@ -451,8 +438,9 @@ const WellnessLibrary: React.FC = () => {
                   )}
 
                   <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-500">
-                      Criado em {new Date(resource.created_at).toLocaleDateString('pt-BR')}
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <Eye size={14} />
+                      <span>{resource.view_count} visualizações</span>
                     </div>
                     <div className="flex space-x-2">
                       {user?.role === 'hr' && (
@@ -464,7 +452,7 @@ const WellnessLibrary: React.FC = () => {
                             setResourceForm({
                               title: resource.title,
                               description: resource.description,
-                              content_type: resource.content_type,
+                              resource_type: resource.resource_type,
                               category: resource.category,
                               content_url: resource.content_url || '',
                               content_text: resource.content_text || '',
@@ -503,7 +491,7 @@ const WellnessLibrary: React.FC = () => {
         {selectedResource && (
           <div className="space-y-4">
             <div className="flex items-center space-x-4 mb-4">
-              {getContentIcon(selectedResource.content_type)}
+              {getContentIcon(selectedResource.resource_type)}
               <div className="flex-1">
                 <h3 className="text-xl font-semibold text-gray-900">
                   {selectedResource.title}
@@ -513,8 +501,12 @@ const WellnessLibrary: React.FC = () => {
                     {getCategoryLabel(selectedResource.category)}
                   </Badge>
                   <Badge variant="default">
-                    {getContentTypeLabel(selectedResource.content_type)}
+                    {getContentTypeLabel(selectedResource.resource_type)}
                   </Badge>
+                  <div className="flex items-center space-x-1 text-sm text-gray-500">
+                    <Eye size={14} />
+                    <span>{selectedResource.view_count} visualizações</span>
+                  </div>
                 </div>
               </div>
               <button
@@ -593,8 +585,8 @@ const WellnessLibrary: React.FC = () => {
             />
             <Select
               label="Tipo de Conteúdo"
-              value={resourceForm.content_type}
-              onChange={(e) => setResourceForm({ ...resourceForm, content_type: e.target.value as any })}
+              value={resourceForm.resource_type}
+              onChange={(e) => setResourceForm({ ...resourceForm, resource_type: e.target.value as any })}
               options={contentTypes.filter(t => t.value !== 'all')}
               required
             />
