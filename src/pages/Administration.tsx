@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
+import { MigrationManager } from '../components/admin/MigrationManager';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -41,6 +42,7 @@ const Administration: React.FC = () => {
   const tabs = [
     { id: 'system', label: 'Sistema', icon: <Settings size={16} /> },
     { id: 'database', label: 'Banco de Dados', icon: <Database size={16} /> },
+    { id: 'migrations', label: 'Migrações', icon: <RefreshCw size={16} /> },
     { id: 'security', label: 'Segurança', icon: <Shield size={16} /> },
     { id: 'notifications', label: 'Notificações', icon: <Bell size={16} /> },
     { id: 'appearance', label: 'Aparência', icon: <Palette size={16} /> },
@@ -362,6 +364,10 @@ const Administration: React.FC = () => {
         </div>
       )}
 
+      {/* Migrations Tab */}
+      {selectedTab === 'migrations' && (
+        <MigrationManager />
+      )}
       {/* Security Tab */}
       {selectedTab === 'security' && (
         <div className="space-y-6">

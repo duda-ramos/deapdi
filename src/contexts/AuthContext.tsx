@@ -42,6 +42,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        // Check if Supabase is available
+        if (!supabase) {
+          console.warn('🔐 Auth: Supabase not available, using offline mode');
+          setUser(null);
+          setSupabaseUser(null);
+          setLoading(false);
+          return;
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
@@ -65,7 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Handle invalid refresh token errors by clearing session data
         if (error instanceof Error && error.message.includes('Refresh Token Not Found')) {
           try {
+            if (supabase) {
             await supabase.auth.signOut();
+            }
             // Force full page reload to clear all client-side state
             window.location.href = '/login';
             return; // Exit early to prevent further execution
