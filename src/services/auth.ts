@@ -25,6 +25,14 @@ class AuthService {
     console.log('🔐 AuthService: Email:', data.email);
     console.log('🔐 AuthService: Name:', data.name);
     
+    if (!supabase) {
+      console.error('🔐 AuthService: Supabase not available');
+      return {
+        success: false,
+        error: 'Sistema não configurado. Entre em contato com o administrador.'
+      };
+    }
+
     try {
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
@@ -82,6 +90,13 @@ class AuthService {
     console.log('🔐 AuthService: Starting signin process');
     console.log('🔐 AuthService: Email:', email);
 
+    if (!supabase) {
+      console.error('🔐 AuthService: Supabase not available');
+      return {
+        success: false,
+        error: 'Sistema não configurado. Entre em contato com o administrador.'
+      };
+    }
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -123,6 +138,12 @@ class AuthService {
    */
   async signOut(): Promise<void> {
     console.log('🔐 AuthService: Signing out');
+    
+    if (!supabase) {
+      console.warn('🔐 AuthService: Supabase not available for signout');
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('🔐 AuthService: Signout error:', error);
@@ -136,6 +157,12 @@ class AuthService {
    */
   async getSession() {
     console.log('🔐 AuthService: Getting session');
+    
+    if (!supabase) {
+      console.warn('🔐 AuthService: Supabase not available');
+      return null;
+    }
+
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
@@ -153,6 +180,10 @@ class AuthService {
   async getProfile(userId: string): Promise<ProfileWithRelations | null> {
     console.log('🔐 AuthService: Getting profile for user:', userId);
 
+    if (!supabase) {
+      console.warn('🔐 AuthService: Supabase not available');
+      return null;
+    }
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -180,6 +211,10 @@ class AuthService {
   async updateProfile(userId: string, updates: Partial<ProfileWithRelations>): Promise<ProfileWithRelations | null> {
     console.log('🔐 AuthService: Updating profile for user:', userId);
 
+    if (!supabase) {
+      console.error('🔐 AuthService: Supabase not available');
+      throw new Error('Sistema não configurado');
+    }
     try {
       const { data, error } = await supabase
         .from('profiles')
