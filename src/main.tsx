@@ -73,11 +73,10 @@ createRoot(document.getElementById('root')!).render(
       </div>
     )}>
       <App />
+);
+
 // Initialize performance monitoring
 if (import.meta.env.PROD) {
   performance.monitorWebVitals();
   memoryMonitor.startMemoryMonitoring();
 }
-    </Sentry.ErrorBoundary>
-  </StrictMode>
-)
