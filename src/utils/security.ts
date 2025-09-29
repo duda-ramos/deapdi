@@ -88,3 +88,6 @@ class RateLimiter {
     return oldestRequest + this.windowMs;
   }
 }
+
+// Create and export API rate limiter instance
+export const apiRateLimiter = new RateLimiter(100, 60000, true);
