@@ -73,6 +73,8 @@ createRoot(document.getElementById('root')!).render(
       </div>
     )}>
       <App />
+    </Sentry.ErrorBoundary>
+  </StrictMode>
 );
 
 // Initialize performance monitoring
