@@ -93,8 +93,20 @@ const Administration: React.FC = () => {
   const handleSaveConfig = async () => {
     try {
       setConfigLoading(true);
-      // In a real implementation, this would save to database
-      localStorage.setItem('system_config', JSON.stringify(systemConfig));
+      const { adminService } = await import('../services/admin');
+      await adminService.updateSystemConfig(systemConfig);
+      
+      // Create audit log
+      if (user) {
+        await adminService.createAuditLog(
+          user.id,
+          'Configuração do sistema atualizada',
+          'system_config',
+          undefined,
+          { updated_fields: Object.keys(systemConfig) }
+        );
+      }
+      
       alert('Configurações salvas com sucesso!');
     } catch (error) {
       console.error('Error saving config:', error);

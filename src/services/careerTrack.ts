@@ -251,21 +251,9 @@ export const careerTrackService = {
   async updateProgress(profileId: string) {
     console.log('🎯 CareerTrack: Manually updating progress for profile:', profileId);
 
-    try {
-      const { error } = await supabase.rpc('update_career_progress', {
-        p_profile_id: profileId
-      });
-
-      if (error) {
-        console.error('🎯 CareerTrack: Error updating progress:', error);
-        throw error;
-      }
-
-      console.log('🎯 CareerTrack: Progress updated successfully');
-    } catch (error) {
-      console.error('🎯 CareerTrack: Critical error updating progress:', error);
-      throw error;
-    }
+    return supabaseRequest(() => supabase.rpc('update_career_progress', {
+      p_profile_id: profileId
+    }), 'updateCareerProgress');
   },
 
   // Get progression requirements for current stage

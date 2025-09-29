@@ -203,7 +203,7 @@ export const mentorshipService = {
     console.log('🤝 Mentorship: Getting available mentors');
 
     try {
-      // First get mentors without session_slots since that table doesn't exist
+      // Get mentors with their availability slots
       const { data: mentors, error } = await supabase
         .from('profiles')
         .select('*')
@@ -215,20 +215,38 @@ export const mentorshipService = {
         throw error;
       }
 
-      // Get ratings and session counts for each mentor (without session slots for now)
+      // Get ratings, session counts, and availability for each mentor
       const mentorsWithStats = await Promise.all(
         (mentors || []).map(async (mentor) => {
-          // For now, return default values since the RPC functions may not exist
-          // const [ratingResult, sessionsResult] = await Promise.all([
-          //   supabase.rpc('get_mentor_average_rating', { mentor_profile_id: mentor.id }),
-          //   supabase.rpc('get_mentor_total_sessions', { mentor_profile_id: mentor.id })
-          // ]);
+          const [ratingsResult, slotsResult] = await Promise.all([
+            supabase
+              .from('mentor_ratings')
+              .select('rating')
+              .eq('mentor_id', mentor.id),
+            supabase
+              .from('session_slots')
+              .select('*')
+              .eq('mentor_id', mentor.id)
+              .eq('is_available', true)
+          ]);
+
+          // Calculate average rating
+          const ratings = ratingsResult.data || [];
+          const averageRating = ratings.length > 0 
+            ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length 
+            : 4.5;
+
+          // Get total sessions count
+          const { count: totalSessions } = await supabase
+            .from('mentorship_sessions')
+            .select('*', { count: 'exact', head: true })
+            .or(`mentorship_id.in.(${await this.getUserMentorshipIds(mentor.id)})`);
 
           return {
             ...mentor,
-            average_rating: 4.5, // Default rating
-            total_sessions: 0, // Default session count
-            available_slots: [] // Empty slots array since table doesn't exist
+            average_rating: Math.round(averageRating * 10) / 10,
+            total_sessions: totalSessions || 0,
+            available_slots: slotsResult.data || []
           };
         })
       );

@@ -331,22 +331,9 @@ export const achievementService = {
   async manualCheckAchievements(profileId: string) {
     console.log('🏆 Achievements: Manual check for profile:', profileId);
     
-    try {
-      const { data, error } = await supabase.rpc('manual_check_achievements', {
-        p_profile_id: profileId
-      });
-
-      if (error) {
-        console.error('🏆 Achievements: Manual check error:', error);
-        throw error;
-      }
-
-      console.log('🏆 Achievements: Manual check result:', data);
-      return data?.[0] || { unlocked_count: 0, total_points: 0 };
-    } catch (error) {
-      console.error('🏆 Achievements: Manual check failed:', error);
-      throw error;
-    }
+    return supabaseRequest(() => supabase.rpc('manual_check_achievements', {
+      p_profile_id: profileId
+    }), 'manualCheckAchievements');
   },
 
   // Subscribe to new achievements for real-time notifications

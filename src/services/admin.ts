@@ -183,22 +183,17 @@ export const adminService = {
   ): Promise<void> {
     console.log('⚙️ Admin: Creating audit log:', { userId, action, resourceType });
 
-    try {
-      await supabaseRequest(() => supabase
-        .from('audit_logs')
-        .insert({
-          user_id: userId,
-          action,
-          resource_type: resourceType,
-          resource_id: resourceId,
-          details: details || {},
-          ip_address: '127.0.0.1', // Would be actual IP in production
-          user_agent: navigator.userAgent
-        }), 'createAuditLog');
-    } catch (error) {
-      console.warn('⚙️ Admin: Could not create audit log:', error);
-      // Silently fail - audit logging is not critical for functionality
-    }
+    return supabaseRequest(() => supabase
+      .from('audit_logs')
+      .insert({
+        user_id: userId,
+        action,
+        resource_type: resourceType,
+        resource_id: resourceId,
+        details: details || {},
+        ip_address: '127.0.0.1', // Would be actual IP in production
+        user_agent: navigator.userAgent
+      }), 'createAuditLog');
   },
 
   getSampleAuditLogs(): AuditLog[] {

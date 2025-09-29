@@ -639,22 +639,9 @@ export const courseService = {
   async generateCertificate(enrollmentId: string): Promise<string> {
     console.log('📚 Courses: Generating certificate for enrollment:', enrollmentId);
 
-    try {
-      const { data, error } = await supabase.rpc('generate_course_certificate', {
-        enrollment_id_param: enrollmentId
-      });
-
-      if (error) {
-        console.error('📚 Courses: Error generating certificate:', error);
-        throw error;
-      }
-
-      console.log('📚 Courses: Certificate generated:', data);
-      return data;
-    } catch (error) {
-      console.error('📚 Courses: Critical error generating certificate:', error);
-      throw error;
-    }
+    return supabaseRequest(() => supabase.rpc('generate_course_certificate', {
+      enrollment_id_param: enrollmentId
+    }), 'generateCourseCertificate');
   },
 
   async getCertificate(id: string): Promise<any> {
