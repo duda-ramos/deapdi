@@ -184,124 +184,11 @@ export const achievementService = {
   },
 
   async getUserStats(profileId: string) {
-    try {
-      // Use a safer approach to avoid triggering problematic RLS policies
-      // by making direct queries without complex joins that might cause recursion
-      
-      // Get completed PDIs
-      let completedPDIs = 0;
-      try {
-        const { data: pdis, error: pdisError } = await supabase
-          .from('pdis')
-          .select('id, status')
-          .eq('profile_id', profileId);
-        
-        if (pdisError) throw pdisError;
-        completedPDIs = pdis?.filter(p => p.status === 'completed').length || 0;
-      } catch (error: any) {
-        console.warn('Could not fetch PDI stats:', error?.message);
-        completedPDIs = 0;
-      }
-
-      // Get completed tasks
-      let completedTasks = 0;
-      try {
-        // Use a more direct approach to avoid RLS policy recursion
-        const { data: tasks, error: tasksError } = await supabase
-          .from('tasks')
-          .select('id, status, assignee_id')
-          .eq('assignee_id', profileId)
-          .is('group_id', null); // Only get individual tasks to avoid group policy issues
-        
-        if (tasksError) throw tasksError;
-        completedTasks = tasks?.filter(t => t.status === 'done').length || 0;
-      } catch (error: any) {
-        console.warn('Could not fetch task stats:', error?.message);
-        completedTasks = 0;
-      }
-
-      // Get completed courses
-      let completedCourses = 0;
-      try {
-        const { data: enrollments, error: enrollmentsError } = await supabase
-          .from('course_enrollments')
-          .select('id, status')
-          .eq('profile_id', profileId);
-        
-        if (enrollmentsError) throw enrollmentsError;
-        completedCourses = enrollments?.filter(e => e.status === 'completed').length || 0;
-      } catch (error: any) {
-        console.warn('Could not fetch course stats:', error?.message);
-        completedCourses = 0;
-      }
-
-      // Get competencies with ratings
-      let competenciesRated = 0;
-      try {
-        const { data: competencies, error: competenciesError } = await supabase
-          .from('competencies')
-          .select('id, self_rating, manager_rating')
-          .eq('profile_id', profileId);
-        
-        if (competenciesError) throw competenciesError;
-        competenciesRated = competencies?.filter(c => c.self_rating || c.manager_rating).length || 0;
-      } catch (error: any) {
-        console.warn('Could not fetch competency stats:', error?.message);
-        competenciesRated = 0;
-      }
-
-      // Get mentorship sessions
-      let mentorshipSessions = 0;
-      try {
-        // Simplified approach to avoid complex joins
-        const { data: mentorships, error: mentorshipsError } = await supabase
-          .from('mentorships')
-          .select('id')
-          .or(`mentor_id.eq.${profileId},mentee_id.eq.${profileId}`);
-
-        if (mentorshipsError) throw mentorshipsError;
-        
-        if (mentorships && mentorships.length > 0) {
-          const mentorshipIds = mentorships.map(m => m.id);
-          const { data: sessions, error: sessionsError } = await supabase
-            .from('mentorship_sessions')
-            .select('id')
-            .in('mentorship_id', mentorshipIds);
-          
-          if (sessionsError) throw sessionsError;
-          mentorshipSessions = sessions?.length || 0;
-        }
-      } catch (error: any) {
-        console.warn('Could not fetch mentorship stats:', error?.message);
-        mentorshipSessions = 0;
-      }
-
-      // Get career track progress
-      let careerProgressions = 0;
-      try {
-        const { data: careerTracks, error: careerError } = await supabase
-          .from('career_tracks')
-          .select('id, progress')
-          .eq('profile_id', profileId);
-        
-        if (careerError) throw careerError;
-        careerProgressions = careerTracks?.filter(ct => ct.progress > 0).length || 0;
-      } catch (error: any) {
-        console.warn('Could not fetch career track stats:', error?.message);
-        careerProgressions = 0;
-      }
-
-      return {
-        completedPDIs,
-        completedTasks,
-        completedCourses,
-        competenciesRated,
-        mentorshipSessions,
-        careerProgressions
-      };
-    } catch (error) {
-      console.error('Error getting user stats:', error);
-      // Return default stats instead of throwing to prevent achievement page crashes
+    console.log('🏆 Achievements: Getting user stats for profile:', profileId);
+    
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🏆 Achievements: Supabase not available, returning default stats');
       return {
         completedPDIs: 0,
         completedTasks: 0,
@@ -311,6 +198,128 @@ export const achievementService = {
         careerProgressions: 0
       };
     }
+
+    // Use a single RPC call to avoid RLS policy recursion
+    try {
+      const { data, error } = await supabase.rpc('get_user_achievement_stats', {
+        p_profile_id: profileId
+      });
+
+      if (error) {
+        console.warn('🏆 Achievements: RPC function not available, using fallback method:', error.message);
+        return await this.getUserStatsFallback(profileId);
+      }
+
+      return data || {
+        completedPDIs: 0,
+        completedTasks: 0,
+        completedCourses: 0,
+        competenciesRated: 0,
+        mentorshipSessions: 0,
+        careerProgressions: 0
+      };
+    } catch (error) {
+      console.warn('🏆 Achievements: Error calling RPC, using fallback method:', error);
+      return await this.getUserStatsFallback(profileId);
+    }
+  },
+
+  async getUserStatsFallback(profileId: string) {
+    console.log('🏆 Achievements: Using fallback method for user stats');
+    
+    // Initialize all stats to 0
+    let completedPDIs = 0;
+    let completedTasks = 0;
+    let completedCourses = 0;
+    let competenciesRated = 0;
+    let mentorshipSessions = 0;
+    let careerProgressions = 0;
+
+    // Get completed PDIs with minimal query
+    try {
+      const { data: pdis, error } = await supabase
+        .from('pdis')
+        .select('status')
+        .eq('profile_id', profileId)
+        .in('status', ['completed', 'validated']);
+      
+      if (!error && pdis) {
+        completedPDIs = pdis.length;
+      }
+    } catch (error) {
+      console.warn('🏆 Achievements: Could not fetch PDI stats:', error);
+    }
+
+    // Get completed tasks with minimal query
+    try {
+      const { data: tasks, error } = await supabase
+        .from('tasks')
+        .select('status')
+        .eq('assignee_id', profileId)
+        .eq('status', 'done');
+      
+      if (!error && tasks) {
+        completedTasks = tasks.length;
+      }
+    } catch (error) {
+      console.warn('🏆 Achievements: Could not fetch task stats:', error);
+    }
+
+    // Get completed courses with minimal query
+    try {
+      const { data: enrollments, error } = await supabase
+        .from('course_enrollments')
+        .select('status')
+        .eq('profile_id', profileId)
+        .eq('status', 'completed');
+      
+      if (!error && enrollments) {
+        completedCourses = enrollments.length;
+      }
+    } catch (error) {
+      console.warn('🏆 Achievements: Could not fetch course stats:', error);
+    }
+
+    // Get competencies with ratings with minimal query
+    try {
+      const { data: competencies, error } = await supabase
+        .from('competencies')
+        .select('self_rating, manager_rating')
+        .eq('profile_id', profileId);
+      
+      if (!error && competencies) {
+        competenciesRated = competencies.filter(c => c.self_rating || c.manager_rating).length;
+      }
+    } catch (error) {
+      console.warn('🏆 Achievements: Could not fetch competency stats:', error);
+    }
+
+    // Skip mentorship sessions to avoid complex joins that might cause recursion
+    // This can be implemented later with a simpler approach if needed
+    mentorshipSessions = 0;
+
+    // Get career track progress with minimal query
+    try {
+      const { data: careerTracks, error } = await supabase
+        .from('career_tracks')
+        .select('progress')
+        .eq('profile_id', profileId);
+      
+      if (!error && careerTracks) {
+        careerProgressions = careerTracks.filter(ct => ct.progress > 0).length;
+      }
+    } catch (error) {
+      console.warn('🏆 Achievements: Could not fetch career track stats:', error);
+    }
+
+    return {
+      completedPDIs,
+      completedTasks,
+      completedCourses,
+      competenciesRated,
+      mentorshipSessions,
+      careerProgressions
+    };
   },
 
   async getUserMentorshipIds(profileId: string): Promise<string[]> {
