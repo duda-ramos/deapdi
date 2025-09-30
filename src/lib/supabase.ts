@@ -257,7 +257,7 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
       }
 
       // Second test: Auth API
-      const authUrl = `${supabaseUrl}/auth/v1/settings`;
+      const authUrl = `${supabaseUrl}/auth/v1/health`;
       const authResponse = await fetch(authUrl, {
         method: 'GET',
         headers: {
@@ -266,33 +266,25 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
         signal: AbortSignal.timeout(5000)
       });
 
-      if (authResponse.status === 400) {
+      if (authResponse.status === 401 || authResponse.status === 403) {
+        console.warn(
+          `ℹ️ Supabase auth health endpoint returned HTTP ${authResponse.status}. This endpoint may not be public. Continuing other checks.`
+        );
+      } else if (authResponse.status === 400) {
         const isBolt = isBoltToken(supabaseAnonKey);
         return {
           healthy: false,
           error: isBolt
-            ? 'Bolt-generated token detected (HTTP 400 on auth). Get a real Supabase ANON_KEY from your project dashboard.'
-            : 'Invalid API key format. Please get a new anon/public key from your Supabase Dashboard.',
-          isExpiredToken: true,
-          isInvalidKey: false,
+            ? 'Bolt-generated token detected (HTTP 400 on auth health). Get a real Supabase ANON_KEY from your project dashboard.'
+            : 'Supabase auth health endpoint returned HTTP 400. Please verify your project configuration.',
+          isExpiredToken: false,
+          isInvalidKey: isBolt,
           isBoltToken: isBolt
         };
-      }
-
-      if (authResponse.status === 401 || authResponse.status === 403) {
+      } else if (!authResponse.ok) {
         return {
           healthy: false,
-          error: 'API key expired or invalid. Please update your .env file with fresh credentials.',
-          isExpiredToken: true,
-          isInvalidKey: false,
-          isBoltToken: false
-        };
-      }
-
-      if (!authResponse.ok) {
-        return {
-          healthy: false,
-          error: `Cannot connect to Supabase (HTTP ${authResponse.status}). Check your internet connection.`,
+          error: `Cannot connect to Supabase auth health endpoint (HTTP ${authResponse.status}). Check your project status or network connection.`,
           isExpiredToken: false,
           isInvalidKey: false,
           isBoltToken: false
