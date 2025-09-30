@@ -34,10 +34,10 @@ interface SetupCheckProps {
   initialError?: string | null;
   isExpiredToken?: boolean;
   isInvalidKey?: boolean;
-  isInvalidKey?: boolean;
+  isBoltToken?: boolean;
 }
 
-export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initialError, isExpiredToken, isInvalidKey }) => {
+export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initialError, isExpiredToken, isInvalidKey, isBoltToken }) => {
   const [status, setStatus] = useState<SetupStatus>({
     hasUrl: false,
     hasKey: false,
@@ -63,10 +63,14 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
     checkEnvironmentVariables();
   }, []);
 
-  // Show expired token warning if detected
-  // Show expired/invalid token warning if detected
+  // Show token warnings if detected
   useEffect(() => {
-    if (isExpiredToken) {
+    if (isBoltToken) {
+      setStatus(prev => ({
+        ...prev,
+        connectionError: initialError || 'Bolt-generated token detected. You must use a valid Supabase ANON_KEY from your Supabase project dashboard.'
+      }));
+    } else if (isExpiredToken) {
       setStatus(prev => ({
         ...prev,
         connectionError: initialError || 'Your Supabase credentials have expired. Please update your .env file.'
@@ -77,7 +81,7 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
         connectionError: initialError || 'Your Supabase API key is invalid. Please check your VITE_SUPABASE_ANON_KEY in the .env file.'
       }));
     }
-  }, [isExpiredToken, isInvalidKey, initialError]);
+  }, [isExpiredToken, isInvalidKey, isBoltToken, initialError]);
 
   const checkEnvironmentVariables = async () => {
     console.log('🔍 SetupCheck: Checking environment variables...');
@@ -282,30 +286,54 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
             <p className="text-gray-600 mt-2">O Supabase precisa ser configurado para continuar</p>
           </div>
 
-          {/* Expired Token Warning */}
-          {(isExpiredToken || isInvalidKey) && (
+          {/* Token Warnings */}
+          {(isBoltToken || isExpiredToken || isInvalidKey) && (
             <Card className="p-6 mb-6 bg-red-50 border-red-200">
               <div className="flex items-start space-x-3">
                 <AlertTriangle className="text-red-600 flex-shrink-0 mt-1" size={24} />
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-red-900 mb-2">
-                    {isExpiredToken ? 'Token Expirado' : 'Chave de API Inválida'}
+                    {isBoltToken ? '⚠️ Token Gerado pelo Bolt (Inválido)' :
+                     isExpiredToken ? 'Token Expirado' : 'Chave de API Inválida'}
                   </h3>
                   <p className="text-red-800 mb-4">
-                    {isExpiredToken
+                    {isBoltToken
+                      ? 'Seu .env contém um token gerado pelo Bolt/sistema de desenvolvimento, não pelo Supabase. Este token NÃO funcionará em produção.'
+                      : isExpiredToken
                       ? 'Suas credenciais do Supabase expiraram. Para continuar, você precisa atualizar o arquivo .env com novas credenciais.'
                       : 'Sua chave de API do Supabase é inválida. Por favor, verifique o valor de VITE_SUPABASE_ANON_KEY no seu arquivo .env.'}
                   </p>
+
+                  {isBoltToken && (
+                    <div className="bg-orange-100 border border-orange-200 p-3 rounded-lg text-sm mb-3">
+                      <p className="font-semibold text-orange-900 mb-1">🔴 Problema Detectado:</p>
+                      <p className="text-orange-800">
+                        Token com <code className="bg-orange-200 px-1 rounded">issuer: "bolt"</code> detectado.
+                        Tokens Bolt têm tempo de vida ZERO (iat === exp) e não são aceitos pela API Supabase.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="bg-red-100 p-3 rounded-lg text-sm">
-                    <p className="font-medium text-red-900 mb-2">Como resolver:</p>
+                    <p className="font-medium text-red-900 mb-2">✅ Como resolver:</p>
                     <ol className="list-decimal list-inside space-y-1 text-red-800">
-                      <li>Acesse o <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline">Supabase Dashboard</a></li>
-                      <li>Vá em Settings → API</li>
-                      <li>Copie a nova Project URL e anon/public key</li>
-                      <li>Atualize seu arquivo .env</li>
-                      <li>Reinicie o servidor de desenvolvimento</li>
+                      <li>Acesse o <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline font-medium">Supabase Dashboard</a></li>
+                      <li>Selecione seu projeto (ou crie um novo)</li>
+                      <li>Vá em <strong>Settings → API</strong></li>
+                      <li>Copie a <strong>Project URL</strong> (formato: https://[id].supabase.co)</li>
+                      <li>Copie a <strong>anon/public key</strong> (NÃO a service_role)</li>
+                      <li>Cole as credenciais no arquivo <code className="bg-red-200 px-1 rounded">.env</code></li>
+                      <li>Reinicie o servidor: <code className="bg-red-200 px-1 rounded">npm run dev</code></li>
                     </ol>
                   </div>
+
+                  {isBoltToken && (
+                    <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded text-sm">
+                      <p className="text-yellow-900">
+                        <strong>💡 Dica:</strong> Tokens válidos do Supabase têm <code className="bg-yellow-200 px-1">issuer: "supabase"</code> e lifetime &gt; 1 hora.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>
@@ -467,14 +495,37 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
                 <h4 className="font-medium text-red-900 mb-2">⚠️ Erro 400 - API Key Inválida</h4>
                 <p className="text-red-800 mb-2">O erro 400 indica que sua API key está:</p>
                 <ul className="text-red-800 space-y-1">
+                  <li>• Gerada pelo Bolt (issuer inválido)</li>
                   <li>• Expirada ou inválida</li>
                   <li>• Mal formatada (caracteres faltando)</li>
                   <li>• Usando service_role ao invés de anon key</li>
                   <li>• Projeto Supabase pausado ou deletado</li>
+                  <li>• Tempo de vida zero (iat === exp)</li>
                 </ul>
               </div>
             </div>
           </Card>
+
+          {/* Clear Cache Button */}
+          {(isBoltToken || isExpiredToken || isInvalidKey) && (
+            <Card className="p-6 mb-6 bg-yellow-50 border-yellow-200">
+              <h3 className="text-lg font-semibold mb-2 text-yellow-900">Limpar Cache e Sessões</h3>
+              <p className="text-yellow-800 mb-4 text-sm">
+                Se você já atualizou o .env com credenciais válidas, clique abaixo para limpar sessões antigas e tentar novamente.
+              </p>
+              <Button
+                onClick={() => {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  window.location.reload();
+                }}
+                variant="outline"
+                className="w-full border-yellow-400 text-yellow-900 hover:bg-yellow-100"
+              >
+                🧹 Limpar Cache e Recarregar
+              </Button>
+            </Card>
+          )}
 
           {/* Offline Mode */}
           <Card className="p-6">

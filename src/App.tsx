@@ -147,9 +147,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const AppRoutes: React.FC = () => {
+  const { setupComplete, checking, error, isExpiredToken, isInvalidKey, isBoltToken, setSetupComplete } = useSupabaseSetup();
   const { user, loading } = useAuth();
-  const { setupComplete, checking, error, isExpiredToken, isInvalidKey, setSetupComplete } = useSupabaseSetup();
 
+  // Check setup first, before auth
   if (checking) {
     return <LoadingScreen message="Verificando configuração..." />;
   }
@@ -160,10 +161,11 @@ const AppRoutes: React.FC = () => {
       initialError={error}
       isExpiredToken={isExpiredToken}
       isInvalidKey={isInvalidKey}
-      isInvalidKey={isInvalidKey}
+      isBoltToken={isBoltToken}
     />;
   }
 
+  // Only check auth loading after setup is complete
   if (loading) {
     return <LoadingScreen message="Carregando aplicação..." />;
   }

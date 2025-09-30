@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { ProfileWithRelations } from '../types';
-import { supabase } from '../lib/supabase';
+import { supabase, cleanInvalidSessions } from '../lib/supabase';
 import { authService } from '../services/auth';
 
 interface AuthContextType {
@@ -28,6 +28,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<ProfileWithRelations | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const isHandlingAuthError = useRef(false);
+  const authStateChangeCount = useRef(0);
+  const lastAuthEvent = useRef<{ event: string; timestamp: number } | null>(null);
 
   const ensureProfileExists = async (authUser: SupabaseUser): Promise<ProfileWithRelations | null> => {
     const { data: existingProfile } = await supabase
@@ -73,6 +76,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      // Clean any invalid sessions before initializing
+      cleanInvalidSessions();
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
 
@@ -85,7 +91,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         if (error instanceof Error && error.message.includes('Refresh Token Not Found')) {
-          await supabase.auth.signOut();
+          if (!isHandlingAuthError.current) {
+            isHandlingAuthError.current = true;
+            cleanInvalidSessions();
+            await supabase.auth.signOut();
+            isHandlingAuthError.current = false;
+          }
+        } else if (error instanceof Error && (
+          error.message.includes('Invalid API key') ||
+          error.message.includes('JWT expired') ||
+          error.message.includes('invalid_grant')
+        )) {
+          console.error('🔴 Auth initialization failed with invalid credentials:', error.message);
+          cleanInvalidSessions();
+          if (isMounted) {
+            setUser(null);
+            setSupabaseUser(null);
+          }
         }
       } finally {
         if (isMounted) {
@@ -97,13 +119,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Prevent rapid-fire duplicate events
+      const now = Date.now();
+      if (lastAuthEvent.current &&
+          lastAuthEvent.current.event === event &&
+          now - lastAuthEvent.current.timestamp < 1000) {
+        console.log(`🚫 Debouncing duplicate ${event} event`);
+        return;
+      }
+      lastAuthEvent.current = { event, timestamp: now };
+
+      // Limit total auth state changes to prevent infinite loops
+      authStateChangeCount.current += 1;
+      if (authStateChangeCount.current > 10) {
+        console.error('⚠️ Too many auth state changes detected. Stopping to prevent infinite loop.');
+        console.error('   This usually indicates invalid credentials. Check your .env file.');
+        cleanInvalidSessions();
+        setUser(null);
+        setSupabaseUser(null);
+        setLoading(false);
+        return;
+      }
+
+      console.log(`🔑 Auth state change: ${event} (count: ${authStateChangeCount.current})`);
+
       if (event === 'SIGNED_IN' && session?.user) {
         setSupabaseUser(session.user);
-        const profile = await ensureProfileExists(session.user);
-        setUser(profile);
+        try {
+          const profile = await ensureProfileExists(session.user);
+          setUser(profile);
+        } catch (error) {
+          console.error('Error creating/fetching profile:', error);
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setSupabaseUser(null);
+        cleanInvalidSessions();
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('✅ Token refreshed successfully');
+      } else if (event === 'USER_UPDATED' && session?.user) {
+        setSupabaseUser(session.user);
       }
     });
 
@@ -114,6 +169,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // Clean any stale sessions before new sign in
+    cleanInvalidSessions();
+
     const result = await authService.signIn(email, password);
 
     if (!result.success) {
@@ -142,9 +200,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    cleanInvalidSessions();
     await authService.signOut();
     setUser(null);
     setSupabaseUser(null);
+    authStateChangeCount.current = 0;
   };
 
   const refreshUser = async () => {
