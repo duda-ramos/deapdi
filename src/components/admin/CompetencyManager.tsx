@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, Search, Filter, X } from 'lucide-react';
+import { Plus, CreditCard as Edit2, Trash2, Search, Filter, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { databaseService } from '../../services/database';
 import { Competency, Profile } from '../../types';
