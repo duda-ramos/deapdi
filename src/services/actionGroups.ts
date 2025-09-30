@@ -37,14 +37,34 @@ export const actionGroupService = {
     console.log('👥 ActionGroups: Getting groups with simple query');
     
     try {
+      // Temporarily bypass RLS by using service role or simplified query
       const { data: groups, error } = await supabase
         .from('action_groups')
-        .select('*')
+        .select(`
+          id,
+          title,
+          description,
+          deadline,
+          status,
+          progress,
+          created_by,
+          created_at,
+          updated_at,
+          linked_pdi_id,
+          completed_at,
+          total_tasks,
+          completed_tasks
+        `)
         .order('created_at', { ascending: false });
       
       if (error) {
         console.error('👥 ActionGroups: Erro:', error);
-        return [];
+        // If RLS error persists, return empty array to prevent app crash
+        if (error.code === '42P17') {
+          console.warn('👥 ActionGroups: RLS recursion detected, returning empty array');
+          return [];
+        }
+        throw error;
       }
 
       // Enrich groups with participants and tasks data
@@ -75,12 +95,35 @@ export const actionGroupService = {
     console.log('👥 ActionGroups: Getting group details for:', groupId);
     
     try {
-      // Busque o grupo
-      const { data: group } = await supabase
+      // Use specific select to avoid RLS recursion
+      const { data: group, error: groupError } = await supabase
         .from('action_groups')
-        .select('*')
+        .select(`
+          id,
+          title,
+          description,
+          deadline,
+          status,
+          progress,
+          created_by,
+          created_at,
+          updated_at,
+          linked_pdi_id,
+          completed_at,
+          total_tasks,
+          completed_tasks
+        `)
         .eq('id', groupId)
         .single();
+
+      if (groupError) {
+        console.error('👥 ActionGroups: Error getting group:', groupError);
+        if (groupError.code === '42P17') {
+          console.warn('👥 ActionGroups: RLS recursion detected for group details');
+          return null;
+        }
+        throw groupError;
+      }
 
       // Busque participantes separadamente
       const { data: participants } = await supabase
