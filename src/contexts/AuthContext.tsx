@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import { User as SupabaseUser, type SupabaseClient } from '@supabase/supabase-js';
 import { ProfileWithRelations } from '../types';
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from '../lib/supabase';
+import { Database } from '../types/database';
+
+type AuthSubscription = ReturnType<SupabaseClient<Database>['auth']['onAuthStateChange']>['data']['subscription'];
 import { authService } from '../services/auth';
 
 interface AuthContextType {
@@ -31,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const initializingRef = React.useRef(false);
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const profileCacheRef = React.useRef<Map<string, { profile: ProfileWithRelations; timestamp: number }>>(new Map());
+  const authSubscriptionRef = React.useRef<AuthSubscription | null>(null);
   const PROFILE_CACHE_TTL = 30000; // 30 seconds
   const AUTH_TIMEOUT = 5000; // 5 seconds - reduced from 8 seconds for faster feedback
   const retryAttemptsRef = React.useRef(0);
@@ -39,7 +43,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /**
    * Create or update profile for authenticated user
    */
-  const ensureProfileExists = async (authUser: SupabaseUser): Promise<ProfileWithRelations | null> => {
+  const ensureProfileExists = async (
+    authUser: SupabaseUser,
+    client: SupabaseClient<Database>
+  ): Promise<ProfileWithRelations | null> => {
     // Check cache first
     const cached = profileCacheRef.current.get(authUser.id);
     if (cached) {
@@ -55,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       // First, try to fetch existing profile
-      const { data: existingProfile, error: fetchError } = await supabase
+      const { data: existingProfile, error: fetchError } = await client
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
@@ -89,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         manager_id: null
       };
 
-      const { data: createdProfile, error: createError } = await supabase
+      const { data: createdProfile, error: createError } = await client
         .from('profiles')
         .insert(newProfile)
         .select()
@@ -132,107 +139,126 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Prevent multiple initializations
-    if (initializingRef.current) {
-      console.log('🔐 Auth: Already initializing, skipping');
-      return;
-    }
-
     let isMounted = true;
     let authTimeout: NodeJS.Timeout | null = null;
 
+    const cleanupSubscription = () => {
+      if (authSubscriptionRef.current) {
+        authSubscriptionRef.current.unsubscribe();
+        authSubscriptionRef.current = null;
+      }
+    };
+
+    const clearTimeoutIfNeeded = () => {
+      if (authTimeout) {
+        clearTimeout(authTimeout);
+        authTimeout = null;
+      }
+    };
+
     const initializeAuth = async () => {
-      // Double-check after async
       if (initializingRef.current) {
+        console.log('🔐 Auth: Initialization already in progress');
+        return;
+      }
+
+      const client = getSupabaseClient();
+
+      if (!client) {
+        console.warn('🔐 Auth: Supabase not available, falling back to offline mode');
+        cleanupSubscription();
+        if (isMounted) {
+          setUser(null);
+          setSupabaseUser(null);
+          setLoading(false);
+        }
         return;
       }
 
       initializingRef.current = true;
+      abortControllerRef.current = new AbortController();
+      setLoading(true);
+
+      clearTimeoutIfNeeded();
+      authTimeout = setTimeout(() => {
+        if (isMounted) {
+          console.warn('⏱️ Auth: Initialization timeout after 5s, completing anyway');
+          setLoading(false);
+          initializingRef.current = false;
+        }
+      }, AUTH_TIMEOUT);
 
       try {
         console.log('🔐 Auth: Initializing...');
 
-        // Create abort controller for cleanup
-        abortControllerRef.current = new AbortController();
-
-        // Set a timeout for initialization
-        authTimeout = setTimeout(() => {
-          if (isMounted && loading) {
-            console.warn('⏱️ Auth: Initialization timeout after 5s, completing anyway');
-            setLoading(false);
-            initializingRef.current = false;
-          }
-        }, AUTH_TIMEOUT);
-
-        // Check if Supabase is available
-        if (!supabase) {
-          console.warn('🔐 Auth: Supabase not available, using offline mode');
-          if (isMounted) {
-            setUser(null);
-            setSupabaseUser(null);
-            setLoading(false);
-          }
-          if (authTimeout) clearTimeout(authTimeout);
-          initializingRef.current = false;
-          return;
-        }
-
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await client.auth.getSession();
 
         if (sessionError) {
           console.error('🔐 Auth: Session error:', sessionError);
 
-          // Retry logic with exponential backoff
           if (retryAttemptsRef.current < MAX_RETRY_ATTEMPTS) {
             retryAttemptsRef.current++;
             const backoffDelay = Math.min(1000 * Math.pow(2, retryAttemptsRef.current - 1), 4000);
             console.log(`🔄 Auth: Retrying in ${backoffDelay}ms (attempt ${retryAttemptsRef.current}/${MAX_RETRY_ATTEMPTS})`);
 
             await new Promise(resolve => setTimeout(resolve, backoffDelay));
-            if (isMounted) {
-              // Recursively retry initialization
-              initializingRef.current = false;
-              return initializeAuth();
-            }
+            initializingRef.current = false;
+            return initializeAuth();
           }
 
           throw sessionError;
         }
 
-        // Reset retry counter on success
         retryAttemptsRef.current = 0;
 
-        if (isMounted) {
-          if (session?.user) {
-            console.log('🔐 Auth: Session found for user:', session.user.email);
-            setSupabaseUser(session.user);
-
-            // Ensure profile exists and set it
-            const profile = await ensureProfileExists(session.user);
-            if (isMounted) {
-              setUser(profile);
-            }
-          } else {
-            console.log('🔐 Auth: No active session');
+        if (session?.user) {
+          console.log('🔐 Auth: Session found for user:', session.user.email);
+          setSupabaseUser(session.user);
+          const profile = await ensureProfileExists(session.user, client);
+          if (isMounted) {
+            setUser(profile);
+          }
+        } else {
+          console.log('🔐 Auth: No active session');
+          if (isMounted) {
             setUser(null);
             setSupabaseUser(null);
           }
         }
+
+        cleanupSubscription();
+
+        const { data: { subscription } } = client.auth.onAuthStateChange(async (event, nextSession) => {
+          console.log('🔐 Auth: State changed:', event);
+
+          if (event === 'SIGNED_IN' && nextSession?.user) {
+            setSupabaseUser(nextSession.user);
+            const profile = await ensureProfileExists(nextSession.user, client);
+            setUser(profile);
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+            setSupabaseUser(null);
+            profileCacheRef.current.clear();
+          } else if (event === 'TOKEN_REFRESHED' && nextSession?.user) {
+            setSupabaseUser(nextSession.user);
+            profileCacheRef.current.delete(nextSession.user.id);
+            const profile = await ensureProfileExists(nextSession.user, client);
+            setUser(profile);
+          }
+        });
+
+        authSubscriptionRef.current = subscription;
       } catch (error) {
         console.error('🔐 Auth: Initialization error:', error);
 
-        // Handle specific error types with user-friendly messages
         let errorMessage = 'Unable to initialize authentication. Please try again.';
 
         if (error instanceof Error) {
-          // Handle invalid refresh token errors by clearing session data
           if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
             console.log('🔐 Auth: Invalid refresh token, clearing session');
             errorMessage = 'Your session has expired. Please sign in again.';
             try {
-              if (supabase) {
-                await supabase.auth.signOut();
-              }
+              await client.auth.signOut();
             } catch (signOutError) {
               console.error('Error clearing invalid session:', signOutError);
             }
@@ -243,7 +269,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
 
-        // Log user-friendly error for display (could be shown in UI)
         console.error('🔴 Auth Error (User-facing):', errorMessage);
 
         if (isMounted) {
@@ -252,46 +277,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } finally {
         console.log('🔐 Auth: Initialization complete');
+        clearTimeoutIfNeeded();
         if (isMounted) {
           setLoading(false);
         }
-        if (authTimeout) clearTimeout(authTimeout);
         initializingRef.current = false;
       }
     };
 
     initializeAuth();
 
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth: State changed:', event);
-
-      if (event === 'SIGNED_IN' && session?.user) {
-        setSupabaseUser(session.user);
-        const profile = await ensureProfileExists(session.user);
-        setUser(profile);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setSupabaseUser(null);
-        // Clear profile cache on signout
-        profileCacheRef.current.clear();
-      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-        setSupabaseUser(session.user);
-        // Invalidate cache on token refresh
-        profileCacheRef.current.delete(session.user.id);
-        const profile = await ensureProfileExists(session.user);
-        setUser(profile);
+    const handleConfigChange = () => {
+      if (!isMounted) {
+        return;
       }
-    });
 
-    return () => {
-      isMounted = false;
-      if (authTimeout) clearTimeout(authTimeout);
+      console.log('🔐 Auth: Supabase configuration changed, reinitializing');
+      retryAttemptsRef.current = 0;
+      profileCacheRef.current.clear();
+      cleanupSubscription();
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
-      subscription.unsubscribe();
+      initializingRef.current = false;
+      initializeAuth();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('supabase-config-changed', handleConfigChange as EventListener);
+    }
+
+    return () => {
+      isMounted = false;
+      clearTimeoutIfNeeded();
+      cleanupSubscription();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('supabase-config-changed', handleConfigChange as EventListener);
+      }
       initializingRef.current = false;
     };
   }, []);
@@ -306,7 +333,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (result.user) {
       setSupabaseUser(result.user);
-      const profile = await ensureProfileExists(result.user);
+      const client = getSupabaseClient();
+      if (!client) {
+        throw new Error('Supabase não está configurado. Atualize suas credenciais e tente novamente.');
+      }
+      const profile = await ensureProfileExists(result.user, client);
       setUser(profile);
     }
   };
@@ -322,7 +353,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (result.user) {
       setSupabaseUser(result.user);
       // Profile will be created automatically by trigger or by ensureProfileExists
-      const profile = await ensureProfileExists(result.user);
+      const client = getSupabaseClient();
+      if (!client) {
+        throw new Error('Supabase não está configurado. Atualize suas credenciais e tente novamente.');
+      }
+      const profile = await ensureProfileExists(result.user, client);
       setUser(profile);
     }
   };
@@ -337,7 +372,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     console.log('🔐 Auth: Refreshing user profile');
     if (supabaseUser) {
-      const profile = await ensureProfileExists(supabaseUser);
+      const client = getSupabaseClient();
+      if (!client) {
+        console.warn('🔐 Auth: Cannot refresh profile without Supabase client');
+        return;
+      }
+      const profile = await ensureProfileExists(supabaseUser, client);
       setUser(profile);
     }
   };

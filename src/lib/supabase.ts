@@ -1,22 +1,100 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '../types/database';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+type SupabaseConfigSource = 'env' | 'manual';
 
-// Check if credentials are placeholders
-const isPlaceholder = (value: string | undefined) => {
-  if (!value) return true;
-  const placeholders = ['your-project-url-here', 'your-anon-key-here', 'your_supabase', 'example'];
-  return placeholders.some(p => value.toLowerCase().includes(p));
-};
-
-if (!supabaseUrl || !supabaseAnonKey || isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
-  console.warn('⚠️ Supabase credentials are missing or invalid - using fallback mode');
-  console.warn('📝 Please update your .env file with valid Supabase credentials');
+export interface SupabaseConfigChangeDetail {
+  url: string | null;
+  key: string | null;
+  source: SupabaseConfigSource;
+  offlineMode: boolean;
+  valid: boolean;
 }
 
-export const supabase = (supabaseUrl && supabaseAnonKey && !isPlaceholder(supabaseUrl) && !isPlaceholder(supabaseAnonKey)) ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
+interface SupabaseConfig {
+  url: string | null;
+  key: string | null;
+  source: SupabaseConfigSource;
+  offlineMode: boolean;
+}
+
+const getEnvSupabaseUrl = () => import.meta.env.VITE_SUPABASE_URL || null;
+const getEnvSupabaseAnonKey = () => import.meta.env.VITE_SUPABASE_ANON_KEY || null;
+
+const readLocalStorage = (key: string): string | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    console.error('🔴 Supabase: Unable to read from localStorage', error);
+    return null;
+  }
+};
+
+const resolveSupabaseConfig = (): SupabaseConfig => {
+  const manualUrl = readLocalStorage('TEMP_SUPABASE_URL');
+  const manualKey = readLocalStorage('TEMP_SUPABASE_ANON_KEY');
+  const offlineMode = readLocalStorage('OFFLINE_MODE') === 'true';
+
+  if (offlineMode) {
+    return {
+      url: null,
+      key: null,
+      source: 'manual',
+      offlineMode: true
+    };
+  }
+
+  if (manualUrl && manualKey) {
+    return {
+      url: manualUrl,
+      key: manualKey,
+      source: 'manual',
+      offlineMode: false
+    };
+  }
+
+  return {
+    url: getEnvSupabaseUrl(),
+    key: getEnvSupabaseAnonKey(),
+    source: 'env',
+    offlineMode: false
+  };
+};
+
+// Check if credentials are placeholders
+const isPlaceholder = (value: string | undefined | null) => {
+  if (!value) return true;
+  const normalized = value.toLowerCase();
+  const placeholders = ['your-project-url-here', 'your-anon-key-here', 'your_supabase', 'example'];
+  return placeholders.some(p => normalized.includes(p));
+};
+
+let currentConfig: SupabaseConfig = resolveSupabaseConfig();
+let supabaseClient: SupabaseClient<Database> | null = null;
+
+export let supabase: SupabaseClient<Database> | null = null;
+
+const dispatchConfigChange = (config: SupabaseConfig) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const detail: SupabaseConfigChangeDetail = {
+    url: config.url,
+    key: config.key,
+    source: config.source,
+    offlineMode: config.offlineMode,
+    valid: !!config.url && !!config.key && !isPlaceholder(config.url) && !isPlaceholder(config.key)
+  };
+
+  window.dispatchEvent(new CustomEvent<SupabaseConfigChangeDetail>('supabase-config-changed', { detail }));
+};
+
+const createSupabaseClient = (url: string, key: string) => createClient<Database>(url, key, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -27,7 +105,50 @@ export const supabase = (supabaseUrl && supabaseAnonKey && !isPlaceholder(supaba
       'X-Client-Info': 'talentflow-web'
     }
   }
-}) : null;
+});
+
+export const initializeSupabaseClient = (force = false) => {
+  const nextConfig = resolveSupabaseConfig();
+  const configChanged =
+    force ||
+    nextConfig.url !== currentConfig.url ||
+    nextConfig.key !== currentConfig.key ||
+    nextConfig.offlineMode !== currentConfig.offlineMode ||
+    nextConfig.source !== currentConfig.source;
+
+  if (!configChanged && supabaseClient) {
+    return supabaseClient;
+  }
+
+  currentConfig = nextConfig;
+
+  if (currentConfig.offlineMode) {
+    console.warn('⚠️ Supabase offline mode enabled - client will not be initialized');
+    supabaseClient = null;
+    supabase = supabaseClient;
+    dispatchConfigChange(currentConfig);
+    return supabaseClient;
+  }
+
+  if (!currentConfig.url || !currentConfig.key || isPlaceholder(currentConfig.url) || isPlaceholder(currentConfig.key)) {
+    console.warn('⚠️ Supabase credentials are missing or invalid - using fallback mode');
+    console.warn('📝 Please update your configuration with valid Supabase credentials');
+    supabaseClient = null;
+    supabase = supabaseClient;
+    dispatchConfigChange(currentConfig);
+    return supabaseClient;
+  }
+
+  supabaseClient = createSupabaseClient(currentConfig.url, currentConfig.key);
+  supabase = supabaseClient;
+  dispatchConfigChange(currentConfig);
+  return supabaseClient;
+};
+
+export const getSupabaseClient = () => supabaseClient;
+
+supabase = initializeSupabaseClient();
+
 
 // Check if JWT token is expired
 export const isJWTExpired = (token: string): boolean => {

@@ -15,6 +15,7 @@ import {
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card } from './ui/Card';
+import { initializeSupabaseClient } from '../lib/supabase';
 
 interface SetupStatus {
   hasUrl: boolean;
@@ -194,9 +195,11 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
         authEnabled,
         projectOnline: true
       }));
-      
+
       console.log('✅ SetupCheck: All tests passed!');
       clearTimeout(timeoutId);
+      localStorage.removeItem('OFFLINE_MODE');
+      initializeSupabaseClient(true);
 
     } catch (error: any) {
       clearTimeout(timeoutId);
@@ -241,6 +244,7 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
   const enableOfflineMode = () => {
     setOfflineMode(true);
     localStorage.setItem('OFFLINE_MODE', 'true');
+    initializeSupabaseClient(true);
     onSetupComplete();
   };
 
