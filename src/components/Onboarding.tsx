@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  User,
-  Briefcase,
-  GraduationCap,
-  Heart,
+import { 
+  User, 
+  Briefcase, 
+  GraduationCap, 
+  Heart, 
   Settings,
   ChevronRight,
   ChevronLeft,
   Check,
-  Shield
+  Upload,
+  Calendar,
+  Phone,
+  MapPin,
+  Building,
+  Target,
+  Brain,
+  Shield,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';

@@ -12,47 +12,22 @@ const isPlaceholder = (value: string | undefined) => {
 };
 
 if (!supabaseUrl || !supabaseAnonKey || isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
-  console.error('⚠️ Supabase credentials are missing or invalid - using fallback mode');
-  console.error('📝 Please update your .env file with valid Supabase credentials');
-  console.error('Current URL:', supabaseUrl);
-  console.error('Has Key:', !!supabaseAnonKey);
-} else {
-  console.log('✅ Supabase client initializing...');
-  console.log('URL:', supabaseUrl);
-  console.log('Key present:', !!supabaseAnonKey);
+  console.warn('⚠️ Supabase credentials are missing or invalid - using fallback mode');
+  console.warn('📝 Please update your .env file with valid Supabase credentials');
 }
 
 export const supabase = (supabaseUrl && supabaseAnonKey && !isPlaceholder(supabaseUrl) && !isPlaceholder(supabaseAnonKey)) ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'supabase.auth.token',
-    flowType: 'pkce'
+    detectSessionInUrl: true
   },
   global: {
     headers: {
       'X-Client-Info': 'talentflow-web'
-    },
-    fetch: (url, options = {}) => {
-      console.log('🌐 Supabase fetch:', url);
-      return fetch(url, {
-        ...options,
-        signal: AbortSignal.timeout(15000) // 15 second timeout
-      }).catch(error => {
-        console.error('❌ Supabase fetch error:', error);
-        throw error;
-      });
     }
   }
 }) : null;
-
-if (supabase) {
-  console.log('✅ Supabase client created successfully');
-} else {
-  console.error('❌ Supabase client is NULL - check your credentials');
-}
 
 // Check if JWT token is expired
 export const isJWTExpired = (token: string): boolean => {

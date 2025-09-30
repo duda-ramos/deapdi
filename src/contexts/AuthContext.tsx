@@ -28,7 +28,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<ProfileWithRelations | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
 
   // Safety timeout - force loading to false after 10 seconds
   useEffect(() => {
@@ -202,34 +201,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Set up auth state change listener with race condition protection
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth: State changed:', event);
 
-      // Prevent concurrent processing of auth state changes
-      if (isProcessingAuth) {
-        console.log('🔐 Auth: Already processing auth state, skipping...');
-        return;
-      }
-
-      try {
-        setIsProcessingAuth(true);
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          setSupabaseUser(session.user);
-          const profile = await ensureProfileExists(session.user);
-          setUser(profile);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setSupabaseUser(null);
-        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          setSupabaseUser(session.user);
-          // Optionally refresh profile
-          const profile = await ensureProfileExists(session.user);
-          setUser(profile);
-        }
-      } finally {
-        setIsProcessingAuth(false);
+      if (event === 'SIGNED_IN' && session?.user) {
+        setSupabaseUser(session.user);
+        const profile = await ensureProfileExists(session.user);
+        setUser(profile);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSupabaseUser(null);
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        setSupabaseUser(session.user);
+        // Optionally refresh profile
+        const profile = await ensureProfileExists(session.user);
+        setUser(profile);
       }
     });
 
