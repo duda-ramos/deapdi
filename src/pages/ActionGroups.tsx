@@ -59,7 +59,7 @@ const ActionGroups: React.FC = () => {
       setError('');
       
       // Load groups with full details
-      const groups = await actionGroupService.getGroups();
+      const groups = await actionGroupService.getActionGroups();
       setGroups(groups);
       
       // Load profiles and PDIs separately
