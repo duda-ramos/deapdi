@@ -2,7 +2,6 @@ import React from 'react';
 import { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
-import { useErrorHandler } from './hooks/useErrorHandler';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AchievementProvider } from './contexts/AchievementContext';
