@@ -106,9 +106,6 @@ export const supabaseRequest = async <T>(
         const tableMatch = errorMessage?.match(/relation "([^"]+)"/);
         const tableName = tableMatch ? tableMatch[1] : 'unknown table';
         throw new Error(`SUPABASE_RLS_RECURSION: Infinite recursion detected in RLS policies for table "${tableName}". The security policies need to be fixed in Supabase to prevent circular dependencies.`);
-        const tableMatch = errorMessage?.match(/relation "([^"]+)"/);
-        const tableName = tableMatch ? tableMatch[1] : 'unknown table';
-        throw new Error(`SUPABASE_RLS_RECURSION: Infinite recursion detected in RLS policies for table "${tableName}". The security policies need to be fixed in Supabase to prevent circular dependencies.`);
       }
       
       throw new Error(errorMessage || 'Erro interno do servidor.');
