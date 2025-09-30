@@ -18,6 +18,8 @@ import { Input } from './ui/Input';
 import { Card } from './ui/Card';
 import { ConnectionDiagnostics } from './ConnectionDiagnostics';
 
+type AuthStatus = 'pending' | 'passed' | 'unauthorized' | 'skipped' | 'error';
+
 interface SetupStatus {
   hasUrl: boolean;
   hasKey: boolean;
@@ -27,6 +29,8 @@ interface SetupStatus {
   connectionError: string;
   authEnabled: boolean;
   projectOnline: boolean;
+  authStatus: AuthStatus;
+  authStatusMessage: string;
 }
 
 interface SetupCheckProps {
@@ -46,7 +50,9 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
     connectionWorking: false,
     connectionError: initialError || '',
     authEnabled: false,
-    projectOnline: false
+    projectOnline: false,
+    authStatus: 'pending',
+    authStatusMessage: ''
   });
   
   const [manualConfig, setManualConfig] = useState({
@@ -102,7 +108,9 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
       connectionWorking: false,
       connectionError: '',
       authEnabled: false,
-      projectOnline: false
+      projectOnline: false,
+      authStatus: 'pending',
+      authStatusMessage: ''
     };
     
     setStatus(newStatus);
@@ -126,7 +134,9 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
         connectionWorking: false,
         connectionError: 'Connection test timed out. Please check your Supabase configuration.',
         authEnabled: false,
-        projectOnline: false
+        projectOnline: false,
+        authStatus: 'error',
+        authStatusMessage: 'Teste interrompido por timeout.'
       }));
       setTesting(false);
     }, 10000);
@@ -140,78 +150,120 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
           'Authorization': `Bearer ${key}`
         }
       });
-      
+
       console.log('🧪 SetupCheck: Basic connection response:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      // Test 2: Auth endpoint
-      console.log('🧪 SetupCheck: Test 2 - Auth endpoint');
-      const authResponse = await fetch(`${url}/auth/v1/settings`, {
-        headers: {
-          'apikey': key,
-          'Authorization': `Bearer ${key}`
+      const acceptableStatuses = [200, 204, 404];
+
+      if (acceptableStatuses.includes(response.status)) {
+        if (response.status === 404) {
+          console.log('🧪 SetupCheck: Received 404 from /rest/v1/ but treating as reachable project');
         }
-      });
-      
-      console.log('🧪 SetupCheck: Auth response:', authResponse.status);
-      
+      } else if ([401, 403].includes(response.status)) {
+        clearTimeout(timeoutId);
+        setStatus(prev => ({
+          ...prev,
+          connectionWorking: false,
+          connectionError: 'A chave anônima fornecida não tem permissão para acessar a API REST pública. Confirme se você copiou a anon key correta das configurações do projeto.',
+          authEnabled: false,
+          projectOnline: true,
+          authStatus: 'unauthorized',
+          authStatusMessage: 'O endpoint público /rest/v1/ recusou a anon key fornecida.'
+        }));
+        return;
+      } else {
+        clearTimeout(timeoutId);
+        setStatus(prev => ({
+          ...prev,
+          connectionWorking: false,
+          connectionError: `Resposta inesperada do endpoint público (HTTP ${response.status}). Verifique se o projeto Supabase está ativo.`,
+          authEnabled: false,
+          projectOnline: false,
+          authStatus: 'error',
+          authStatusMessage: ''
+        }));
+        return;
+      }
+
+      // Optional Auth endpoint check
+      console.log('🧪 SetupCheck: Test 2 - Auth endpoint (optional)');
+      let authStatus: AuthStatus = 'skipped';
+      let authStatusMessage = '';
       let authEnabled = false;
-      if (authResponse.ok) {
-        const authSettings = await authResponse.json();
-        console.log('🧪 SetupCheck: Auth settings:', authSettings);
-        authEnabled = authSettings.external_email_enabled !== false;
-      }
-      
-      // Test 3: Simple query
-      console.log('🧪 SetupCheck: Test 3 - Simple query');
-      const queryResponse = await fetch(`${url}/rest/v1/profiles?select=count&head=true`, {
-        method: 'HEAD',
-        headers: {
-          'apikey': key,
-          'Authorization': `Bearer ${key}`
+
+      try {
+        const authResponse = await fetch(`${url}/auth/v1/settings`, {
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`
+          }
+        });
+
+        console.log('🧪 SetupCheck: Auth response:', authResponse.status);
+
+        if (authResponse.ok) {
+          const authSettings = await authResponse.json();
+          console.log('🧪 SetupCheck: Auth settings:', authSettings);
+          authEnabled = authSettings.external_email_enabled !== false;
+          authStatus = 'passed';
+          authStatusMessage = 'Endpoint de configurações acessível com a anon key.';
+        } else if ([401, 403].includes(authResponse.status)) {
+          authStatus = 'unauthorized';
+          authStatusMessage = 'Endpoint de autenticação não é público. Teste marcado como não realizado.';
+        } else if (authResponse.status === 404) {
+          authStatus = 'skipped';
+          authStatusMessage = 'Endpoint de autenticação não encontrado neste projeto.';
+        } else {
+          authStatus = 'error';
+          authStatusMessage = `Falha ao testar autenticação (HTTP ${authResponse.status}).`;
         }
-      });
-      
-      console.log('🧪 SetupCheck: Query response:', queryResponse.status);
-      
+      } catch (authError) {
+        console.error('⚠️ SetupCheck: Falha ao verificar endpoint de autenticação:', authError);
+        authStatus = 'error';
+        authStatusMessage = 'Não foi possível testar o endpoint de autenticação.';
+      }
+
       setStatus(prev => ({
         ...prev,
         connectionWorking: true,
         connectionError: '',
         authEnabled,
-        projectOnline: true
+        projectOnline: true,
+        authStatus,
+        authStatusMessage
       }));
-      
+
       console.log('✅ SetupCheck: All tests passed!');
       clearTimeout(timeoutId);
 
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      console.error('❌ SetupCheck: Connection test failed:', error);
-      
-      let errorMessage = error.message;
-      
-      if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'Não foi possível conectar ao Supabase. Verifique se a URL está correta e se o projeto está online.';
-      } else if (error.message.includes('401')) {
-        errorMessage = 'Chave de API inválida. Verifique se a ANON_KEY está correta.';
-      } else if (error.message.includes('404')) {
-        errorMessage = 'Projeto não encontrado. Verifique se a URL do Supabase está correta.';
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error('❌ SetupCheck: Connection test failed:', error);
+
+        let errorMessage = 'Ocorreu um erro inesperado durante o teste de conexão.';
+        const errorMessageText = typeof (error as { message?: unknown })?.message === 'string'
+          ? (error as { message: string }).message
+          : '';
+
+        if (errorMessageText.includes('Failed to fetch')) {
+          errorMessage = 'Não foi possível conectar ao Supabase. Verifique se a URL está correta e se o projeto está online.';
+        } else if (errorMessageText.includes('401') || errorMessageText.includes('403')) {
+          errorMessage = 'A anon key não foi aceita pelo Supabase. Verifique se você está usando a chave pública (anon).';
+        } else if (errorMessageText.includes('404')) {
+          errorMessage = 'Projeto não encontrado. Verifique se a URL do Supabase está correta.';
+        }
+
+        setStatus(prev => ({
+          ...prev,
+          connectionWorking: false,
+          connectionError: errorMessage,
+          authEnabled: false,
+          projectOnline: false,
+          authStatus: 'error',
+          authStatusMessage: ''
+        }));
+      } finally {
+        setTesting(false);
       }
-      
-      setStatus(prev => ({
-        ...prev,
-        connectionWorking: false,
-        connectionError: errorMessage,
-        authEnabled: false,
-        projectOnline: false
-      }));
-    } finally {
-      setTesting(false);
-    }
   };
 
   const handleManualSetup = async () => {
@@ -242,6 +294,23 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
     if (working) return <CheckCircle className="text-green-500" size={20} />;
     return <AlertTriangle className="text-yellow-500" size={20} />;
   };
+
+  const getAuthStatusDisplay = (authStatus: AuthStatus) => {
+    switch (authStatus) {
+      case 'passed':
+        return { label: 'Autenticação', text: 'Testado', color: 'text-green-600', messageColor: 'text-green-600', icon: <CheckCircle className="text-green-500" size={20} /> };
+      case 'unauthorized':
+        return { label: 'Autenticação', text: 'Não testado (restrito)', color: 'text-yellow-600', messageColor: 'text-yellow-600', icon: <AlertTriangle className="text-yellow-500" size={20} /> };
+      case 'skipped':
+        return { label: 'Autenticação', text: 'Não testado', color: 'text-gray-500', messageColor: 'text-gray-500', icon: <AlertTriangle className="text-yellow-500" size={20} /> };
+      case 'error':
+        return { label: 'Autenticação', text: 'Falha ao testar', color: 'text-red-600', messageColor: 'text-red-600', icon: <XCircle className="text-red-500" size={20} /> };
+      default:
+        return { label: 'Autenticação', text: 'Aguardando teste', color: 'text-gray-500', messageColor: 'text-gray-500', icon: <AlertTriangle className="text-yellow-500" size={20} /> };
+    }
+  };
+
+  const authDisplay = getAuthStatusDisplay(status.authStatus);
 
   if (status.connectionWorking) {
     return (
@@ -383,8 +452,8 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
 
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  {status.connectionWorking ? 
-                    <Wifi className="text-green-500" size={20} /> : 
+                  {status.connectionWorking ?
+                    <Wifi className="text-green-500" size={20} /> :
                     <WifiOff className="text-red-500" size={20} />
                   }
                   <span className="font-medium">Conexão</span>
@@ -400,6 +469,25 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
                   )}
                 </div>
               </div>
+
+              {status.authStatus !== 'pending' && (
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    {authDisplay.icon}
+                    <span className="font-medium">{authDisplay.label}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-sm ${authDisplay.color}`}>
+                      {authDisplay.text}
+                    </span>
+                    {status.authStatusMessage && (
+                      <div className={`text-xs ${authDisplay.messageColor} max-w-xs mt-1 text-left md:text-right`}>
+                        {status.authStatusMessage}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-4 flex space-x-2">
