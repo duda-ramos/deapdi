@@ -91,11 +91,10 @@ const HRCalendar: React.FC = () => {
     switch (viewMode) {
       case 'month':
         return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
-      case 'week': {
+      case 'week':
         const startOfWeek = new Date(date);
         startOfWeek.setDate(date.getDate() - date.getDay());
         return startOfWeek.toISOString().split('T')[0];
-      }
       case 'day':
         return date.toISOString().split('T')[0];
       default:
@@ -108,11 +107,10 @@ const HRCalendar: React.FC = () => {
     switch (viewMode) {
       case 'month':
         return new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
-      case 'week': {
+      case 'week':
         const endOfWeek = new Date(date);
         endOfWeek.setDate(date.getDate() - date.getDay() + 6);
         return endOfWeek.toISOString().split('T')[0];
-      }
       case 'day':
         return date.toISOString().split('T')[0];
       default:
@@ -184,17 +182,16 @@ const HRCalendar: React.FC = () => {
 
   const getDateRangeLabel = (): string => {
     const date = new Date(selectedDate);
-
+    
     switch (viewMode) {
       case 'month':
         return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-      case 'week': {
+      case 'week':
         const startOfWeek = new Date(date);
         startOfWeek.setDate(date.getDate() - date.getDay());
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         return `${startOfWeek.toLocaleDateString('pt-BR')} - ${endOfWeek.toLocaleDateString('pt-BR')}`;
-      }
       case 'day':
         return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       default:

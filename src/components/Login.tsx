@@ -6,14 +6,21 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 
-export const Login: React.FC = () => {
-  const { signIn, signUp, authError, clearAuthError } = useAuth();
+const MAX_LOGIN_ATTEMPTS = 3;
+const LOGIN_TIMEOUT_MS = 15000;
+const CIRCUIT_BREAKER_RESET_MS = 60000;
 
+export const Login: React.FC = () => {
+  const { signIn, signUp } = useAuth();
+
+  // Form states
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [circuitBreakerOpen, setCircuitBreakerOpen] = useState(false);
 
   // Login form
   const [loginForm, setLoginForm] = useState({
@@ -43,13 +50,55 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Circuit breaker: block if too many failed attempts
+    if (circuitBreakerOpen) {
+      setError('Muitas tentativas de login falharam. Por favor, aguarde um minuto antes de tentar novamente.');
+      return;
+    }
+
+    // Check max attempts
+    if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+      setError('Número máximo de tentativas excedido. Aguarde um minuto e tente novamente.');
+      setCircuitBreakerOpen(true);
+      setTimeout(() => {
+        setCircuitBreakerOpen(false);
+        setLoginAttempts(0);
+      }, CIRCUIT_BREAKER_RESET_MS);
+      return;
+    }
+
     setIsLoading(true);
-    clearAuthError();
+    console.log('🔵 Login: Starting sign in...', loginForm.email);
+
+    // Create timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Tempo limite de login excedido. Verifique sua conexão.')), LOGIN_TIMEOUT_MS);
+    });
 
     try {
-      await signIn(loginForm.email, loginForm.password);
+      // Race between sign in and timeout
+      await Promise.race([
+        signIn(loginForm.email, loginForm.password),
+        timeoutPromise
+      ]);
+
+      console.log('✅ Login: Sign in successful');
+      setLoginAttempts(0); // Reset on success
     } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login. Tente novamente.');
+      console.error('❌ Login: Sign in failed:', err);
+      setLoginAttempts(prev => prev + 1);
+
+      // Provide specific error messages
+      if (err.message?.includes('Tempo limite')) {
+        setError('A conexão está demorando muito. Verifique sua internet e tente novamente.');
+      } else if (err.message?.includes('Invalid login credentials')) {
+        setError('Email ou senha incorretos. Verifique suas credenciais.');
+      } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+        setError('Problema de conexão. Verifique sua internet e tente novamente.');
+      } else {
+        setError(err.message || 'Erro ao fazer login. Tente novamente.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -59,8 +108,8 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    clearAuthError();
 
+    // Validation
     if (signupForm.password !== signupForm.confirmPassword) {
       setError('As senhas não coincidem');
       return;
@@ -82,6 +131,7 @@ export const Login: React.FC = () => {
     }
 
     setIsLoading(true);
+    console.log('🔵 Login: Starting sign up...', signupForm.email);
 
     try {
       await signUp({
@@ -92,6 +142,7 @@ export const Login: React.FC = () => {
         level: signupForm.level
       });
 
+      console.log('✅ Login: Sign up successful');
       setSuccess('Conta criada com sucesso! Você já pode fazer login.');
       setIsSignUp(false);
       setLoginForm({ email: signupForm.email, password: '' });
@@ -103,7 +154,9 @@ export const Login: React.FC = () => {
         position: '',
         level: 'Júnior'
       });
+
     } catch (err: any) {
+      console.error('❌ Login: Sign up failed:', err);
       setError(err.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
       setIsLoading(false);
@@ -113,7 +166,6 @@ export const Login: React.FC = () => {
   const resetForms = () => {
     setError('');
     setSuccess('');
-    clearAuthError();
     setLoginForm({ email: '', password: '' });
     setSignupForm({
       name: '',
@@ -129,12 +181,6 @@ export const Login: React.FC = () => {
     setIsSignUp(mode);
     resetForms();
   };
-
-  React.useEffect(() => {
-    if (authError) {
-      setError(authError);
-    }
-  }, [authError]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
@@ -240,7 +286,6 @@ export const Login: React.FC = () => {
                 <Button
                   type="submit"
                   loading={isLoading}
-                  disabled={isLoading}
                   className="w-full"
                   size="lg"
                 >
@@ -373,7 +418,6 @@ export const Login: React.FC = () => {
                 <Button
                   type="submit"
                   loading={isLoading}
-                  disabled={isLoading}
                   className="w-full"
                   size="lg"
                 >

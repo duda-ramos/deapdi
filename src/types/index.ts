@@ -33,9 +33,9 @@ export type PDI = Database['public']['Tables']['pdis']['Row'];
 export type Achievement = Database['public']['Tables']['achievements']['Row'];
 export type ActionGroup = Database['public']['Tables']['action_groups']['Row'];
 export type Task = Database['public']['Tables']['tasks']['Row'];
-type PsychologicalRecord = Database['public']['Tables']['psychological_records']['Row'];
+export type PsychologicalRecord = Database['public']['Tables']['psychological_records']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
-type NotificationPreferences = {
+export type NotificationPreferences = {
   id: string;
   profile_id: string;
   pdi_approved: boolean;
@@ -53,7 +53,7 @@ type NotificationPreferences = {
 };
 
 // Legacy types for backward compatibility (will be removed in Phase 2)
-interface User {
+export interface User {
   id: string;
   name: string;
   email: string;
@@ -68,7 +68,7 @@ interface User {
   careerTrack: CareerTrack;
 }
 
-interface LegacyAchievement {
+export interface LegacyAchievement {
   id: string;
   title: string;
   description: string;
@@ -77,7 +77,7 @@ interface LegacyAchievement {
   points: number;
 }
 
-interface LegacyCareerTrack {
+export interface LegacyCareerTrack {
   profession: string;
   currentStage: string;
   progress: number;
@@ -85,14 +85,14 @@ interface LegacyCareerTrack {
   salaryHistory: SalaryEntry[];
 }
 
-interface LegacySalaryEntry {
+export interface LegacySalaryEntry {
   date: Date;
   amount: number;
   position: string;
   reason: string;
 }
 
-interface LegacyCompetency {
+export interface LegacyCompetency {
   id: string;
   name: string;
   type: 'hard' | 'soft';
@@ -102,7 +102,7 @@ interface LegacyCompetency {
   stage: string;
 }
 
-interface LegacyPDI {
+export interface LegacyPDI {
   id: string;
   title: string;
   description: string;
@@ -114,7 +114,7 @@ interface LegacyPDI {
   validatedBy?: string;
 }
 
-interface LegacyActionGroup {
+export interface LegacyActionGroup {
   id: string;
   title: string;
   description: string;
@@ -124,7 +124,7 @@ interface LegacyActionGroup {
   status: 'active' | 'completed' | 'cancelled';
 }
 
-interface LegacyTask {
+export interface LegacyTask {
   id: string;
   title: string;
   assignee: string;
@@ -134,16 +134,16 @@ interface LegacyTask {
 
 // Utility types
 export type UserRole = 'admin' | 'hr' | 'manager' | 'employee';
-type UserStatus = 'active' | 'inactive';
-type TrackType = 'development' | 'specialization';
-type CompetencyType = 'hard' | 'soft';
-type PDIStatus = 'pending' | 'in-progress' | 'completed' | 'validated';
-type GroupStatus = 'active' | 'completed' | 'cancelled';
-type TaskStatus = 'todo' | 'in-progress' | 'done';
-type NotificationType = 'info' | 'success' | 'warning' | 'error';
+export type UserStatus = 'active' | 'inactive';
+export type TrackType = 'development' | 'specialization';
+export type CompetencyType = 'hard' | 'soft';
+export type PDIStatus = 'pending' | 'in-progress' | 'completed' | 'validated';
+export type GroupStatus = 'active' | 'completed' | 'cancelled';
+export type TaskStatus = 'todo' | 'in-progress' | 'done';
+export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 
 // HR Calendar types
-interface CalendarEvent {
+export interface CalendarEvent {
   id: string;
   type: 'aniversario' | 'aniversario_empresa' | 'ferias' | 'feriado' | 'evento' | 'day_off' | 'ferias_coletivas';
   title: string;
@@ -164,7 +164,7 @@ interface CalendarEvent {
   updated_at: string;
 }
 
-interface CalendarRequest {
+export interface CalendarRequest {
   id: string;
   event_type: 'ferias' | 'day_off';
   requester_id: string;
@@ -184,33 +184,33 @@ interface CalendarRequest {
 }
 
 // API Response types
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   data: T | null;
   error: string | null;
   success: boolean;
 }
 
 // Form types
-interface LoginForm {
+export interface LoginForm {
   email: string;
   password: string;
 }
 
-interface ProfileUpdateForm {
+export interface ProfileUpdateForm {
   name: string;
   bio?: string;
   formation?: string;
   avatar_url?: string;
 }
 
-interface PDICreateForm {
+export interface PDICreateForm {
   title: string;
   description: string;
   deadline: string;
   mentor_id?: string;
 }
 
-interface CompetencyUpdateForm {
+export interface CompetencyUpdateForm {
   id: string;
   self_rating?: number;
   manager_rating?: number;

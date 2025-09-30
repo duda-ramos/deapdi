@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { supabaseRequest } from './api';
 import type { Achievement } from '../types';
 
-interface AchievementTemplate {
+export interface AchievementTemplate {
   id: string;
   title: string;
   description: string;
@@ -39,7 +39,7 @@ export interface AchievementNotification {
   category: string;
 }
 
-interface UserStats {
+export interface UserStats {
   completedPDIs: number;
   completedTasks: number;
   completedCourses: number;
@@ -445,67 +445,34 @@ export const achievementService = {
   ) {
     console.log('🏆 Achievements: Setting up subscription for profile:', profileId);
 
-    if (!supabase) {
-      console.error('🏆 Achievements: Supabase not initialized');
-      return null;
-    }
-
-    let isUnsubscribed = false;
-
-    try {
-      const channel = supabase
-        .channel(`achievements_${profileId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'achievements',
-            filter: `profile_id=eq.${profileId}`
-          },
-          (payload) => {
-            if (isUnsubscribed) return;
-
-            try {
-              console.log('🏆 Achievements: New achievement unlocked:', payload);
-              if (payload.new) {
-                const achievement = payload.new as Achievement;
-                callback({
-                  id: achievement.id,
-                  title: achievement.title,
-                  description: achievement.description,
-                  icon: achievement.icon,
-                  points: achievement.points,
-                  category: 'achievement'
-                });
-              }
-            } catch (error) {
-              console.error('🏆 Achievements: Error in callback:', error);
-            }
+    const channel = supabase
+      .channel(`achievements_${profileId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'achievements',
+          filter: `profile_id=eq.${profileId}`
+        },
+        (payload) => {
+          console.log('🏆 Achievements: New achievement unlocked:', payload);
+          if (payload.new) {
+            const achievement = payload.new as Achievement;
+            callback({
+              id: achievement.id,
+              title: achievement.title,
+              description: achievement.description,
+              icon: achievement.icon,
+              points: achievement.points,
+              category: 'achievement'
+            });
           }
-        )
-        .subscribe((status, err) => {
-          console.log('🏆 Achievements: Subscription status:', status);
-          if (err) {
-            console.error('🏆 Achievements: Subscription error:', err);
-          }
-        });
-
-      const originalUnsubscribe = channel.unsubscribe.bind(channel);
-      channel.unsubscribe = () => {
-        if (!isUnsubscribed) {
-          isUnsubscribed = true;
-          console.log('🏆 Achievements: Unsubscribing from achievements');
-          return originalUnsubscribe();
         }
-        return Promise.resolve({ status: 'ok', error: null });
-      };
+      )
+      .subscribe();
 
-      return channel;
-    } catch (error) {
-      console.error('🏆 Achievements: Failed to create subscription:', error);
-      return null;
-    }
+    return channel;
   },
 
   // Admin functions

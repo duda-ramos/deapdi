@@ -4,7 +4,7 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const BUCKET_NAME = 'avatars';
 
-interface AvatarUploadResult {
+export interface AvatarUploadResult {
   url: string;
   path: string;
 }

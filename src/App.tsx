@@ -1,198 +1,421 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import { supabase } from './lib/supabase';
+import React from 'react';
+import { Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { LoadingScreen } from './components/ui/LoadingScreen';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AchievementProvider } from './contexts/AchievementContext';
+import { AchievementToast } from './components/AchievementToast';
+import { useAchievements } from './contexts/AchievementContext';
+import { SetupCheck } from './components/SetupCheck';
+import { checkDatabaseHealth } from './lib/supabase';
+import { Login } from './components/Login';
+import { Onboarding } from './components/Onboarding';
+import { Layout } from './components/layout/Layout';
+import {
+  LazyDashboard,
+  LazyProfile,
+  LazyCareerTrack,
+  LazyCompetencies,
+  LazyPDI,
+  LazyActionGroups,
+  LazyAchievements,
+  LazyLearning,
+  LazyMentorship,
+  LazyReports,
+  LazyHRArea,
+  LazyAdministration,
+  LazyUserManagement,
+  LazyCareerTrackManagement,
+  LazyCertificates,
+  LazyMentalHealth,
+  LazyMentalHealthAdmin,
+  LazyTeamManagement,
+  LazyPeopleManagement,
+  LazyQualityAssurance,
+  LazyHRCalendar
+} from './components/LazyComponents';
 
-/**
- * Certifique-se de definir as variáveis de ambiente abaixo antes do build:
- *  - VITE_SUPABASE_URL
- *  - VITE_SUPABASE_ANON_KEY
- *
- * No Vite, elas precisam começar com o prefixo `VITE_` para ficarem disponíveis em `import.meta.env`.
- * Crie/atualize o arquivo `.env` na raiz do projeto com as chaves reais do projeto Supabase
- * e reinicie o servidor de desenvolvimento para que as variáveis sejam propagadas para o cliente.
- */
+const AchievementWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { newAchievement, clearAchievement } = useAchievements();
 
-const SESSION_TIMEOUT_MS = 5000;
-
-type UiState = 'loading' | 'error' | 'unauthenticated' | 'authenticated';
-
-const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> => {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-  const timeoutPromise = new Promise<T>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error(timeoutMessage));
-    }, timeoutMs);
-  });
-
-  try {
-    const result = await Promise.race([promise, timeoutPromise]);
-    return result;
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-  }
+  return (
+    <>
+      {children}
+      <AchievementToast 
+        achievement={newAchievement} 
+        onClose={clearAchievement} 
+      />
+    </>
+  );
 };
 
-const LoginScreen: React.FC<{ onRetry: () => void }> = ({ onRetry }) => (
-  <main className="app-screen app-screen--login">
-    <h1>Acesso necessário</h1>
-    <p>Entre com suas credenciais para continuar.</p>
-    <button type="button" onClick={onRetry} className="app-button">
-      Recarregar status da sessão
-    </button>
-  </main>
-);
+const useSupabaseSetup = () => {
+  const [setupComplete, setSetupComplete] = React.useState(false);
+  const [checking, setChecking] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [isExpiredToken, setIsExpiredToken] = React.useState(false);
+  const attemptsRef = React.useRef(0);
+  const MAX_ATTEMPTS = 3;
 
-const DashboardScreen: React.FC<{ session: Session }> = ({ session }) => (
-  <main className="app-screen app-screen--dashboard">
-    <h1>Dashboard</h1>
-    <p>Sessão ativa para o usuário autenticado.</p>
-    <dl>
-      <dt>ID do usuário</dt>
-      <dd>{session.user.id}</dd>
-      {session.user.email ? (
-        <>
-          <dt>Email</dt>
-          <dd>{session.user.email}</dd>
-        </>
-      ) : null}
-    </dl>
-  </main>
-);
+  React.useEffect(() => {
+    // Safety timeout - prevent infinite checking
+    const safetyTimeout = setTimeout(() => {
+      if (checking) {
+        console.warn('⏱️ Setup: Safety timeout reached, forcing setup check to complete');
+        setChecking(false);
+        setError('Setup check timed out. Please check your configuration or use offline mode.');
+      }
+    }, 15000);
 
-function App() {
-  const [uiState, setUiState] = useState<UiState>('loading');
-  const [session, setSession] = useState<Session | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
+    const checkSetup = async () => {
+      attemptsRef.current += 1;
 
-  const supabaseClient = useMemo(() => supabase, []);
+      const hasUrl = !!import.meta.env.VITE_SUPABASE_URL;
+      const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const offlineMode = localStorage.getItem('OFFLINE_MODE') === 'true';
 
-  useEffect(() => {
-    let isActive = true;
-
-    const loadSession = async () => {
-      if (!supabaseClient) {
-        console.error('[Auth] Supabase não foi inicializado. Verifique as variáveis de ambiente.');
-        if (!isActive) return;
-        setErrorMessage('Erro ao conectar. Tente novamente mais tarde.');
-        setUiState('error');
+      if (offlineMode) {
+        console.log('🔧 Setup: Offline mode enabled');
+        setSetupComplete(true);
+        setChecking(false);
+        clearTimeout(safetyTimeout);
         return;
       }
 
-      setUiState('loading');
-      setErrorMessage(null);
-
-      try {
-        const response = await withTimeout(
-          supabaseClient.auth.getSession(),
-          SESSION_TIMEOUT_MS,
-          'Tempo de resposta do Supabase excedido.'
-        );
-
-        if (!isActive) return;
-
-        if (response.error) {
-          console.error('[Auth] Erro ao obter sessão:', response.error);
-          setErrorMessage('Erro ao conectar. Tente novamente mais tarde.');
-          setUiState('error');
-          return;
-        }
-
-        if (response.data.session) {
-          setSession(response.data.session);
-          setUiState('authenticated');
-        } else {
-          setSession(null);
-          setUiState('unauthenticated');
-        }
-      } catch (error) {
-        console.error('[Auth] Falha ao buscar sessão:', error);
-        if (!isActive) return;
-        setErrorMessage('Erro ao conectar. Tente novamente mais tarde.');
-        setUiState('error');
+      if (!hasUrl || !hasKey) {
+        console.log('🔧 Setup: Missing credentials');
+        setSetupComplete(false);
+        setChecking(false);
+        setError('Missing Supabase credentials');
+        clearTimeout(safetyTimeout);
+        return;
       }
+
+      // Check if we've exceeded max attempts
+      if (attemptsRef.current > MAX_ATTEMPTS) {
+        console.error('🔧 Setup: Max attempts reached');
+        setSetupComplete(false);
+        setChecking(false);
+        setError('Failed to connect after multiple attempts. Please check your configuration.');
+        clearTimeout(safetyTimeout);
+        return;
+      }
+
+      // Check if Supabase connection is actually working
+      try {
+        console.log(`🔧 Setup: Checking health (attempt ${attemptsRef.current}/${MAX_ATTEMPTS})...`);
+        const healthCheck = await checkDatabaseHealth(12000); // Increased timeout
+        const isSetup = healthCheck.healthy;
+
+        console.log('🔧 Setup: Health check result:', {
+          healthy: healthCheck.healthy,
+          error: healthCheck.error,
+          isExpiredToken: healthCheck.isExpiredToken
+        });
+
+        if (import.meta.env.DEV) {
+          console.log('🔧 Setup Check:', {
+            hasUrl,
+            hasKey,
+            offlineMode,
+            healthy: healthCheck.healthy,
+            error: healthCheck.error,
+            isExpiredToken: healthCheck.isExpiredToken,
+            isSetup,
+            attempt: attemptsRef.current
+          });
+        }
+
+        setSetupComplete(isSetup);
+        setError(healthCheck.error || null);
+        setIsExpiredToken(healthCheck.isExpiredToken || false);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.log('🔧 Setup Check Failed:', error);
+        }
+        setSetupComplete(false);
+        setError(error instanceof Error ? error.message : 'Unknown error occurred');
+      }
+
+      setChecking(false);
+      clearTimeout(safetyTimeout);
     };
 
-    void loadSession();
-
-    if (!supabaseClient) {
-      return () => {
-        isActive = false;
-      };
-    }
-
-    const { data: listener } = supabaseClient.auth.onAuthStateChange((_event, newSession) => {
-      if (!isActive) return;
-
-      if (newSession) {
-        setSession(newSession);
-        setUiState('authenticated');
-      } else {
-        setSession(null);
-        setUiState('unauthenticated');
-      }
-    });
+    checkSetup();
 
     return () => {
-      isActive = false;
-      listener?.subscription?.unsubscribe();
+      clearTimeout(safetyTimeout);
     };
-  }, [retryCount, supabaseClient]);
+  }, []);
 
-  const handleRetry = () => {
-    setRetryCount((current) => current + 1);
-  };
+  return { setupComplete, checking, error, isExpiredToken, setSetupComplete };
+};
 
-  if (uiState === 'loading') {
-    return (
-      <main className="app-screen app-screen--loading">
-        <p>Carregando...</p>
-      </main>
-    );
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen message="Verificando autenticação..." />;
   }
 
-  if (uiState === 'error') {
-    return (
-      <main className="app-screen app-screen--error">
-        <p>{errorMessage ?? 'Erro ao conectar. Tente novamente mais tarde.'}</p>
-        <button type="button" onClick={handleRetry} className="app-button">
-          Tentar novamente
-        </button>
-      </main>
-    );
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Check if user needs onboarding
+  if (!user.is_onboarded) {
+    return <Navigate to="/onboarding" replace />;
+  }
+  
+  return (
+    <ErrorBoundary>
+      <Layout>
+        <Suspense fallback={<LoadingScreen message="Carregando página..." />}>
+          {children}
+        </Suspense>
+      </Layout>
+    </ErrorBoundary>
+  );
+};
+
+const AppRoutes: React.FC = () => {
+  const { user, loading } = useAuth();
+  const { setupComplete, checking, error, isExpiredToken, setSetupComplete } = useSupabaseSetup();
+
+  if (checking) {
+    return <LoadingScreen message="Verificando configuração..." />;
   }
 
-  if (uiState === 'unauthenticated') {
-    return <LoginScreen onRetry={handleRetry} />;
+  if (!setupComplete) {
+    return <SetupCheck
+      onSetupComplete={() => setSetupComplete(true)}
+      initialError={error}
+      isExpiredToken={isExpiredToken}
+    />;
   }
 
-  if (!session) {
-    return (
-      <main className="app-screen app-screen--error">
-        <p>Erro ao conectar. Tente novamente mais tarde.</p>
-        <button type="button" onClick={handleRetry} className="app-button">
-          Tentar novamente
-        </button>
-      </main>
-    );
+  if (loading) {
+    return <LoadingScreen message="Carregando aplicação..." />;
   }
 
-  return <DashboardScreen session={session} />;
+  return (
+    <ErrorBoundary>
+      <Routes>
+      <Route 
+        path="/login" 
+        element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
+      />
+      <Route 
+        path="/onboarding" 
+        element={
+          user ? (
+            user.is_onboarded ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Onboarding />
+            )
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } 
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <LazyDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <LazyProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/career"
+        element={
+          <ProtectedRoute>
+            <LazyCareerTrack />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/competencies"
+        element={
+          <ProtectedRoute>
+            <LazyCompetencies />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pdi"
+        element={
+          <ProtectedRoute>
+            <LazyPDI />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute>
+            <LazyUserManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/people"
+        element={
+          <ProtectedRoute>
+            <LazyPeopleManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teams"
+        element={
+          <ProtectedRoute>
+            <LazyTeamManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/groups"
+        element={
+          <ProtectedRoute>
+            <LazyActionGroups />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/achievements"
+        element={
+          <ProtectedRoute>
+            <LazyAchievements />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/learning"
+        element={
+          <ProtectedRoute>
+            <LazyLearning />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mentorship"
+        element={
+          <ProtectedRoute>
+            <LazyMentorship />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <LazyReports />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hr"
+        element={
+          <ProtectedRoute>
+            <LazyHRArea />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hr-calendar"
+        element={
+          <ProtectedRoute>
+            <LazyHRCalendar />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <LazyAdministration />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/career-management"
+        element={
+          <ProtectedRoute>
+            <LazyCareerTrackManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/certificates"
+        element={
+          <ProtectedRoute>
+            <LazyCertificates />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mental-health"
+        element={
+          <ProtectedRoute>
+            <LazyMentalHealth />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mental-health/admin"
+        element={
+          <ProtectedRoute>
+            <LazyMentalHealthAdmin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/qa"
+        element={
+          <ProtectedRoute>
+            <LazyQualityAssurance />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hr-calendar"
+        element={
+          <ProtectedRoute>
+            <LazyHRCalendar />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </ErrorBoundary>
+  );
+};
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <AchievementProvider>
+          <Router>
+            <AchievementWrapper>
+              <AppRoutes />
+            </AchievementWrapper>
+          </Router>
+        </AchievementProvider>
+      </AuthProvider>
+    </ErrorBoundary>
+  );
 }
 
 export default App;
-
-/**
- * Boas práticas para ambientes Bolt.new / WebContainer:
- *
- * 1. Configure o CORS no painel do Supabase para permitir o domínio exibido pelo Bolt.new
- *    (geralmente https://<hash>.bolt.new). Sem isso, o navegador bloqueará as requisições.
- * 2. Garanta que o `.env` contenha VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY e que o Vite
- *    esteja lendo essas variáveis (reinicie `npm run dev` após mudanças).
- * 3. Evite operações assíncronas sem cancelamento; use `Promise.race` com timeout ou
- *    `AbortController` para impedir que promessas pendentes bloqueiem a UI caso o Supabase
- *    não responda.
- */

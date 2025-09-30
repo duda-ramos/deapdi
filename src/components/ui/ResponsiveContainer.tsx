@@ -9,7 +9,7 @@ interface ResponsiveContainerProps {
   desktopClassName?: string;
 }
 
-const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
+export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
   children,
   className = '',
   mobileClassName = '',

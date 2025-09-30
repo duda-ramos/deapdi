@@ -1,6 +1,6 @@
 import { UserRole, Profile } from '../types';
 
-interface PermissionCheck {
+export interface PermissionCheck {
   canManageAllUsers: boolean;
   canManageTeam: boolean;
   canCreateTeams: boolean;

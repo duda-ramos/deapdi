@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { supabaseRequest } from './api';
 
-interface Course {
+export interface Course {
   id: string;
   title: string;
   description: string;
@@ -41,7 +41,7 @@ export interface CourseEnrollment {
   status: 'enrolled' | 'in-progress' | 'completed' | 'dropped';
 }
 
-interface CourseProgress {
+export interface CourseProgress {
   id: string;
   enrollment_id: string;
   module_id: string;
@@ -62,7 +62,7 @@ export interface Certificate {
   created_at: string;
 }
 
-interface CompetencyMapping {
+export interface CompetencyMapping {
   competency: string;
   rating_boost: number;
 }

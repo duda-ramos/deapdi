@@ -23,37 +23,22 @@ export const AchievementProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [newAchievement, setNewAchievement] = useState<AchievementNotification | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-
-    let isCleanedUp = false;
-
-    // Subscribe to new achievements
-    const subscription = achievementService.subscribeToAchievements(
-      user.id,
-      (achievement) => {
-        if (isCleanedUp) return;
-
-        try {
+    if (user) {
+      // Subscribe to new achievements
+      const subscription = achievementService.subscribeToAchievements(
+        user.id,
+        (achievement) => {
           console.log('🏆 AchievementContext: New achievement received:', achievement);
           setNewAchievement(achievement);
-        } catch (error) {
-          console.error('🏆 AchievementContext: Error setting achievement:', error);
         }
-      }
-    );
+      );
 
-    return () => {
-      isCleanedUp = true;
-      console.log('🏆 AchievementContext: Cleaning up subscription');
-
-      if (subscription) {
-        try {
+      return () => {
+        if (subscription) {
           subscription.unsubscribe();
-        } catch (error) {
-          console.error('🏆 AchievementContext: Error unsubscribing:', error);
         }
-      }
-    };
+      };
+    }
   }, [user]);
 
   const clearAchievement = () => {

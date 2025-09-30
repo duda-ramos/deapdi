@@ -41,7 +41,6 @@ const Administration: React.FC = () => {
     maintenance_mode: false
   });
   const [configLoading, setConfigLoading] = useState(false);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   const tabs = [
     { id: 'system', label: 'Sistema', icon: <Settings size={16} /> },
@@ -57,7 +56,6 @@ const Administration: React.FC = () => {
   useEffect(() => {
     loadSystemStats();
     loadSystemConfig();
-    loadAuditLogs();
   }, []);
 
   const loadSystemStats = async () => {
@@ -95,17 +93,6 @@ const Administration: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading system config:', error);
-    }
-  };
-
-  const loadAuditLogs = async () => {
-    try {
-      const { adminService } = await import('../services/admin');
-      const logs = await adminService.getAuditLogs(10);
-      setAuditLogs(logs ?? []);
-    } catch (error) {
-      console.error('Error loading audit logs:', error);
-      setAuditLogs([]);
     }
   };
 
@@ -471,7 +458,24 @@ const Administration: React.FC = () => {
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Log de Auditoria</h3>
             <div className="space-y-3 max-h-64 overflow-y-auto">
-              {auditLogs.map((log, index) => (
+              {React.useMemo(() => {
+                const [auditLogs, setAuditLogs] = React.useState<any[]>([]);
+                
+                React.useEffect(() => {
+                  const loadLogs = async () => {
+                    try {
+                      const { adminService } = await import('../services/admin');
+                      const logs = await adminService.getAuditLogs(10);
+                      setAuditLogs(logs);
+                    } catch (error) {
+                      console.error('Error loading audit logs:', error);
+                    }
+                  };
+                  loadLogs();
+                }, []);
+                
+                return auditLogs;
+              }, []).map((log, index) => (
                 <div key={log.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <span className="font-medium text-gray-900">{log.action}</span>
@@ -487,9 +491,6 @@ const Administration: React.FC = () => {
                   </div>
                 </div>
               ))}
-              {auditLogs.length === 0 && (
-                <p className="text-sm text-gray-500 text-center">Nenhum registro de auditoria disponível.</p>
-              )}
             </div>
           </Card>
         </div>
