@@ -34,9 +34,10 @@ interface SetupCheckProps {
   initialError?: string | null;
   isExpiredToken?: boolean;
   isInvalidKey?: boolean;
+  isInvalidKey?: boolean;
 }
 
-export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initialError, isExpiredToken }) => {
+export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initialError, isExpiredToken, isInvalidKey }) => {
   const [status, setStatus] = useState<SetupStatus>({
     hasUrl: false,
     hasKey: false,

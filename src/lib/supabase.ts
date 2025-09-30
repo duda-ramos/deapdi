@@ -79,7 +79,7 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
     const errorMsg = isPlaceholderCreds
       ? 'Please configure your Supabase credentials in the .env file. The current values are placeholders.'
       : 'Supabase client not initialized';
-    return { healthy: false, error: errorMsg, isExpiredToken: false };
+    return { healthy: false, error: errorMsg, isExpiredToken: false, isInvalidKey: false };
   }
  
   // Check if JWT token is expired
@@ -98,6 +98,7 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
       error: 'Your Supabase ANON_KEY has expired. Please update your .env file with a new key from your Supabase Dashboard.',
       isExpiredToken: true,
       isInvalidKey: false
+      isInvalidKey: false
     };
   }
 
@@ -113,6 +114,86 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
       const restUrl = `${supabaseUrl}/rest/v1/`;
       const restResponse = await fetch(restUrl, {
         method: 'HEAD',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (restResponse.status === 400) {
+        return {
+          healthy: false,
+          error: 'Invalid Supabase API key. Please check your VITE_SUPABASE_ANON_KEY in the .env file.',
+          isExpiredToken: false,
+          isInvalidKey: true
+        };
+      }
+
+      if (restResponse.status === 401 || restResponse.status === 403) {
+        return {
+          healthy: false,
+          error: 'Unauthorized access to Supabase. Please verify your API key is correct.',
+          isExpiredToken: false,
+          isInvalidKey: true
+        };
+      }
+
+      // Second test: Auth API
+      const authUrl = `${supabaseUrl}/auth/v1/settings`;
+      const authResponse = await fetch(authUrl, {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseAnonKey
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (authResponse.status === 400) {
+        return {
+          healthy: false,
+          error: 'Invalid API key format. Please get a new anon/public key from your Supabase Dashboard.',
+          isExpiredToken: true,
+          isInvalidKey: false
+        };
+      }
+
+      if (authResponse.status === 401 || authResponse.status === 403) {
+        return {
+          healthy: false,
+          error: 'API key expired or invalid. Please update your .env file with fresh credentials.',
+          isExpiredToken: true,
+          isInvalidKey: false
+        };
+      }
+
+      if (!authResponse.ok) {
+        return {
+          healthy: false,
+          error: `Cannot connect to Supabase (HTTP ${authResponse.status}). Check your internet connection.`,
+          isExpiredToken: false,
+          isInvalidKey: false
+        };
+      }
+
+      // Third test: Database query (only if auth is working)
+      const { error } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        return {
+          healthy: false,
+          error: `Database error: ${error.message}. Check your RLS policies.`,
+          isExpiredToken: false,
+          isInvalidKey: false
+        };
+      }
+
+      return { healthy: true, error: null, isExpiredToken: false, isInvalidKey: false };
+    })();
         headers: {
           'apikey': supabaseAnonKey,
           'Authorization': `Bearer ${supabaseAnonKey}`
@@ -199,20 +280,23 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
       return {
         healthy: false,
         error: 'Connection timeout. Please check your internet connection and try again.',
-        isExpiredToken: false
+        isExpiredToken: false,
+        isInvalidKey: false
       };
     }
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
       return {
         healthy: false,
         error: 'Network error. Please check your internet connection.',
-        isExpiredToken: false
+        isExpiredToken: false,
+        isInvalidKey: false
       };
     }
     return {
       healthy: false,
       error: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      isExpiredToken: false
+      isExpiredToken: false,
+      isInvalidKey: false
       isInvalidKey: false
     };
   }

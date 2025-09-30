@@ -56,6 +56,7 @@ const useSupabaseSetup = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [isExpiredToken, setIsExpiredToken] = React.useState(false);
   const [isInvalidKey, setIsInvalidKey] = React.useState(false);
+  const [isInvalidKey, setIsInvalidKey] = React.useState(false);
 
   React.useEffect(() => {
     let mounted = true;
@@ -94,6 +95,7 @@ const useSupabaseSetup = () => {
           setSetupComplete(healthCheck.healthy);
           setError(healthCheck.error || null);
           setIsExpiredToken(healthCheck.isExpiredToken || false);
+          setIsInvalidKey(healthCheck.isInvalidKey || false);
           setIsInvalidKey(healthCheck.isInvalidKey || false);
         }
       } catch (error) {
@@ -158,6 +160,7 @@ const AppRoutes: React.FC = () => {
       onSetupComplete={() => setSetupComplete(true)}
       initialError={error}
       isExpiredToken={isExpiredToken}
+      isInvalidKey={isInvalidKey}
       isInvalidKey={isInvalidKey}
     />;
   }
