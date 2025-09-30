@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
+import { supabase } from '../lib/supabase';
 import { Profile, PDI, Competency } from '../types';
 import { Card } from '../components/ui/Card';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
