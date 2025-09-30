@@ -83,11 +83,29 @@ export const checkDatabaseHealth = async () => {
 
     // 3. Test database query
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .select('id', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true })
+        .limit(1);
+        .limit(1);
       
       if (error) {
+        // Handle RLS recursion errors specifically
+        if (error.code === '42P17' || error.message?.includes('infinite recursion')) {
+          return { 
+            healthy: false, 
+            error: `Database RLS policy error: Infinite recursion detected in profiles table policies. Please fix the RLS policies in Supabase Dashboard.` 
+          };
+        }
+        
+        // Handle RLS recursion errors specifically
+        if (error.code === '42P17' || error.message?.includes('infinite recursion')) {
+          return { 
+            healthy: false, 
+            error: `Database RLS policy error: Infinite recursion detected in profiles table policies. Please fix the RLS policies in Supabase Dashboard.` 
+          };
+        }
+        
         return { 
           healthy: false, 
           error: `Database query failed: ${error.message}` 

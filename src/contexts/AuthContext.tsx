@@ -56,14 +56,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setSupabaseUser(session.user);
           
-          // Simple profile fetch without joins
-          const { data } = await supabase
+          // Simple profile fetch with error handling for RLS issues
+          const { data, error } = await supabase
             .from('profiles')
-            .select('*, achievements(*)')
+            .select('*')
             .eq('id', session.user.id)
             .maybeSingle();
           
+          if (error) {
+            console.error('Profile fetch error:', error);
+            // If it's an RLS recursion error, still set the user but without profile data
+            if (error.code === '42P17' || error.message?.includes('infinite recursion')) {
+              console.warn('RLS recursion detected, using basic user data only');
+              setUser(null); // Will trigger setup check
+            } else {
+              throw error;
+            }
+          } else {
+          if (error) {
+            console.error('Profile fetch error:', error);
+            // If it's an RLS recursion error, still set the user but without profile data
+            if (error.code === '42P17' || error.message?.includes('infinite recursion')) {
+              console.warn('RLS recursion detected, using basic user data only');
+              setUser(null); // Will trigger setup check
+            } else {
+              throw error;
+            }
+          } else {
           setUser(data || null);
+          }
+          }
         } else {
           setUser(null);
           setSupabaseUser(null);

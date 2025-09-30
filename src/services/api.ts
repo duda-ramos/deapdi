@@ -102,7 +102,13 @@ export const supabaseRequest = async <T>(
       
       // Handle RLS recursion errors specifically
       if (error?.code === '42P17' || errorMessage?.includes('infinite recursion detected in policy')) {
-        throw new Error('SUPABASE_RLS_RECURSION: As políticas de segurança da tabela precisam ser corrigidas no Supabase. Desabilite temporariamente RLS na tabela action_groups ou corrija as políticas recursivas.');
+        // Extract table name from error message if available
+        const tableMatch = errorMessage?.match(/relation "([^"]+)"/);
+        const tableName = tableMatch ? tableMatch[1] : 'unknown table';
+        throw new Error(`SUPABASE_RLS_RECURSION: Infinite recursion detected in RLS policies for table "${tableName}". The security policies need to be fixed in Supabase to prevent circular dependencies.`);
+        const tableMatch = errorMessage?.match(/relation "([^"]+)"/);
+        const tableName = tableMatch ? tableMatch[1] : 'unknown table';
+        throw new Error(`SUPABASE_RLS_RECURSION: Infinite recursion detected in RLS policies for table "${tableName}". The security policies need to be fixed in Supabase to prevent circular dependencies.`);
       }
       
       throw new Error(errorMessage || 'Erro interno do servidor.');
