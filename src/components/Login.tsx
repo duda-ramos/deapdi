@@ -7,7 +7,7 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 
 export const Login: React.FC = () => {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, authError, clearAuthError } = useAuth();
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -44,6 +44,7 @@ export const Login: React.FC = () => {
     setError('');
     setSuccess('');
     setIsLoading(true);
+    clearAuthError();
 
     try {
       await signIn(loginForm.email, loginForm.password);
@@ -58,6 +59,7 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    clearAuthError();
 
     if (signupForm.password !== signupForm.confirmPassword) {
       setError('As senhas não coincidem');
@@ -111,6 +113,7 @@ export const Login: React.FC = () => {
   const resetForms = () => {
     setError('');
     setSuccess('');
+    clearAuthError();
     setLoginForm({ email: '', password: '' });
     setSignupForm({
       name: '',
@@ -126,6 +129,12 @@ export const Login: React.FC = () => {
     setIsSignUp(mode);
     resetForms();
   };
+
+  React.useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">

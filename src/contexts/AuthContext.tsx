@@ -1,17 +1,19 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { User as SupabaseUser, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { ProfileWithRelations } from '../types';
 import { supabase, cleanInvalidSessions } from '../lib/supabase';
-import { authService } from '../services/auth';
+import { authService, translateSupabaseAuthError } from '../services/auth';
 
 interface AuthContextType {
   user: ProfileWithRelations | null;
   supabaseUser: SupabaseUser | null;
   loading: boolean;
+  authError: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (data: any) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  clearAuthError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,32 +30,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<ProfileWithRelations | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const isHandlingAuthError = useRef(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const authStateChangeCount = useRef(0);
+  const authEventWindowStart = useRef<number | null>(null);
   const lastAuthEvent = useRef<{ event: string; timestamp: number } | null>(null);
 
-  const ensureProfileExists = async (authUser: SupabaseUser): Promise<ProfileWithRelations | null> => {
+  const ensureProfileExists = useCallback(async (authUser: SupabaseUser): Promise<ProfileWithRelations> => {
     if (!supabase) {
-      console.warn('Supabase client unavailable while ensuring profile.');
-      return null;
+      throw new Error('Cliente Supabase não inicializado.');
     }
 
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile, error: fetchError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', authUser.id)
       .maybeSingle();
 
-    if (existingProfile) {
-      return existingProfile;
+    if (fetchError) {
+      throw fetchError;
     }
 
-    const newProfile = {
+    if (existingProfile) {
+      return existingProfile as ProfileWithRelations;
+    }
+
+    const fallbackName = authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuário';
+
+    const newProfile: Partial<ProfileWithRelations> = {
       id: authUser.id,
       email: authUser.email || '',
-      name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-      role: 'employee' as const,
-      status: 'active' as const,
+      name: fallbackName,
+      role: 'employee',
+      status: 'active',
       position: authUser.user_metadata?.position || 'Colaborador',
       level: authUser.user_metadata?.level || 'Júnior',
       points: 0,
@@ -63,114 +71,150 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       manager_id: null
     };
 
-    const { data: createdProfile } = await supabase
+    const { data: createdProfile, error: insertError } = await supabase
       .from('profiles')
       .insert(newProfile)
       .select()
       .single();
 
-    return createdProfile || newProfile as any;
-  };
+    if (insertError) {
+      throw insertError;
+    }
+
+    return (createdProfile || newProfile) as ProfileWithRelations;
+  }, []);
+
+  const syncSession = useCallback(async (session: Session | null) => {
+    if (!session?.user) {
+      setUser(null);
+      setSupabaseUser(null);
+      return;
+    }
+
+    setSupabaseUser(session.user);
+
+    try {
+      const profile = await ensureProfileExists(session.user);
+      setUser(profile);
+      setAuthError(null);
+    } catch (error: any) {
+      console.error('❌ Failed to synchronize user profile:', error);
+      setAuthError(translateSupabaseAuthError(error?.message));
+      setUser(null);
+    }
+  }, [ensureProfileExists]);
+
+  const handleAuthError = useCallback((error: unknown) => {
+    const rawMessage = error instanceof Error ? error.message : String(error ?? 'Erro desconhecido');
+    const formattedMessage = translateSupabaseAuthError(rawMessage);
+
+    console.error('🔴 Authentication error detected:', rawMessage);
+
+    const credentialIssue = /invalid api key|invalid_grant|jwt expired|refresh token not found|token has invalid lifetime|invalid signature|loop de autenticação/i.test(rawMessage.toLowerCase());
+
+    if (credentialIssue) {
+      cleanInvalidSessions();
+      setSupabaseUser(null);
+    }
+
+    setUser(null);
+    setAuthError(formattedMessage);
+    setLoading(false);
+  }, []);
+
+  const handleAuthEvent = useCallback(async (event: AuthChangeEvent, session: Session | null) => {
+    const now = Date.now();
+    const previous = lastAuthEvent.current;
+
+    if (previous && previous.event === event && now - previous.timestamp < 750) {
+      console.log(`🚫 Debouncing duplicate ${event} event`);
+      return;
+    }
+
+    lastAuthEvent.current = { event, timestamp: now };
+
+    if (event !== 'INITIAL_SESSION') {
+      if (!authEventWindowStart.current || now - authEventWindowStart.current > 10000) {
+        authEventWindowStart.current = now;
+        authStateChangeCount.current = 0;
+      }
+
+      authStateChangeCount.current += 1;
+      if (authStateChangeCount.current > 20) {
+        handleAuthError(new Error('Loop de autenticação detectado. Revise suas credenciais Supabase.'));
+        authStateChangeCount.current = 0;
+        authEventWindowStart.current = now;
+        return;
+      }
+    }
+
+    console.log(`🔑 Auth state change: ${event} (count: ${authStateChangeCount.current})`);
+
+    switch (event) {
+      case 'INITIAL_SESSION':
+        authStateChangeCount.current = 0;
+        authEventWindowStart.current = now;
+        await syncSession(session);
+        setLoading(false);
+        break;
+      case 'SIGNED_IN':
+      case 'TOKEN_REFRESHED':
+      case 'USER_UPDATED':
+      case 'MFA_CHALLENGE_VERIFIED':
+        await syncSession(session);
+        setLoading(false);
+        if (event === 'SIGNED_IN' || event === 'MFA_CHALLENGE_VERIFIED') {
+          authStateChangeCount.current = 0;
+          authEventWindowStart.current = now;
+        }
+        break;
+      case 'SIGNED_OUT':
+      case 'USER_DELETED':
+        cleanInvalidSessions();
+        setUser(null);
+        setSupabaseUser(null);
+        setLoading(false);
+        setAuthError(null);
+        authStateChangeCount.current = 0;
+        authEventWindowStart.current = now;
+        break;
+      case 'TOKEN_REFRESH_FAILED':
+        handleAuthError(new Error('Falha ao renovar a sessão. Faça login novamente.'));
+        authStateChangeCount.current = 0;
+        authEventWindowStart.current = now;
+        break;
+      case 'PASSWORD_RECOVERY':
+        setLoading(false);
+        break;
+      default:
+        setLoading(false);
+        break;
+    }
+  }, [handleAuthError, syncSession]);
 
   useEffect(() => {
     let isMounted = true;
 
-    const initializeAuth = async () => {
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
-
-      // Clean any invalid sessions before initializing
-      cleanInvalidSessions();
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (isMounted && session?.user) {
-          setSupabaseUser(session.user);
-          const profile = await ensureProfileExists(session.user);
-          if (isMounted) {
-            setUser(profile);
-          }
-        }
-      } catch (error) {
-        if (error instanceof Error && error.message.includes('Refresh Token Not Found')) {
-          if (!isHandlingAuthError.current) {
-            isHandlingAuthError.current = true;
-            cleanInvalidSessions();
-            await supabase.auth.signOut();
-            isHandlingAuthError.current = false;
-          }
-        } else if (error instanceof Error && (
-          error.message.includes('Invalid API key') ||
-          error.message.includes('JWT expired') ||
-          error.message.includes('invalid_grant')
-        )) {
-          console.error('🔴 Auth initialization failed with invalid credentials:', error.message);
-          cleanInvalidSessions();
-          if (isMounted) {
-            setUser(null);
-            setSupabaseUser(null);
-          }
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
     if (!supabase) {
       setLoading(false);
+      setAuthError('Não foi possível inicializar o Supabase. Verifique as credenciais do projeto.');
       return () => {
         isMounted = false;
       };
     }
 
-    initializeAuth();
+    setLoading(true);
+    cleanInvalidSessions();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Prevent rapid-fire duplicate events
-      const now = Date.now();
-      if (lastAuthEvent.current &&
-          lastAuthEvent.current.event === event &&
-          now - lastAuthEvent.current.timestamp < 1000) {
-        console.log(`🚫 Debouncing duplicate ${event} event`);
-        return;
-      }
-      lastAuthEvent.current = { event, timestamp: now };
-
-      // Limit total auth state changes to prevent infinite loops
-      authStateChangeCount.current += 1;
-      if (authStateChangeCount.current > 10) {
-        console.error('⚠️ Too many auth state changes detected. Stopping to prevent infinite loop.');
-        console.error('   This usually indicates invalid credentials. Check your .env file.');
-        cleanInvalidSessions();
-        setUser(null);
-        setSupabaseUser(null);
-        setLoading(false);
+      if (!isMounted) {
         return;
       }
 
-      console.log(`🔑 Auth state change: ${event} (count: ${authStateChangeCount.current})`);
-
-      if (event === 'SIGNED_IN' && session?.user) {
-        setSupabaseUser(session.user);
-        try {
-          const profile = await ensureProfileExists(session.user);
-          setUser(profile);
-        } catch (error) {
-          console.error('Error creating/fetching profile:', error);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setSupabaseUser(null);
-        cleanInvalidSessions();
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log('✅ Token refreshed successfully');
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        setSupabaseUser(session.user);
+      try {
+        await handleAuthEvent(event, session);
+      } catch (error) {
+        handleAuthError(error);
       }
     });
 
@@ -178,62 +222,125 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [handleAuthEvent, handleAuthError]);
 
   const signIn = async (email: string, password: string) => {
-    // Clean any stale sessions before new sign in
     cleanInvalidSessions();
+    setAuthError(null);
+    setLoading(true);
 
-    const result = await authService.signIn(email, password);
+    let handled = false;
 
-    if (!result.success) {
-      throw new Error(result.error);
-    }
+    try {
+      const result = await authService.signIn(email, password);
 
-    if (result.user) {
-      setSupabaseUser(result.user);
-      const profile = await ensureProfileExists(result.user);
-      setUser(profile);
+      if (!result.success) {
+        const message = result.error || 'Erro ao fazer login. Tente novamente.';
+        throw new Error(message);
+      }
+
+      if (result.user) {
+        setSupabaseUser(result.user);
+        try {
+          const profile = await ensureProfileExists(result.user);
+          setUser(profile);
+          setAuthError(null);
+        } catch (error) {
+          handled = true;
+          handleAuthError(error);
+          throw error instanceof Error ? error : new Error('Erro ao carregar perfil.');
+        }
+      }
+    } catch (error) {
+      if (!handled) {
+        handleAuthError(error);
+      }
+      throw error instanceof Error ? error : new Error('Erro ao fazer login.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const signUp = async (userData: any) => {
-    const result = await authService.signUp(userData);
+    setAuthError(null);
+    setLoading(true);
 
-    if (!result.success) {
-      throw new Error(result.error);
-    }
+    let handled = false;
 
-    if (result.user) {
-      setSupabaseUser(result.user);
-      const profile = await ensureProfileExists(result.user);
-      setUser(profile);
+    try {
+      const result = await authService.signUp(userData);
+
+      if (!result.success) {
+        const message = result.error || 'Erro ao criar usuário. Tente novamente.';
+        throw new Error(message);
+      }
+
+      if (result.user) {
+        setSupabaseUser(result.user);
+        try {
+          const profile = await ensureProfileExists(result.user);
+          setUser(profile);
+          setAuthError(null);
+        } catch (error) {
+          handled = true;
+          handleAuthError(error);
+          throw error instanceof Error ? error : new Error('Erro ao carregar perfil.');
+        }
+      }
+    } catch (error) {
+      if (!handled) {
+        handleAuthError(error);
+      }
+      throw error instanceof Error ? error : new Error('Erro ao criar conta.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
-    cleanInvalidSessions();
-    await authService.signOut();
-    setUser(null);
-    setSupabaseUser(null);
-    authStateChangeCount.current = 0;
+    setLoading(true);
+    setAuthError(null);
+
+    try {
+      cleanInvalidSessions();
+      await authService.signOut();
+    } catch (error) {
+      handleAuthError(error);
+      throw error instanceof Error ? error : new Error('Erro ao encerrar sessão.');
+    } finally {
+      setUser(null);
+      setSupabaseUser(null);
+      authStateChangeCount.current = 0;
+      setLoading(false);
+    }
   };
 
   const refreshUser = async () => {
-    if (supabaseUser) {
+    if (!supabaseUser) {
+      return;
+    }
+
+    try {
       const profile = await ensureProfileExists(supabaseUser);
       setUser(profile);
+      setAuthError(null);
+    } catch (error) {
+      handleAuthError(error);
     }
   };
+
+  const clearAuthError = () => setAuthError(null);
 
   const value: AuthContextType = {
     user,
     supabaseUser,
     loading,
+    authError,
     signIn,
     signUp,
     signOut,
-    refreshUser
+    refreshUser,
+    clearAuthError
   };
 
   return (
