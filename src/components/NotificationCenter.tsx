@@ -118,7 +118,6 @@ export const NotificationCenter: React.FC = () => {
     // Check if Supabase is properly configured
     if (!supabase) {
       console.warn('🔔 NotificationCenter: Supabase not configured, skipping notifications');
-      console.error('🔔 NotificationCenter: Unexpected error:', error);
       // Show user-friendly error message
       setNotifications([]);
       setUnreadCount(0);
@@ -139,13 +138,17 @@ export const NotificationCenter: React.FC = () => {
     } catch (error) {
       console.error('Error loading notifications:', error);
       
-      // Handle network connectivity issues
-      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      // Handle Supabase connection issues
+      if (error instanceof Error && (
+        error.message.includes('Não foi possível conectar ao Supabase') ||
+        error.message.includes('Unable to connect to Supabase') ||
+        error.message.includes('Failed to fetch')
+      )) {
         console.warn('🔔 NotificationCenter: Network error, setting empty state');
         setNotifications([]);
         setUnreadCount(0);
       } else {
-        console.error('🔔 NotificationCenter: Unexpected error:', error);
+        console.warn('🔔 NotificationCenter: Error loading notifications, setting empty state');
         setNotifications([]);
         setUnreadCount(0);
       }
@@ -170,9 +173,9 @@ export const NotificationCenter: React.FC = () => {
     
     // Check if Supabase is properly configured
     if (!supabase) {
-      console.error('🔔 Notifications: Error getting stats:', error);
+      console.warn('🔔 NotificationCenter: Supabase not configured, skipping stats');
       // Don't show error to user for stats - just fail silently
-      setUnreadCount(0);
+      setStats(notificationService.getDefaultStats());
       return;
     }
     
@@ -180,7 +183,16 @@ export const NotificationCenter: React.FC = () => {
       const statsData = await notificationService.getStats(user.id);
       setStats(statsData);
     } catch (error) {
-      console.error('Error loading stats:', error);
+      // Handle Supabase connection issues gracefully
+      if (error instanceof Error && (
+        error.message.includes('Não foi possível conectar ao Supabase') ||
+        error.message.includes('Unable to connect to Supabase') ||
+        error.message.includes('Failed to fetch')
+      )) {
+        console.warn('🔔 NotificationCenter: Network error loading stats, using defaults');
+      } else {
+        console.warn('🔔 NotificationCenter: Error loading stats, using defaults');
+      }
       // Set default stats if loading fails
       setStats(notificationService.getDefaultStats());
     }
