@@ -31,16 +31,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Safety timeout - force loading to false after 5 seconds
   useEffect(() => {
-              .select('*')
+    const timeout = setTimeout(() => {
       setLoading(false);
     }, 5000);
 
     return () => clearTimeout(timeout);
   }, []);
 
-            console.error('Profile fetch failed completely:', fetchError);
   useEffect(() => {
-            // Emergency fallback: Create profile from session data
+    const initializeAuth = async () => {
       try {
         // Check if Supabase is available
         if (!supabase) {
@@ -51,11 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-              status: 'active' as const,
-              team_id: null,
-              manager_id: null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
           setSupabaseUser(session.user);
@@ -110,13 +105,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   position: 'Employee',
                   points: 0,
                   bio: null,
-                  status: 'active' as const
+                  status: 'active' as const,
+                  team_id: null,
+                  manager_id: null,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
                 } as any);
               } else {
                 throw profileError;
               }
             } else {
               setUser(profileData);
+            }
+          } catch (profileError) {
             console.error('Profile fetch error - using fallback:', profileError);
             // Always use fallback profile when there's an error
             setUser({
@@ -134,10 +135,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               manager_id: null,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
-              team_id: null,
-              manager_id: null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
             } as any);
           }
         } else {
@@ -151,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error instanceof Error && error.message.includes('Refresh Token Not Found')) {
           try {
             if (supabase) {
-            await supabase.auth.signOut();
+              await supabase.auth.signOut();
             }
             // Force full page reload to clear all client-side state
             window.location.href = '/login';
