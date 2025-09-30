@@ -52,48 +52,61 @@ export const NotificationCenter: React.FC = () => {
 
   const setupNotificationSubscription = () => {
     if (!user) return;
-    
+
     // Check if Supabase is properly configured
     if (!supabase) {
       console.warn('🔔 NotificationCenter: Supabase not configured, skipping real-time subscription');
       setSubscriptionStatus('disconnected');
       return;
     }
-    
+
     console.log('🔔 NotificationCenter: Setting up subscription, attempt:', reconnectAttempts + 1);
     setSubscriptionStatus('connecting');
-    
+
+    let subscriptionCleanedUp = false;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+
     try {
       const subscription = notificationService.subscribeToNotifications(
         user.id,
         (newNotification) => {
+          if (subscriptionCleanedUp) return;
+
           console.log('🔔 NotificationCenter: New notification received:', newNotification);
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
           setSubscriptionStatus('connected');
           setReconnectAttempts(0);
-          
+
           // Show browser notification
-          notificationService.showBrowserNotification(
-            newNotification.title,
-            newNotification.message
-          );
+          try {
+            notificationService.showBrowserNotification(
+              newNotification.title,
+              newNotification.message
+            );
+          } catch (err) {
+            console.warn('🔔 Browser notification failed:', err);
+          }
         },
         (status) => {
+          if (subscriptionCleanedUp) return;
+
           console.log('🔔 NotificationCenter: Subscription status changed:', status);
-          
+
           if (status === 'SUBSCRIBED') {
             setSubscriptionStatus('connected');
             setReconnectAttempts(0);
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             setSubscriptionStatus('disconnected');
-            
-            if (reconnectAttempts < maxReconnectAttempts) {
-              const delay = Math.pow(2, reconnectAttempts) * 1000;
+
+            if (reconnectAttempts < maxReconnectAttempts && !subscriptionCleanedUp) {
+              const delay = Math.min(Math.pow(2, reconnectAttempts) * 1000, 30000);
               console.log(`🔔 NotificationCenter: Reconnecting in ${delay}ms...`);
-              
-              setTimeout(() => {
-                setReconnectAttempts(prev => prev + 1);
+
+              reconnectTimeout = setTimeout(() => {
+                if (!subscriptionCleanedUp) {
+                  setReconnectAttempts(prev => prev + 1);
+                }
               }, delay);
             }
           }
@@ -101,14 +114,28 @@ export const NotificationCenter: React.FC = () => {
       );
 
       return () => {
+        subscriptionCleanedUp = true;
         console.log('🔔 NotificationCenter: Cleaning up subscription');
+
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout);
+        }
+
         if (subscription) {
-          subscription.unsubscribe();
+          try {
+            subscription.unsubscribe();
+          } catch (err) {
+            console.warn('🔔 Error unsubscribing:', err);
+          }
         }
       };
     } catch (error) {
       console.error('🔔 NotificationCenter: Subscription setup failed:', error);
       setSubscriptionStatus('disconnected');
+
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
     }
   };
 
