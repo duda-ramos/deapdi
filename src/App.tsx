@@ -105,8 +105,14 @@ const useSupabaseSetup = () => {
       // Check if Supabase connection is actually working
       try {
         console.log(`🔧 Setup: Checking health (attempt ${attemptsRef.current}/${MAX_ATTEMPTS})...`);
-        const healthCheck = await checkDatabaseHealth(8000);
+        const healthCheck = await checkDatabaseHealth(12000); // Increased timeout
         const isSetup = healthCheck.healthy;
+
+        console.log('🔧 Setup: Health check result:', {
+          healthy: healthCheck.healthy,
+          error: healthCheck.error,
+          isExpiredToken: healthCheck.isExpiredToken
+        });
 
         if (import.meta.env.DEV) {
           console.log('🔧 Setup Check:', {
