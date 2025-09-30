@@ -428,38 +428,40 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
             <h3 className="text-lg font-semibold mb-4">Como Configurar</h3>
             <div className="space-y-4 text-sm">
               <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">1. Crie um arquivo .env</h4>
-                <p className="text-blue-800 mb-2">Na raiz do projeto, crie um arquivo chamado <code>.env</code> com:</p>
+                <h4 className="font-medium text-blue-900 mb-2">1. Obtenha suas credenciais do Supabase</h4>
+                <p className="text-blue-800 mb-2">Acesse seu projeto no Supabase Dashboard:</p>
                 <div className="bg-blue-100 p-2 rounded font-mono text-xs">
-                  VITE_SUPABASE_URL=https://seu-projeto.supabase.co<br/>
-                  VITE_SUPABASE_ANON_KEY=sua-chave-anonima
+                  https://supabase.com/dashboard/project/fvobspjiujcurfugjsxr/settings/api
                 </div>
                 <button 
-                  onClick={() => copyToClipboard('VITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=')}
+                  onClick={() => window.open('https://supabase.com/dashboard/project/fvobspjiujcurfugjsxr/settings/api', '_blank')}
                   className="mt-2 text-blue-600 hover:text-blue-800 flex items-center"
                 >
-                  <Copy size={14} className="mr-1" />
-                  Copiar template
+                  <ExternalLink size={14} className="mr-1" />
+                  Abrir Supabase Dashboard
                 </button>
               </div>
               
               <div className="bg-green-50 p-4 rounded-lg">
-                <h4 className="font-medium text-green-900 mb-2">2. Obtenha as credenciais</h4>
-                <p className="text-green-800 mb-2">No seu projeto Supabase:</p>
+                <h4 className="font-medium text-green-900 mb-2">2. Copie as credenciais corretas</h4>
+                <p className="text-green-800 mb-2">Na página de API Settings:</p>
                 <ul className="text-green-800 space-y-1">
-                  <li>• Vá em Settings → API</li>
-                  <li>• Copie a Project URL</li>
-                  <li>• Copie a anon/public key</li>
+                  <li>• Copie a <strong>Project URL</strong></li>
+                  <li>• Copie a <strong>anon/public key</strong> (NÃO a service_role)</li>
+                  <li>• Cole no arquivo .env do projeto</li>
+                  <li>• Reinicie o servidor: npm run dev</li>
                 </ul>
-                <a 
-                  href="https://supabase.com/dashboard" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="mt-2 text-green-600 hover:text-green-800 flex items-center"
-                >
-                  <ExternalLink size={14} className="mr-1" />
-                  Abrir Supabase Dashboard
-                </a>
+              </div>
+              
+              <div className="bg-red-50 p-4 rounded-lg">
+                <h4 className="font-medium text-red-900 mb-2">⚠️ Erro 400 - API Key Inválida</h4>
+                <p className="text-red-800 mb-2">O erro 400 indica que sua API key está:</p>
+                <ul className="text-red-800 space-y-1">
+                  <li>• Expirada ou inválida</li>
+                  <li>• Mal formatada (caracteres faltando)</li>
+                  <li>• Usando service_role ao invés de anon key</li>
+                  <li>• Projeto Supabase pausado ou deletado</li>
+                </ul>
               </div>
             </div>
           </Card>

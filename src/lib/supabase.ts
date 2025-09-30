@@ -106,8 +106,36 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
   });
 
   try {
-    // Comprehensive health check - test REST API, Auth API, and database query
+    // Test connection with better error handling for 400 status
     const healthCheckPromise = (async () => {
+      // First test: Basic API connectivity
+      const restUrl = `${supabaseUrl}/rest/v1/`;
+      const restResponse = await fetch(restUrl, {
+        method: 'HEAD',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (restResponse.status === 400) {
+        return {
+          healthy: false,
+          error: 'Invalid Supabase API key. Please check your VITE_SUPABASE_ANON_KEY in the .env file.',
+          isExpiredToken: true
+        };
+      }
+
+      if (restResponse.status === 401 || restResponse.status === 403) {
+        return {
+          healthy: false,
+          error: 'Unauthorized access to Supabase. Please verify your API key is correct.',
+          isExpiredToken: true
+        };
+      }
+
+      // Second test: Auth API
       const authUrl = `${supabaseUrl}/auth/v1/settings`;
       const authResponse = await fetch(authUrl, {
         method: 'GET',
@@ -117,10 +145,18 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
         signal: AbortSignal.timeout(5000)
       });
 
+      if (authResponse.status === 400) {
+        return {
+          healthy: false,
+          error: 'Invalid API key format. Please get a new anon/public key from your Supabase Dashboard.',
+          isExpiredToken: true
+        };
+      }
+
       if (authResponse.status === 401 || authResponse.status === 403) {
         return {
           healthy: false,
-          error: 'Credenciais inválidas ou expiradas. Verifique seu arquivo .env',
+          error: 'API key expired or invalid. Please update your .env file with fresh credentials.',
           isExpiredToken: true
         };
       }
@@ -128,11 +164,12 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
       if (!authResponse.ok) {
         return {
           healthy: false,
-          error: 'Não foi possível conectar ao Supabase',
+          error: `Cannot connect to Supabase (HTTP ${authResponse.status}). Check your internet connection.`,
           isExpiredToken: false
         };
       }
 
+      // Third test: Database query (only if auth is working)
       const { error } = await supabase
         .from('profiles')
         .select('id')
@@ -142,7 +179,7 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
       if (error && error.code !== 'PGRST116') {
         return {
           healthy: false,
-          error: 'Erro ao conectar ao banco de dados',
+          error: `Database error: ${error.message}. Check your RLS policies.`,
           isExpiredToken: false
         };
       }
@@ -157,20 +194,20 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
     if (error instanceof Error && error.message === 'Health check timeout') {
       return {
         healthy: false,
-        error: 'Timeout de conexão. Tente novamente.',
+        error: 'Connection timeout. Please check your internet connection and try again.',
         isExpiredToken: false
       };
     }
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
       return {
         healthy: false,
-        error: 'Não foi possível conectar. Verifique sua internet.',
+        error: 'Network error. Please check your internet connection.',
         isExpiredToken: false
       };
     }
     return {
       healthy: false,
-      error: `Falha na conexão: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+      error: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       isExpiredToken: false
     };
   }
