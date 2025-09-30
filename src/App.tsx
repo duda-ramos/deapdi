@@ -55,98 +55,40 @@ const useSupabaseSetup = () => {
   const [checking, setChecking] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [isExpiredToken, setIsExpiredToken] = React.useState(false);
-  const attemptsRef = React.useRef(0);
-  const MAX_ATTEMPTS = 3;
 
   React.useEffect(() => {
-    // Safety timeout - prevent infinite checking
-    const safetyTimeout = setTimeout(() => {
-      if (checking) {
-        console.warn('⏱️ Setup: Safety timeout reached, forcing setup check to complete');
-        setChecking(false);
-        setError('Setup check timed out. Please check your configuration or use offline mode.');
-      }
-    }, 15000);
-
     const checkSetup = async () => {
-      attemptsRef.current += 1;
-
       const hasUrl = !!import.meta.env.VITE_SUPABASE_URL;
       const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
       const offlineMode = localStorage.getItem('OFFLINE_MODE') === 'true';
 
       if (offlineMode) {
-        console.log('🔧 Setup: Offline mode enabled');
         setSetupComplete(true);
         setChecking(false);
-        clearTimeout(safetyTimeout);
         return;
       }
 
       if (!hasUrl || !hasKey) {
-        console.log('🔧 Setup: Missing credentials');
         setSetupComplete(false);
         setChecking(false);
         setError('Missing Supabase credentials');
-        clearTimeout(safetyTimeout);
         return;
       }
 
-      // Check if we've exceeded max attempts
-      if (attemptsRef.current > MAX_ATTEMPTS) {
-        console.error('🔧 Setup: Max attempts reached');
-        setSetupComplete(false);
-        setChecking(false);
-        setError('Failed to connect after multiple attempts. Please check your configuration.');
-        clearTimeout(safetyTimeout);
-        return;
-      }
-
-      // Check if Supabase connection is actually working
       try {
-        console.log(`🔧 Setup: Checking health (attempt ${attemptsRef.current}/${MAX_ATTEMPTS})...`);
-        const healthCheck = await checkDatabaseHealth(12000); // Increased timeout
-        const isSetup = healthCheck.healthy;
-
-        console.log('🔧 Setup: Health check result:', {
-          healthy: healthCheck.healthy,
-          error: healthCheck.error,
-          isExpiredToken: healthCheck.isExpiredToken
-        });
-
-        if (import.meta.env.DEV) {
-          console.log('🔧 Setup Check:', {
-            hasUrl,
-            hasKey,
-            offlineMode,
-            healthy: healthCheck.healthy,
-            error: healthCheck.error,
-            isExpiredToken: healthCheck.isExpiredToken,
-            isSetup,
-            attempt: attemptsRef.current
-          });
-        }
-
-        setSetupComplete(isSetup);
+        const healthCheck = await checkDatabaseHealth(10000);
+        setSetupComplete(healthCheck.healthy);
         setError(healthCheck.error || null);
         setIsExpiredToken(healthCheck.isExpiredToken || false);
       } catch (error) {
-        if (import.meta.env.DEV) {
-          console.log('🔧 Setup Check Failed:', error);
-        }
         setSetupComplete(false);
         setError(error instanceof Error ? error.message : 'Unknown error occurred');
       }
 
       setChecking(false);
-      clearTimeout(safetyTimeout);
     };
 
     checkSetup();
-
-    return () => {
-      clearTimeout(safetyTimeout);
-    };
   }, []);
 
   return { setupComplete, checking, error, isExpiredToken, setSetupComplete };

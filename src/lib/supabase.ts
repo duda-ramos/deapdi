@@ -12,14 +12,7 @@ const isPlaceholder = (value: string | undefined) => {
 };
 
 if (!supabaseUrl || !supabaseAnonKey || isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
-  console.error('⚠️ Supabase credentials are missing or invalid - using fallback mode');
-  console.error('📝 Please update your .env file with valid Supabase credentials');
-  console.error('Current URL:', supabaseUrl);
-  console.error('Has Key:', !!supabaseAnonKey);
-} else {
-  console.log('✅ Supabase client initializing...');
-  console.log('URL:', supabaseUrl);
-  console.log('Key present:', !!supabaseAnonKey);
+  console.error('⚠️ Supabase credentials are missing or invalid');
 }
 
 export const supabase = (supabaseUrl && supabaseAnonKey && !isPlaceholder(supabaseUrl) && !isPlaceholder(supabaseAnonKey)) ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -36,23 +29,13 @@ export const supabase = (supabaseUrl && supabaseAnonKey && !isPlaceholder(supaba
       'X-Client-Info': 'talentflow-web'
     },
     fetch: (url, options = {}) => {
-      console.log('🌐 Supabase fetch:', url);
       return fetch(url, {
         ...options,
-        signal: AbortSignal.timeout(15000) // 15 second timeout
-      }).catch(error => {
-        console.error('❌ Supabase fetch error:', error);
-        throw error;
+        signal: AbortSignal.timeout(15000)
       });
     }
   }
 }) : null;
-
-if (supabase) {
-  console.log('✅ Supabase client created successfully');
-} else {
-  console.error('❌ Supabase client is NULL - check your credentials');
-}
 
 // Check if JWT token is expired
 export const isJWTExpired = (token: string): boolean => {
@@ -104,123 +87,41 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
   try {
     // Comprehensive health check - test REST API, Auth API, and database query
     const healthCheckPromise = (async () => {
-      // 1. Test REST API endpoint reachability
-      const restUrl = `${supabaseUrl}/rest/v1/`;
-      try {
-        const restResponse = await fetch(restUrl, {
-          method: 'HEAD',
-          headers: {
-            'apikey': supabaseAnonKey,
-            'Authorization': `Bearer ${supabaseAnonKey}`
-          },
-          signal: AbortSignal.timeout(5000)
-        });
+      const authUrl = `${supabaseUrl}/auth/v1/settings`;
+      const authResponse = await fetch(authUrl, {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseAnonKey
+        },
+        signal: AbortSignal.timeout(5000)
+      });
 
-        // Check for 401/403 which might indicate expired token
-        if (restResponse.status === 401 || restResponse.status === 403) {
-          return {
-            healthy: false,
-            error: 'Authentication failed. Your Supabase credentials may be invalid or expired. Please check your .env file.',
-            isExpiredToken: true
-          };
-        }
-
-        if (!restResponse.ok && restResponse.status !== 404) {
-          throw new Error(`REST API unreachable: ${restResponse.status}`);
-        }
-      } catch (fetchError) {
-        if (fetchError instanceof TypeError && fetchError.message === 'Failed to fetch') {
-          return {
-            healthy: false,
-            error: 'Cannot connect to Supabase. Please check your internet connection and verify that VITE_SUPABASE_URL is correct in your .env file.',
-            isExpiredToken: false
-          };
-        }
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          return {
-            healthy: false,
-            error: 'Connection timeout. Supabase is taking too long to respond.',
-            isExpiredToken: false
-          };
-        }
+      if (authResponse.status === 401 || authResponse.status === 403) {
         return {
           healthy: false,
-          error: `Cannot reach Supabase REST API: ${fetchError instanceof Error ? fetchError.message : 'Network error'}`,
+          error: 'Credenciais inválidas ou expiradas. Verifique seu arquivo .env',
+          isExpiredToken: true
+        };
+      }
+
+      if (!authResponse.ok) {
+        return {
+          healthy: false,
+          error: 'Não foi possível conectar ao Supabase',
           isExpiredToken: false
         };
       }
 
-      // 2. Test Auth API endpoint
-      try {
-        const authUrl = `${supabaseUrl}/auth/v1/settings`;
-        const authResponse = await fetch(authUrl, {
-          method: 'GET',
-          headers: {
-            'apikey': supabaseAnonKey
-          },
-          signal: AbortSignal.timeout(5000)
-        });
+      const { error } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
 
-        if (authResponse.status === 401 || authResponse.status === 403) {
-          return {
-            healthy: false,
-            error: 'Authentication failed. Your Supabase ANON_KEY may be invalid or expired.',
-            isExpiredToken: true
-          };
-        }
-
-        if (!authResponse.ok) {
-          throw new Error(`Auth API unreachable: ${authResponse.status}`);
-        }
-      } catch (fetchError) {
-        if (fetchError instanceof TypeError && fetchError.message === 'Failed to fetch') {
-          return {
-            healthy: false,
-            error: 'Cannot connect to Supabase Auth API. Please check your internet connection and verify that VITE_SUPABASE_URL is correct in your .env file.',
-            isExpiredToken: false
-          };
-        }
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          return {
-            healthy: false,
-            error: 'Auth API timeout. Supabase is taking too long to respond.',
-            isExpiredToken: false
-          };
-        }
+      if (error && error.code !== 'PGRST116') {
         return {
           healthy: false,
-          error: `Cannot reach Supabase Auth API: ${fetchError instanceof Error ? fetchError.message : 'Network error'}`,
-          isExpiredToken: false
-        };
-      }
-
-      // 3. Test database query
-      try {
-        // Simple query without RLS complications
-        const { error } = await supabase
-          .from('profiles')
-          .select('id')
-          .limit(1)
-          .single();
-        if (error) {
-          // If there's still an error, it might be empty table or other issue
-          console.warn('Database query warning:', error);
-          // Don't fail health check for empty table
-          if (error.code === 'PGRST116') {
-            return { healthy: true, error: null, isExpiredToken: false };
-          }
-        }
-      } catch (queryError) {
-        if (queryError instanceof TypeError && queryError.message === 'Failed to fetch') {
-          return {
-            healthy: false,
-            error: 'Cannot connect to Supabase database. Please check your internet connection and verify your Supabase configuration.',
-            isExpiredToken: false
-          };
-        }
-        return {
-          healthy: false,
-          error: `Database connection failed: ${queryError instanceof Error ? queryError.message : 'Unknown error'}`,
+          error: 'Erro ao conectar ao banco de dados',
           isExpiredToken: false
         };
       }
@@ -235,20 +136,20 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
     if (error instanceof Error && error.message === 'Health check timeout') {
       return {
         healthy: false,
-        error: 'Connection timeout. Supabase is taking too long to respond. Please check your connection or try again later.',
+        error: 'Timeout de conexão. Tente novamente.',
         isExpiredToken: false
       };
     }
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
       return {
         healthy: false,
-        error: 'Cannot connect to Supabase. Please check your internet connection and verify that your .env file contains the correct VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY values.',
+        error: 'Não foi possível conectar. Verifique sua internet.',
         isExpiredToken: false
       };
     }
     return {
       healthy: false,
-      error: `Supabase connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error: `Falha na conexão: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
       isExpiredToken: false
     };
   }

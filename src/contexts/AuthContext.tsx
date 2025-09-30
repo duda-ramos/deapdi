@@ -28,220 +28,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<ProfileWithRelations | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
 
-  // Safety timeout - force loading to false after 10 seconds
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.warn('⏱️ Auth: Safety timeout reached, forcing loading to false');
-      if (loading) {
-        setLoading(false);
-        setUser(null);
-        setSupabaseUser(null);
-      }
-    }, 10000);
-
-    return () => clearTimeout(timeout);
-  }, [loading]);
-
-  /**
-   * Create or update profile for authenticated user
-   */
   const ensureProfileExists = async (authUser: SupabaseUser): Promise<ProfileWithRelations | null> => {
-    try {
-      // First, try to fetch existing profile
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .maybeSingle();
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .maybeSingle();
 
-      if (existingProfile && !fetchError) {
-        console.log('✅ Profile found for user:', authUser.email);
-        return existingProfile;
-      }
-
-      // Profile doesn't exist - create it
-      console.log('📝 Creating profile for user:', authUser.email);
-
-      const newProfile = {
-        id: authUser.id,
-        email: authUser.email || '',
-        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-        role: 'employee' as const,
-        status: 'active' as const,
-        position: authUser.user_metadata?.position || 'Colaborador',
-        level: authUser.user_metadata?.level || 'Júnior',
-        points: 0,
-        avatar_url: authUser.user_metadata?.avatar_url || null,
-        bio: null,
-        team_id: null,
-        manager_id: null
-      };
-
-      const { data: createdProfile, error: createError } = await supabase
-        .from('profiles')
-        .insert(newProfile)
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('❌ Error creating profile:', createError);
-        // Return a basic profile even if creation fails
-        return {
-          ...newProfile,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        } as any;
-      }
-
-      console.log('✅ Profile created successfully');
-      return createdProfile;
-
-    } catch (error) {
-      console.error('❌ Exception in ensureProfileExists:', error);
-
-      // Return fallback profile
-      return {
-        id: authUser.id,
-        email: authUser.email || '',
-        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-        role: 'employee' as const,
-        avatar_url: authUser.user_metadata?.avatar_url || null,
-        level: authUser.user_metadata?.level || 'Júnior',
-        position: authUser.user_metadata?.position || 'Colaborador',
-        points: 0,
-        bio: null,
-        status: 'active' as const,
-        team_id: null,
-        manager_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      } as any;
+    if (existingProfile) {
+      return existingProfile;
     }
+
+    const newProfile = {
+      id: authUser.id,
+      email: authUser.email || '',
+      name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+      role: 'employee' as const,
+      status: 'active' as const,
+      position: authUser.user_metadata?.position || 'Colaborador',
+      level: authUser.user_metadata?.level || 'Júnior',
+      points: 0,
+      avatar_url: authUser.user_metadata?.avatar_url || null,
+      bio: null,
+      team_id: null,
+      manager_id: null
+    };
+
+    const { data: createdProfile } = await supabase
+      .from('profiles')
+      .insert(newProfile)
+      .select()
+      .single();
+
+    return createdProfile || newProfile as any;
   };
 
   useEffect(() => {
     let isMounted = true;
-    let authTimeout: NodeJS.Timeout | null = null;
 
     const initializeAuth = async () => {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        console.log('🔐 Auth: Initializing...');
+        const { data: { session } } = await supabase.auth.getSession();
 
-        // Set a timeout for initialization
-        authTimeout = setTimeout(() => {
-          if (isMounted && loading) {
-            console.warn('⏱️ Auth: Initialization timeout, completing anyway');
-            setLoading(false);
-          }
-        }, 8000);
-
-        // Check if Supabase is available
-        if (!supabase) {
-          console.warn('🔐 Auth: Supabase not available, using offline mode');
+        if (isMounted && session?.user) {
+          setSupabaseUser(session.user);
+          const profile = await ensureProfileExists(session.user);
           if (isMounted) {
-            setUser(null);
-            setSupabaseUser(null);
-            setLoading(false);
-          }
-          if (authTimeout) clearTimeout(authTimeout);
-          return;
-        }
-
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error('🔐 Auth: Session error:', sessionError);
-          throw sessionError;
-        }
-
-        if (isMounted) {
-          if (session?.user) {
-            console.log('🔐 Auth: Session found for user:', session.user.email);
-            setSupabaseUser(session.user);
-
-            // Ensure profile exists and set it
-            const profile = await ensureProfileExists(session.user);
-            if (isMounted) {
-              setUser(profile);
-            }
-          } else {
-            console.log('🔐 Auth: No active session');
-            setUser(null);
-            setSupabaseUser(null);
+            setUser(profile);
           }
         }
       } catch (error) {
-        console.error('🔐 Auth: Initialization error:', error);
-
-        // Handle invalid refresh token errors by clearing session data
         if (error instanceof Error && error.message.includes('Refresh Token Not Found')) {
-          console.log('🔐 Auth: Invalid refresh token, clearing session');
-          try {
-            if (supabase) {
-              await supabase.auth.signOut();
-            }
-          } catch (signOutError) {
-            console.error('Error clearing invalid session:', signOutError);
-          }
-        }
-
-        if (isMounted) {
-          setUser(null);
-          setSupabaseUser(null);
+          await supabase.auth.signOut();
         }
       } finally {
-        console.log('🔐 Auth: Initialization complete');
         if (isMounted) {
           setLoading(false);
         }
-        if (authTimeout) clearTimeout(authTimeout);
       }
     };
 
     initializeAuth();
 
-    // Set up auth state change listener with race condition protection
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth: State changed:', event);
-
-      // Prevent concurrent processing of auth state changes
-      if (isProcessingAuth) {
-        console.log('🔐 Auth: Already processing auth state, skipping...');
-        return;
-      }
-
-      try {
-        setIsProcessingAuth(true);
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          setSupabaseUser(session.user);
-          const profile = await ensureProfileExists(session.user);
-          setUser(profile);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setSupabaseUser(null);
-        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          setSupabaseUser(session.user);
-          // Optionally refresh profile
-          const profile = await ensureProfileExists(session.user);
-          setUser(profile);
-        }
-      } finally {
-        setIsProcessingAuth(false);
+      if (event === 'SIGNED_IN' && session?.user) {
+        setSupabaseUser(session.user);
+        const profile = await ensureProfileExists(session.user);
+        setUser(profile);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSupabaseUser(null);
       }
     });
 
     return () => {
       isMounted = false;
-      if (authTimeout) clearTimeout(authTimeout);
       subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    console.log('🔐 Auth: Signing in user:', email);
     const result = await authService.signIn(email, password);
 
     if (!result.success) {
@@ -256,7 +128,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (userData: any) => {
-    console.log('🔐 Auth: Signing up user:', userData.email);
     const result = await authService.signUp(userData);
 
     if (!result.success) {
@@ -265,21 +136,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (result.user) {
       setSupabaseUser(result.user);
-      // Profile will be created automatically by trigger or by ensureProfileExists
       const profile = await ensureProfileExists(result.user);
       setUser(profile);
     }
   };
 
   const signOut = async () => {
-    console.log('🔐 Auth: Signing out');
     await authService.signOut();
     setUser(null);
     setSupabaseUser(null);
   };
 
   const refreshUser = async () => {
-    console.log('🔐 Auth: Refreshing user profile');
     if (supabaseUser) {
       const profile = await ensureProfileExists(supabaseUser);
       setUser(profile);
