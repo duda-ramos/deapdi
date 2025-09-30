@@ -9,6 +9,7 @@ import { AchievementProvider } from './contexts/AchievementContext';
 import { AchievementToast } from './components/AchievementToast';
 import { useAchievements } from './contexts/AchievementContext';
 import { SetupCheck } from './components/SetupCheck';
+import { checkDatabaseHealth } from './lib/supabase';
 import { Login } from './components/Login';
 import { Onboarding } from './components/Onboarding';
 import { Layout } from './components/layout/Layout';
@@ -55,18 +56,40 @@ const useSupabaseSetup = () => {
   const [checking, setChecking] = React.useState(true);
 
   React.useEffect(() => {
-    const checkSetup = () => {
+    const checkSetup = async () => {
       const hasUrl = !!import.meta.env.VITE_SUPABASE_URL;
       const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
       const offlineMode = localStorage.getItem('OFFLINE_MODE') === 'true';
       
-      const isSetup = (hasUrl && hasKey) || offlineMode;
-      
-      if (import.meta.env.DEV) {
-        console.log('🔧 Setup Check:', { hasUrl, hasKey, offlineMode, isSetup });
+      if (offlineMode) {
+        setSetupComplete(true);
+        setChecking(false);
+        return;
       }
       
-      setSetupComplete(isSetup);
+      if (!hasUrl || !hasKey) {
+        setSetupComplete(false);
+        setChecking(false);
+        return;
+      }
+      
+      // Check if Supabase connection is actually working
+      try {
+        const healthCheck = await checkDatabaseHealth();
+        const isSetup = healthCheck.healthy;
+        
+        if (import.meta.env.DEV) {
+          console.log('🔧 Setup Check:', { hasUrl, hasKey, offlineMode, healthy: healthCheck.healthy, error: healthCheck.error, isSetup });
+        }
+        
+        setSetupComplete(isSetup);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.log('🔧 Setup Check Failed:', error);
+        }
+        setSetupComplete(false);
+      }
+      
       setChecking(false);
     };
 
