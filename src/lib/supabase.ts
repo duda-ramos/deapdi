@@ -83,10 +83,10 @@ export const checkDatabaseHealth = async () => {
 
     // 3. Test database query
     try {
-      const { data, error } = await supabase
+      // Use a simple count query that works with anonymous access
+      const { count, error } = await supabase
         .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .limit(1);
+        .select('*', { count: 'exact', head: true });
       
       if (error) {
         // Handle RLS recursion errors specifically

@@ -56,35 +56,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setSupabaseUser(session.user);
           
-          // Simple profile fetch with error handling for RLS issues
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          
-          if (error) {
-            console.error('Profile fetch error:', error);
-            // If it's an RLS recursion error, still set the user but without profile data
-            if (error.code === '42P17' || error.message?.includes('infinite recursion')) {
-              console.warn('RLS recursion detected, using basic user data only');
-              setUser(null); // Will trigger setup check
+          try {
+            // Simple profile fetch with retry logic for RLS issues
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .maybeSingle();
+            
+            if (error) {
+              console.error('Profile fetch error:', error);
+              // If it's an RLS recursion error, still set the user but without profile data
+              if (error.code === '42P17' || error.message?.includes('infinite recursion')) {
+                console.warn('RLS recursion detected, using basic user data only');
+                setUser(null); // Will trigger setup check
+              } else {
+                throw error;
+              }
             } else {
-              throw error;
+              setUser(data || null);
             }
-          } else {
-          if (error) {
-            console.error('Profile fetch error:', error);
-            // If it's an RLS recursion error, still set the user but without profile data
-            if (error.code === '42P17' || error.message?.includes('infinite recursion')) {
-              console.warn('RLS recursion detected, using basic user data only');
-              setUser(null); // Will trigger setup check
-            } else {
-              throw error;
-            }
-          } else {
-          setUser(data || null);
-          }
+          } catch (profileError) {
+            console.error('Failed to fetch profile:', profileError);
+            // Continue with null user to allow setup flow
+            setUser(null);
           }
         } else {
           setUser(null);
