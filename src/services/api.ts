@@ -82,6 +82,11 @@ export const supabaseRequest = async <T>(
         throw new Error('Não foi possível conectar ao Supabase. Verifique se as variáveis de ambiente estão configuradas corretamente e se o projeto está online.');
       }
       
+      // Handle network/connection errors
+      if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+        throw new Error('Unable to connect to Supabase. Please check your internet connection and Supabase configuration.');
+      }
+      
       // Handle specific error types
       if (error?.code === '42501') {
         throw new Error('Você não tem permissão para realizar esta ação.');

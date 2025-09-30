@@ -118,6 +118,8 @@ export const NotificationCenter: React.FC = () => {
     // Check if Supabase is properly configured
     if (!supabase) {
       console.warn('🔔 NotificationCenter: Supabase not configured, skipping notifications');
+      console.error('🔔 NotificationCenter: Unexpected error:', error);
+      // Show user-friendly error message
       setNotifications([]);
       setUnreadCount(0);
       setLoading(false);
@@ -168,7 +170,9 @@ export const NotificationCenter: React.FC = () => {
     
     // Check if Supabase is properly configured
     if (!supabase) {
-      setStats(notificationService.getDefaultStats());
+      console.error('🔔 Notifications: Error getting stats:', error);
+      // Don't show error to user for stats - just fail silently
+      setUnreadCount(0);
       return;
     }
     
