@@ -93,13 +93,6 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
     } catch (e) {
       console.error('🔴 Supabase ANON_KEY is expired or malformed');
     }
-      const payload = JSON.parse(atob(parts[1]));
-      const expDate = new Date(payload.exp * 1000).toISOString();
-      console.error('🔴 Supabase ANON_KEY expired at:', expDate);
-      console.error('🔴 Current time:', new Date().toISOString());
-    } catch (e) {
-      console.error('🔴 Supabase ANON_KEY is expired');
-    }
     return {
       healthy: false,
       error: 'Your Supabase ANON_KEY has expired. Please update your .env file with a new key from your Supabase Dashboard.',
