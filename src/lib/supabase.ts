@@ -28,16 +28,64 @@ export const checkDatabaseHealth = async () => {
   }
 
   try {
-    // Simple health check - just try to connect
+    // Comprehensive health check - test REST API, Auth API, and database query
+    
+    // 1. Test REST API endpoint reachability
+    const restUrl = `${supabaseUrl}/rest/v1/`;
+    try {
+      const restResponse = await fetch(restUrl, {
+        method: 'HEAD',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`
+        }
+      });
+      if (!restResponse.ok && restResponse.status !== 404) {
+        throw new Error(`REST API unreachable: ${restResponse.status}`);
+      }
+    } catch (fetchError) {
+      return { 
+        healthy: false, 
+        error: `Cannot reach Supabase REST API: ${fetchError instanceof Error ? fetchError.message : 'Network error'}` 
+      };
+    }
+
+    // 2. Test Auth API endpoint
+    try {
+      const authUrl = `${supabaseUrl}/auth/v1/settings`;
+      const authResponse = await fetch(authUrl, {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseAnonKey
+        }
+      });
+      if (!authResponse.ok) {
+        throw new Error(`Auth API unreachable: ${authResponse.status}`);
+      }
+    } catch (fetchError) {
+      return { 
+        healthy: false, 
+        error: `Cannot reach Supabase Auth API: ${fetchError instanceof Error ? fetchError.message : 'Network error'}` 
+      };
+    }
+
+    // 3. Test database query
     const { error } = await supabase
       .from('profiles')
       .select('id', { count: 'exact', head: true });
+    
+    if (error) {
+      return { 
+        healthy: false, 
+        error: `Database query failed: ${error.message}` 
+      };
+    }
     
     return { healthy: !error, error: error?.message };
   } catch (error) {
     return { 
       healthy: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: `Supabase connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
     };
   }
 };
