@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle, 
-  Settings, 
+import {
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Settings,
   Database,
   Wifi,
   WifiOff,
   Copy,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Activity
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card } from './ui/Card';
+import { ConnectionDiagnostics } from './ConnectionDiagnostics';
 
 interface SetupStatus {
   hasUrl: boolean;
@@ -49,10 +51,11 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
     url: '',
     key: ''
   });
-  
+
   const [showManualSetup, setShowManualSetup] = useState(false);
   const [testing, setTesting] = useState(false);
   const [offlineMode, setOfflineMode] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   useEffect(() => {
     checkEnvironmentVariables();
@@ -251,6 +254,10 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
     );
   }
 
+  if (showDiagnostics) {
+    return <ConnectionDiagnostics onClose={() => setShowDiagnostics(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
@@ -366,6 +373,14 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
               >
                 <RefreshCw size={16} className="mr-2" />
                 Testar Novamente
+              </Button>
+              <Button
+                onClick={() => setShowDiagnostics(true)}
+                variant="outline"
+                size="sm"
+              >
+                <Activity size={16} className="mr-2" />
+                Diagnóstico Completo
               </Button>
             </div>
           </Card>
