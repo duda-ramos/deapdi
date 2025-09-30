@@ -73,7 +73,7 @@ export const shouldRunMigrations = () => {
 };
 
 // Check if database is properly initialized
-export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
+export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ healthy: boolean; error: string | null; isExpiredToken: boolean; isInvalidKey: boolean }> => {
   if (!supabase) {
     const isPlaceholderCreds = isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey);
     const errorMsg = isPlaceholderCreds
@@ -81,7 +81,7 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
       : 'Supabase client not initialized';
     return { healthy: false, error: errorMsg, isExpiredToken: false };
   }
-
+ 
   // Check if JWT token is expired
   if (supabaseAnonKey && isJWTExpired(supabaseAnonKey)) {
     try {
@@ -96,7 +96,8 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
     return {
       healthy: false,
       error: 'Your Supabase ANON_KEY has expired. Please update your .env file with a new key from your Supabase Dashboard.',
-      isExpiredToken: true
+      isExpiredToken: true,
+      isInvalidKey: false
     };
   }
 
@@ -123,7 +124,8 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
         return {
           healthy: false,
           error: 'Invalid Supabase API key. Please check your VITE_SUPABASE_ANON_KEY in the .env file.',
-          isExpiredToken: true
+          isExpiredToken: false,
+          isInvalidKey: true
         };
       }
 
@@ -131,7 +133,8 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
         return {
           healthy: false,
           error: 'Unauthorized access to Supabase. Please verify your API key is correct.',
-          isExpiredToken: true
+          isExpiredToken: false,
+          isInvalidKey: true
         };
       }
 
@@ -184,13 +187,14 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
         };
       }
 
-      return { healthy: true, error: null, isExpiredToken: false };
+      return { healthy: true, error: null, isExpiredToken: false, isInvalidKey: false };
     })();
 
     // Race between health check and timeout
     return await Promise.race([healthCheckPromise, timeoutPromise]);
 
   } catch (error) {
+    // ... (existing error handling)
     if (error instanceof Error && error.message === 'Health check timeout') {
       return {
         healthy: false,
@@ -209,6 +213,7 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
       healthy: false,
       error: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       isExpiredToken: false
+      isInvalidKey: false
     };
   }
 };

@@ -33,6 +33,7 @@ interface SetupCheckProps {
   onSetupComplete: () => void;
   initialError?: string | null;
   isExpiredToken?: boolean;
+  isInvalidKey?: boolean;
 }
 
 export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initialError, isExpiredToken }) => {
@@ -62,14 +63,20 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
   }, []);
 
   // Show expired token warning if detected
+  // Show expired/invalid token warning if detected
   useEffect(() => {
     if (isExpiredToken) {
       setStatus(prev => ({
         ...prev,
         connectionError: initialError || 'Your Supabase credentials have expired. Please update your .env file.'
       }));
+    } else if (isInvalidKey) {
+      setStatus(prev => ({
+        ...prev,
+        connectionError: initialError || 'Your Supabase API key is invalid. Please check your VITE_SUPABASE_ANON_KEY in the .env file.'
+      }));
     }
-  }, [isExpiredToken, initialError]);
+  }, [isExpiredToken, isInvalidKey, initialError]);
 
   const checkEnvironmentVariables = async () => {
     console.log('🔍 SetupCheck: Checking environment variables...');
@@ -275,16 +282,18 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
           </div>
 
           {/* Expired Token Warning */}
-          {isExpiredToken && (
+          {(isExpiredToken || isInvalidKey) && (
             <Card className="p-6 mb-6 bg-red-50 border-red-200">
               <div className="flex items-start space-x-3">
                 <AlertTriangle className="text-red-600 flex-shrink-0 mt-1" size={24} />
                 <div>
                   <h3 className="text-lg font-semibold text-red-900 mb-2">
-                    Token Expirado
+                    {isExpiredToken ? 'Token Expirado' : 'Chave de API Inválida'}
                   </h3>
                   <p className="text-red-800 mb-4">
-                    Suas credenciais do Supabase expiraram. Para continuar, você precisa atualizar o arquivo .env com novas credenciais.
+                    {isExpiredToken
+                      ? 'Suas credenciais do Supabase expiraram. Para continuar, você precisa atualizar o arquivo .env com novas credenciais.'
+                      : 'Sua chave de API do Supabase é inválida. Por favor, verifique o valor de VITE_SUPABASE_ANON_KEY no seu arquivo .env.'}
                   </p>
                   <div className="bg-red-100 p-3 rounded-lg text-sm">
                     <p className="font-medium text-red-900 mb-2">Como resolver:</p>
