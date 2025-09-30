@@ -87,7 +87,6 @@ export const checkDatabaseHealth = async () => {
         .from('profiles')
         .select('id', { count: 'exact', head: true })
         .limit(1);
-        .limit(1);
       
       if (error) {
         // Handle RLS recursion errors specifically
