@@ -386,13 +386,13 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <AchievementProvider>
-          <Router>
+        <Router>
+          <AchievementProvider>
             <AchievementWrapper>
               <AppRoutes />
             </AchievementWrapper>
-          </Router>
-        </AchievementProvider>
+          </AchievementProvider>
+        </Router>
       </AuthProvider>
     </ErrorBoundary>
   );
