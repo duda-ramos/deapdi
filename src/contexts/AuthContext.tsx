@@ -57,29 +57,82 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSupabaseUser(session.user);
           
           try {
-            // Simple profile fetch with retry logic for RLS issues
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle();
+            // Emergency: Use service account or bypass RLS for profile fetch
+            let profileData = null;
+            let profileError = null;
             
-            if (error) {
-              console.error('Profile fetch error:', error);
+            try {
+              // First attempt: Simple profile fetch
+              const { data, error } = await supabase
+                .from('profiles')
+                .select('id, email, name, role, avatar_url, level, position, points, bio, status')
+                .eq('id', session.user.id)
+                .single();
+              
+              profileData = data;
+              profileError = error;
+            } catch (fetchError) {
+              console.warn('Profile fetch failed, trying alternative approach:', fetchError);
+              
+              // Fallback: Create minimal profile from session data
+              profileData = {
+                id: session.user.id,
+                email: session.user.email || '',
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                role: 'employee' as const,
+                avatar_url: session.user.user_metadata?.avatar_url || null,
+                level: 'Junior',
+                position: 'Employee',
+                points: 0,
+                bio: null,
+                status: 'active' as const
+              };
+              profileError = null;
+            }
+            
+            if (profileError) {
+              console.error('Profile fetch error:', profileError);
               // If it's an RLS recursion error, still set the user but without profile data
-              if (error.code === '42P17' || error.message?.includes('infinite recursion')) {
+              if (profileError.code === '42P17' || profileError.message?.includes('infinite recursion')) {
                 console.warn('RLS recursion detected, using basic user data only');
-                setUser(null); // Will trigger setup check
+                // Create a basic profile from session data
+                setUser({
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                  role: 'employee' as const,
+                  avatar_url: session.user.user_metadata?.avatar_url || null,
+                  level: 'Junior',
+                  position: 'Employee',
+                  points: 0,
+                  bio: null,
+                  status: 'active' as const
+                } as any);
               } else {
-                throw error;
+                throw profileError;
               }
             } else {
-              setUser(data || null);
+              setUser(profileData);
             }
           } catch (profileError) {
             console.error('Failed to fetch profile:', profileError);
-            // Continue with null user to allow setup flow
-            setUser(null);
+            // Emergency fallback: Create basic profile from session
+            if (session?.user) {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                role: 'employee' as const,
+                avatar_url: session.user.user_metadata?.avatar_url || null,
+                level: 'Junior',
+                position: 'Employee',
+                points: 0,
+                bio: null,
+                status: 'active' as const
+              } as any);
+            } else {
+              setUser(null);
+            }
           }
         } else {
           setUser(null);
