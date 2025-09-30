@@ -31,7 +31,13 @@ const Administration: React.FC = () => {
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState('system');
   const [showBackupModal, setShowBackupModal] = useState(false);
-  const [systemStats, setSystemStats] = useState<any>(null);
+  const [systemStats, setSystemStats] = useState<any>({
+    totalUsers: 0,
+    activeUsers: 0,
+    totalPDIs: 0,
+    systemUptime: 'N/A',
+    lastBackup: 'N/A'
+  });
   const [systemConfig, setSystemConfig] = useState({
     company_name: 'TalentFlow Corp',
     system_url: 'https://talentflow.empresa.com',

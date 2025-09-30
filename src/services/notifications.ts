@@ -313,34 +313,43 @@ export const notificationService = {
       return null;
     }
     
-    const channel = supabase
-      .channel(`notifications_${profileId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `profile_id=eq.${profileId}`
-        },
-        (payload) => {
-          console.log('🔔 Notifications: Received real-time notification:', payload);
-          if (payload.new) {
-            callback(payload.new as Notification);
+    try {
+      const channel = supabase
+        .channel(`notifications_${profileId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `profile_id=eq.${profileId}`
+          },
+          (payload) => {
+            console.log('🔔 Notifications: Received real-time notification:', payload);
+            if (payload.new) {
+              callback(payload.new as Notification);
+            }
           }
-        }
-      )
-      .subscribe((status, err) => {
-        console.log('🔔 Notifications: Subscription status:', status);
-        if (err) {
-          console.error('🔔 Notifications: Subscription error:', err);
-        }
-        if (statusCallback) {
-          statusCallback(status);
-        }
-      });
+        )
+        .subscribe((status, err) => {
+          console.log('🔔 Notifications: Subscription status:', status);
+          if (err) {
+            console.warn('🔔 Notifications: Subscription error (non-critical):', err);
+            // Don't throw error, just log it
+            statusCallback?.('CHANNEL_ERROR');
+            return;
+          }
+          if (statusCallback) {
+            statusCallback(status);
+          }
+        });
     
-    return channel;
+      return channel;
+    } catch (error) {
+      console.warn('🔔 Notifications: Failed to setup subscription:', error);
+      statusCallback?.('CHANNEL_ERROR');
+      return null;
+    }
   },
 
   // Specific notification creators

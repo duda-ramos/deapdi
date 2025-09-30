@@ -486,7 +486,7 @@ export const achievementService = {
   },
 
   async updateTemplate(id: string, updates: Partial<AchievementTemplate>) {
-    console.log('�� Achievements: Updating template:', id);
+    console.log('🏆 Achievements: Updating template:', id);
     return supabaseRequest(() => supabase
       .from('achievement_templates')
       .update(updates)

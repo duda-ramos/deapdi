@@ -107,9 +107,9 @@ export const hrCalendarService = {
       .from('calendar_events')
       .select(`
         *,
-        user:profiles!calendar_events_user_id_fkey(id, name, avatar_url, position),
-        team:teams!calendar_events_team_id_fkey(id, name),
-        creator:profiles!calendar_events_created_by_fkey(id, name)
+        user:profiles!user_id(id, name, avatar_url, position),
+        team:teams!team_id(id, name),
+        creator:profiles!created_by(id, name)
       `);
 
     if (filters?.start_date) {
@@ -181,8 +181,8 @@ export const hrCalendarService = {
       .from('calendar_requests')
       .select(`
         *,
-        requester:profiles!calendar_requests_requester_id_fkey(id, name, avatar_url, position, team_id),
-        reviewer:profiles!calendar_requests_reviewed_by_fkey(id, name)
+        requester:profiles!requester_id(id, name, avatar_url, position, team_id),
+        reviewer:profiles!reviewed_by(id, name)
       `);
 
     if (filters?.requester_id) {
@@ -240,7 +240,7 @@ export const hrCalendarService = {
       .eq('id', id)
       .select(`
         *,
-        requester:profiles!inner(id, name, email)
+        requester:profiles!requester_id(id, name, email)
       `)
       .single(), 'approveCalendarRequest');
 
@@ -286,7 +286,7 @@ export const hrCalendarService = {
       .eq('id', id)
       .select(`
         *,
-        requester:profiles!inner(id, name, email)
+        requester:profiles!requester_id(id, name, email)
       `)
       .single(), 'rejectCalendarRequest');
 
