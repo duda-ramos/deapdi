@@ -3,6 +3,7 @@ import { User as SupabaseUser, Session, AuthChangeEvent } from '@supabase/supaba
 import { ProfileWithRelations } from '../types';
 import { supabase, cleanInvalidSessions } from '../lib/supabase';
 import { authService, translateSupabaseAuthError } from '../services/auth';
+import { debugSystem } from '../utils/debugger';
 
 interface AuthContextType {
   user: ProfileWithRelations | null;
