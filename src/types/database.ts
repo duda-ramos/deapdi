@@ -791,6 +791,109 @@ export interface Database {
           updated_at?: string
         }
       }
+      calendar_events: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          type: 'ferias' | 'feriado' | 'evento' | 'aniversario' | 'day-off'
+          start_date: string
+          end_date: string
+          all_day: boolean
+          user_id: string | null
+          team_id: string | null
+          created_by: string
+          status: 'pending' | 'approved' | 'rejected'
+          color: string | null
+          location: string | null
+          recurrence_rule: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          type: 'ferias' | 'feriado' | 'evento' | 'aniversario' | 'day-off'
+          start_date: string
+          end_date: string
+          all_day?: boolean
+          user_id?: string | null
+          team_id?: string | null
+          created_by: string
+          status?: 'pending' | 'approved' | 'rejected'
+          color?: string | null
+          location?: string | null
+          recurrence_rule?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          type?: 'ferias' | 'feriado' | 'evento' | 'aniversario' | 'day-off'
+          start_date?: string
+          end_date?: string
+          all_day?: boolean
+          user_id?: string | null
+          team_id?: string | null
+          created_by?: string
+          status?: 'pending' | 'approved' | 'rejected'
+          color?: string | null
+          location?: string | null
+          recurrence_rule?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      calendar_requests: {
+        Row: {
+          id: string
+          requester_id: string
+          type: 'ferias' | 'day-off' | 'licenca'
+          start_date: string
+          end_date: string
+          reason: string
+          status: 'pending' | 'approved' | 'rejected'
+          reviewed_by: string | null
+          reviewed_at: string | null
+          review_notes: string | null
+          days_requested: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          requester_id: string
+          type: 'ferias' | 'day-off' | 'licenca'
+          start_date: string
+          end_date: string
+          reason: string
+          status?: 'pending' | 'approved' | 'rejected'
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
+          days_requested: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          requester_id?: string
+          type?: 'ferias' | 'day-off' | 'licenca'
+          start_date?: string
+          end_date?: string
+          reason?: string
+          status?: 'pending' | 'approved' | 'rejected'
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
+          days_requested?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
