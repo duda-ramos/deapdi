@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Plus, Users, Calendar, CheckCircle, Clock, AlertTriangle, User, Target, CreditCard as Edit, Trash2, UserPlus, UserMinus, BarChart3, Award, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAchievements } from '../contexts/AchievementContext';
-import { actionGroupService, GroupWithDetails, CreateGroupData, CreateTaskData, MemberContribution } from '../services/actionGroups';
+import { actionGroupService, GroupWithDetails, CreateGroupData, CreateTaskData } from '../services/actionGroups';
 import { databaseService } from '../services/database';
 import { Profile, PDI } from '../types';
 import { Card } from '../components/ui/Card';
