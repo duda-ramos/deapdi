@@ -95,6 +95,11 @@ export const supabaseRequest = async <T>(
         throw new Error('Sua sessão expirou. Por favor, faça login novamente.');
       }
       
+      // Handle RLS recursion errors specifically
+      if (error?.code === '42P17' || errorMessage?.includes('infinite recursion detected in policy')) {
+        throw new Error('SUPABASE_RLS_RECURSION: As políticas de segurança da tabela precisam ser corrigidas no Supabase. Desabilite temporariamente RLS na tabela action_groups ou corrija as políticas recursivas.');
+      }
+      
       throw new Error(errorMessage || 'Erro interno do servidor.');
     }
     

@@ -83,7 +83,13 @@ const ActionGroups: React.FC = () => {
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       setGroups([]);
-      setError('Erro ao carregar grupos de ação');
+      
+      // Provide specific error message for RLS recursion
+      if (error instanceof Error && error.message.includes('SUPABASE_RLS_RECURSION')) {
+        setError('⚠️ Problema de configuração detectado: As políticas de segurança da tabela action_groups no Supabase estão causando recursão infinita. Para resolver: 1) Acesse o Supabase SQL Editor, 2) Execute: ALTER TABLE action_groups DISABLE ROW LEVEL SECURITY; 3) Ou corrija as políticas RLS recursivas.');
+      } else {
+        setError('Erro ao carregar grupos de ação');
+      }
     } finally {
       setLoading(false);
     }

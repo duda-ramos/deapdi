@@ -34,13 +34,22 @@ export interface CreateTaskData {
 
 export const actionGroupService = {
   // Use simple queries with proper error handling for RLS recursion
-  async getGroups(): Promise<any[]> {
-    console.log('👥 ActionGroups: Getting groups with RLS-safe query');
-    
     try {
-      // Use regular supabase client with error handling for RLS recursion
-      const groups = await supabaseRequest(() => supabase!
-        .from('action_groups')
+      return await supabaseRequest(
+        () => supabase
+          .from('action_groups')
+          .select('id, title, description, deadline, status, created_by, created_at')
+          .order('created_at', { ascending: false }),
+        'getActionGroups'
+      );
+    } catch (error) {
+      // If RLS recursion error, return empty array to prevent app crash
+      if (error instanceof Error && error.message.includes('SUPABASE_RLS_RECURSION')) {
+        console.warn('RLS recursion detected - returning empty groups array');
+        return [];
+      }
+      throw error;
+    }
         .select('id, title, description, deadline, status, created_by, created_at')
         .order('created_at', { ascending: false }), 'getActionGroups');
 
