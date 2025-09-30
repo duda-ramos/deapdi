@@ -30,7 +30,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "postbuild": "echo 'Build completed successfully. Ready for deploy.'",
-    "prebuild": "npm run type-check"
+    "prebuild": "npm run lint && npm run type-check"
   },
   "dependencies": {
     "@sentry/react": "^10.12.0",
