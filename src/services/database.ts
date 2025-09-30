@@ -144,27 +144,6 @@ export const databaseService = {
     return data;
   },
 
-  async getAllCompetencies() {
-    const { data, error } = await supabase
-      .from('competencies')
-      .select('*')
-      .order('name');
-
-    if (error) throw error;
-    return data;
-  },
-
-  async createCompetency(competency: Omit<Competency, 'id' | 'created_at' | 'updated_at'>) {
-    const { data, error } = await supabase
-      .from('competencies')
-      .insert(competency)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  },
-
   async updateCompetency(id: string, updates: Partial<Competency>) {
     const { data, error } = await supabase
       .from('competencies')
@@ -175,15 +154,6 @@ export const databaseService = {
 
     if (error) throw error;
     return data;
-  },
-
-  async deleteCompetency(id: string) {
-    const { error } = await supabase
-      .from('competencies')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
   },
 
   // PDIs

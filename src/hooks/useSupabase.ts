@@ -107,7 +107,7 @@ export function useSupabaseSubscription<T>(
 
     const setupSubscription = () => {
       try {
-        const channel = supabase
+        let channel = supabase
           .channel(`${table}_changes`)
           .on('postgres_changes', 
             { 
