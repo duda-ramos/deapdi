@@ -276,6 +276,14 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/hr-calendar"
+        element={
+          <ProtectedRoute>
+            <LazyHRCalendar />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin"
         element={
           <ProtectedRoute>

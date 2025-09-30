@@ -632,8 +632,18 @@ const HRArea: React.FC = () => {
                   <p className="text-gray-600 text-sm mb-4">
                     {report.description}
                   </p>
-                  <Button size="sm" className="w-full">
-                    Gerar Relatório
+                  <Button 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => {
+                      if (report.title === 'Calendário de Férias') {
+                        window.location.href = '/hr-calendar';
+                      } else {
+                        // Gerar outros relatórios
+                      }
+                    }}
+                  >
+                    {report.title === 'Calendário de Férias' ? 'Abrir Calendário' : 'Gerar Relatório'}
                   </Button>
                 </Card>
               </motion.div>
