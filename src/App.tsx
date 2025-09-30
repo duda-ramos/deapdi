@@ -57,38 +57,60 @@ const useSupabaseSetup = () => {
   const [isExpiredToken, setIsExpiredToken] = React.useState(false);
 
   React.useEffect(() => {
+    let mounted = true;
+
     const checkSetup = async () => {
       const hasUrl = !!import.meta.env.VITE_SUPABASE_URL;
       const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
       const offlineMode = localStorage.getItem('OFFLINE_MODE') === 'true';
 
       if (offlineMode) {
-        setSetupComplete(true);
-        setChecking(false);
+        if (mounted) {
+          setSetupComplete(true);
+          setChecking(false);
+        }
         return;
       }
 
       if (!hasUrl || !hasKey) {
-        setSetupComplete(false);
-        setChecking(false);
-        setError('Missing Supabase credentials');
+        if (mounted) {
+          setSetupComplete(false);
+          setChecking(false);
+          setError('Missing Supabase credentials');
+        }
         return;
       }
 
       try {
-        const healthCheck = await checkDatabaseHealth(10000);
-        setSetupComplete(healthCheck.healthy);
-        setError(healthCheck.error || null);
-        setIsExpiredToken(healthCheck.isExpiredToken || false);
-      } catch (error) {
-        setSetupComplete(false);
-        setError(error instanceof Error ? error.message : 'Unknown error occurred');
-      }
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Setup check timeout after 15s')), 15000);
+        });
 
-      setChecking(false);
+        const healthCheckPromise = checkDatabaseHealth(10000);
+        const healthCheck = await Promise.race([healthCheckPromise, timeoutPromise]);
+
+        if (mounted) {
+          setSetupComplete(healthCheck.healthy);
+          setError(healthCheck.error || null);
+          setIsExpiredToken(healthCheck.isExpiredToken || false);
+        }
+      } catch (error) {
+        if (mounted) {
+          setSetupComplete(false);
+          setError(error instanceof Error ? error.message : 'Unknown error occurred');
+        }
+      } finally {
+        if (mounted) {
+          setChecking(false);
+        }
+      }
     };
 
     checkSetup();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return { setupComplete, checking, error, isExpiredToken, setSetupComplete };

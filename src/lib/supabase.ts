@@ -54,7 +54,13 @@ export const isJWTExpired = (token: string): boolean => {
       return true;
     }
 
-    // Check if expired (no buffer for already expired tokens)
+    // If iat === exp, token has zero lifetime (invalid)
+    if (payload.iat && payload.iat === payload.exp) {
+      console.warn('⚠️ JWT token has zero lifetime (iat === exp)');
+      return true;
+    }
+
+    // Check if expired
     return payload.exp <= now;
   } catch {
     return false;
@@ -80,6 +86,13 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
   if (supabaseAnonKey && isJWTExpired(supabaseAnonKey)) {
     try {
       const parts = supabaseAnonKey.split('.');
+      const payload = JSON.parse(atob(parts[1]));
+      const expDate = new Date(payload.exp * 1000).toISOString();
+      console.error('🔴 Supabase ANON_KEY expired at:', expDate);
+      console.error('🔴 Current time:', new Date().toISOString());
+    } catch (e) {
+      console.error('🔴 Supabase ANON_KEY is expired or malformed');
+    }
       const payload = JSON.parse(atob(parts[1]));
       const expDate = new Date(payload.exp * 1000).toISOString();
       console.error('🔴 Supabase ANON_KEY expired at:', expDate);
