@@ -34,6 +34,7 @@ export interface CreateTaskData {
 
 export const actionGroupService = {
   // Use simple queries with proper error handling for RLS recursion
+  async getActionGroups(): Promise<any[]> {
     try {
       return await supabaseRequest(
         () => supabase
@@ -50,6 +51,12 @@ export const actionGroupService = {
       }
       throw error;
     }
+  },
+
+  async getActionGroupsBasic(): Promise<any[]> {
+    try {
+      const groups = await supabaseRequest(() => supabase!
+        .from('action_groups')
         .select('id, title, description, deadline, status, created_by, created_at')
         .order('created_at', { ascending: false }), 'getActionGroups');
 
