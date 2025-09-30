@@ -84,7 +84,7 @@ class AuthService {
   }
 
   /**
-   * Sign in user
+   * Sign in user with timeout protection
    */
   async signIn(email: string, password: string): Promise<AuthResponse> {
     console.log('🔐 AuthService: Starting signin process');
@@ -97,16 +97,27 @@ class AuthService {
         error: 'Sistema não configurado. Entre em contato com o administrador.'
       };
     }
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('TIMEOUT')), 10000);
+      });
+
+      const signInPromise = supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      console.log('🔐 AuthService: Signin response:', { 
-        user: !!data.user, 
-        session: !!data.session, 
-        error 
+      const { data, error } = await Promise.race([
+        signInPromise,
+        timeoutPromise
+      ]) as any;
+
+      console.log('🔐 AuthService: Signin response:', {
+        user: !!data.user,
+        session: !!data.session,
+        error
       });
 
       if (error) {
@@ -126,6 +137,14 @@ class AuthService {
 
     } catch (error: any) {
       console.error('🔐 AuthService: Signin exception:', error);
+
+      if (error.message === 'TIMEOUT') {
+        return {
+          success: false,
+          error: 'Tempo limite de conexão excedido. Verifique sua internet.'
+        };
+      }
+
       return {
         success: false,
         error: this.formatError(error.message)
