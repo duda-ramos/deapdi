@@ -724,8 +724,8 @@ export const mentalHealthService = {
       .single(), 'updateFormTemplate');
   },
 
-  // Form Submissions
-  async getFormResponses(employeeId?: string, filters?: {
+  // Form Submissions with Filters
+  async getFormResponsesWithFilters(employeeId?: string, filters?: {
     templateId?: string;
     formId?: string;
     riskLevel?: string;

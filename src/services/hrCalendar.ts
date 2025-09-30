@@ -579,7 +579,7 @@ export const hrCalendarService = {
 
     const events = await this.getEvents(filters);
     
-    let icsContent = [
+    const icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//TalentFlow//HR Calendar//EN',
