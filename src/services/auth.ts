@@ -1,6 +1,52 @@
 import { supabase } from '../lib/supabase';
 import { ProfileWithRelations } from '../types';
 
+export const translateSupabaseAuthError = (message: string): string => {
+  if (!message) {
+    return 'Erro desconhecido de autenticação. Tente novamente.';
+  }
+
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('invalid login credentials')) {
+    return 'Email ou senha incorretos. Verifique suas credenciais.';
+  }
+
+  if (normalized.includes('user already registered')) {
+    return 'Este email já está cadastrado. Tente fazer login.';
+  }
+
+  if (normalized.includes('password should be at least')) {
+    return 'A senha deve ter pelo menos 6 caracteres.';
+  }
+
+  if (normalized.includes('email_not_confirmed')) {
+    return 'Por favor, confirme seu email antes de fazer login.';
+  }
+
+  if (normalized.includes('signup disabled')) {
+    return 'Cadastro de novos usuários está desabilitado.';
+  }
+
+  if (normalized.includes('invalid api key') || normalized.includes('invalid_grant')) {
+    return 'Credenciais Supabase inválidas. Revise sua configuração.';
+  }
+
+  if (normalized.includes('refresh token not found')) {
+    return 'Sessão expirada. Faça login novamente.';
+  }
+
+  if (normalized.includes('jwt expired')) {
+    return 'Sua sessão expirou. Entre novamente para continuar.';
+  }
+
+  if (normalized.includes('mfa token') || normalized.includes('mfa challenged')) {
+    return 'Autenticação multifator necessária. Verifique seu email ou aplicativo autenticador.';
+  }
+
+  return message;
+};
+
 export interface SignUpData {
   email: string;
   password: string;
@@ -41,7 +87,7 @@ class AuthService {
       if (error) {
         return {
           success: false,
-          error: this.formatError(error.message)
+          error: translateSupabaseAuthError(error.message)
         };
       }
 
@@ -60,7 +106,7 @@ class AuthService {
     } catch (error: any) {
       return {
         success: false,
-        error: this.formatError(error.message)
+        error: translateSupabaseAuthError(error.message)
       };
     }
   }
@@ -91,7 +137,7 @@ class AuthService {
       if (error) {
         return {
           success: false,
-          error: this.formatError(error.message)
+          error: translateSupabaseAuthError(error.message)
         };
       }
 
@@ -110,7 +156,7 @@ class AuthService {
 
       return {
         success: false,
-        error: this.formatError(error.message)
+        error: translateSupabaseAuthError(error.message)
       };
     }
   }
@@ -122,7 +168,7 @@ class AuthService {
 
     const { error } = await supabase.auth.signOut();
     if (error) {
-      throw error;
+      throw new Error(translateSupabaseAuthError(error.message));
     }
   }
 
@@ -153,12 +199,12 @@ class AuthService {
         .maybeSingle();
 
       if (error) {
-        return null;
+        throw new Error(translateSupabaseAuthError(error.message));
       }
 
       return data;
-    } catch (error) {
-      return null;
+    } catch (error: any) {
+      throw new Error(translateSupabaseAuthError(error?.message));
     }
   }
 
@@ -175,31 +221,12 @@ class AuthService {
       .single();
 
     if (error) {
-      throw error;
+      throw new Error(translateSupabaseAuthError(error.message));
     }
 
     return data;
   }
 
-  private formatError(message: string): string {
-    if (message.includes('Invalid login credentials')) {
-      return 'Email ou senha incorretos. Verifique suas credenciais.';
-    }
-    if (message.includes('User already registered')) {
-      return 'Este email já está cadastrado. Tente fazer login.';
-    }
-    if (message.includes('Password should be at least')) {
-      return 'A senha deve ter pelo menos 6 caracteres.';
-    }
-    if (message.includes('email_not_confirmed')) {
-      return 'Por favor, confirme seu email antes de fazer login.';
-    }
-    if (message.includes('signup_disabled')) {
-      return 'Cadastro de novos usuários está desabilitado.';
-    }
-    
-    return message || 'Erro desconhecido. Tente novamente.';
-  }
 }
 
 export const authService = new AuthService();
