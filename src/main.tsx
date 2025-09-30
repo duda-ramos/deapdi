@@ -17,14 +17,51 @@ if (import.meta.env.VITE_SENTRY_DSN && import.meta.env.PROD) {
     tracesSampleRate: 0.1,
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
+    ignoreErrors: [
+      // Browser and WebContainer environment noise
+      'ResizeObserver loop limit exceeded',
+      'ResizeObserver loop completed with undelivered notifications',
+      'Contextify',
+      'running source code in new context',
+      // Network errors that are temporary
+      'Failed to fetch',
+      'NetworkError',
+      'Network request failed',
+      // StackBlitz/WebContainer specific
+      'blitz.js',
+      'fetch.worker',
+      'Watcher has not received',
+      'open event was not received',
+      // Common browser extensions
+      'extensions/',
+      'chrome-extension',
+      'moz-extension',
+      // Non-critical warnings
+      'Non-Error promise rejection captured'
+    ],
     beforeSend(event) {
-      // Filter out development errors
+      // Filter out development and sandbox environment errors
       if (event.exception) {
         const error = event.exception.values?.[0];
-        if (error?.value?.includes('ResizeObserver loop limit exceeded')) {
+        const errorMessage = error?.value || '';
+
+        // Filter StackBlitz/WebContainer warnings
+        if (errorMessage.includes('Contextify') ||
+            errorMessage.includes('blitz.js') ||
+            errorMessage.includes('preload') ||
+            errorMessage.includes('X-Frame-Options')) {
           return null;
         }
       }
+
+      // Filter out non-critical console warnings
+      if (event.level === 'warning' && event.message) {
+        if (event.message.includes('preload') ||
+            event.message.includes('X-Frame-Options')) {
+          return null;
+        }
+      }
+
       return event;
     }
   });
@@ -45,7 +82,9 @@ if (import.meta.env.VITE_ANALYTICS_ID && import.meta.env.PROD) {
   gtag('js', new Date());
   gtag('config', import.meta.env.VITE_ANALYTICS_ID, {
     page_title: 'TalentFlow',
-    page_location: window.location.href
+    page_location: window.location.href,
+    send_page_view: true,
+    anonymize_ip: true
   });
 }
 

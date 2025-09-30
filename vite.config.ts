@@ -75,6 +75,15 @@ export default defineConfig(({ mode }) => ({
       'X-Frame-Options': 'DENY',
       'X-XSS-Protection': '1; mode=block',
       'Referrer-Policy': 'strict-origin-when-cross-origin'
+    },
+    // Optimize file watcher for better HMR performance
+    watch: {
+      usePolling: false,
+      interval: 100
+    },
+    hmr: {
+      overlay: true,
+      timeout: 5000
     }
   },
   // Production preview settings

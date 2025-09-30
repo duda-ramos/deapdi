@@ -32,6 +32,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const profileCacheRef = React.useRef<Map<string, { profile: ProfileWithRelations; timestamp: number }>>(new Map());
   const PROFILE_CACHE_TTL = 30000; // 30 seconds
+  const AUTH_TIMEOUT = 5000; // 5 seconds - reduced from 8 seconds for faster feedback
+  const retryAttemptsRef = React.useRef(0);
+  const MAX_RETRY_ATTEMPTS = 3;
 
   /**
    * Create or update profile for authenticated user
@@ -155,11 +158,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Set a timeout for initialization
         authTimeout = setTimeout(() => {
           if (isMounted && loading) {
-            console.warn('⏱️ Auth: Initialization timeout, completing anyway');
+            console.warn('⏱️ Auth: Initialization timeout after 5s, completing anyway');
             setLoading(false);
             initializingRef.current = false;
           }
-        }, 8000);
+        }, AUTH_TIMEOUT);
 
         // Check if Supabase is available
         if (!supabase) {
@@ -178,8 +181,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (sessionError) {
           console.error('🔐 Auth: Session error:', sessionError);
+
+          // Retry logic with exponential backoff
+          if (retryAttemptsRef.current < MAX_RETRY_ATTEMPTS) {
+            retryAttemptsRef.current++;
+            const backoffDelay = Math.min(1000 * Math.pow(2, retryAttemptsRef.current - 1), 4000);
+            console.log(`🔄 Auth: Retrying in ${backoffDelay}ms (attempt ${retryAttemptsRef.current}/${MAX_RETRY_ATTEMPTS})`);
+
+            await new Promise(resolve => setTimeout(resolve, backoffDelay));
+            if (isMounted) {
+              // Recursively retry initialization
+              initializingRef.current = false;
+              return initializeAuth();
+            }
+          }
+
           throw sessionError;
         }
+
+        // Reset retry counter on success
+        retryAttemptsRef.current = 0;
 
         if (isMounted) {
           if (session?.user) {
@@ -200,17 +221,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) {
         console.error('🔐 Auth: Initialization error:', error);
 
-        // Handle invalid refresh token errors by clearing session data
-        if (error instanceof Error && error.message.includes('Refresh Token Not Found')) {
-          console.log('🔐 Auth: Invalid refresh token, clearing session');
-          try {
-            if (supabase) {
-              await supabase.auth.signOut();
+        // Handle specific error types with user-friendly messages
+        let errorMessage = 'Unable to initialize authentication. Please try again.';
+
+        if (error instanceof Error) {
+          // Handle invalid refresh token errors by clearing session data
+          if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
+            console.log('🔐 Auth: Invalid refresh token, clearing session');
+            errorMessage = 'Your session has expired. Please sign in again.';
+            try {
+              if (supabase) {
+                await supabase.auth.signOut();
+              }
+            } catch (signOutError) {
+              console.error('Error clearing invalid session:', signOutError);
             }
-          } catch (signOutError) {
-            console.error('Error clearing invalid session:', signOutError);
+          } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            errorMessage = 'Unable to connect. Please check your internet connection.';
+          } else if (error.message.includes('timeout')) {
+            errorMessage = 'Connection timed out. Please try again.';
           }
         }
+
+        // Log user-friendly error for display (could be shown in UI)
+        console.error('🔴 Auth Error (User-facing):', errorMessage);
 
         if (isMounted) {
           setUser(null);
