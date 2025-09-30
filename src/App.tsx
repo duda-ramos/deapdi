@@ -55,7 +55,6 @@ const useSupabaseSetup = () => {
   const [checking, setChecking] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [isExpiredToken, setIsExpiredToken] = React.useState(false);
-  const [isInvalidKey, setIsInvalidKey] = React.useState(false);
 
   React.useEffect(() => {
     let mounted = true;
