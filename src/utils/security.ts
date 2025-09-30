@@ -3,7 +3,7 @@ import DOMPurify from 'dompurify';
 /**
  * Sanitize HTML content to prevent XSS attacks
  */
-export const sanitizeHtml = (dirty: string): string => {
+const sanitizeHtml = (dirty: string): string => {
   return DOMPurify.sanitize(dirty, {
     ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br'],
     ALLOWED_ATTR: []
@@ -23,7 +23,7 @@ export const sanitizeText = (input: string): string => {
 /**
  * Validate email format
  */
-export const isValidEmail = (email: string): boolean => {
+const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
@@ -31,7 +31,7 @@ export const isValidEmail = (email: string): boolean => {
 /**
  * Validate password strength
  */
-export const isValidPassword = (password: string): boolean => {
+const isValidPassword = (password: string): boolean => {
   return password.length >= 6;
 };
 

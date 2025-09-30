@@ -70,7 +70,7 @@ const hasValidLifetime = (token: string | undefined): boolean => {
 };
 
 // Check if JWT token is expired
-export const isJWTExpired = (token: string): boolean => {
+const isJWTExpired = (token: string): boolean => {
   const payload = decodeJWTPayload(token);
   if (!payload?.exp) return false;
 
@@ -133,7 +133,7 @@ export const supabase = shouldInitializeClient
     })
   : null;
 // Migration control - prevent automatic migrations
-export const shouldRunMigrations = () => {
+const shouldRunMigrations = () => {
   // Only run migrations if explicitly enabled
   return import.meta.env.VITE_RUN_MIGRATIONS === 'true';
 };

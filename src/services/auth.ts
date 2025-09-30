@@ -47,7 +47,7 @@ export const translateSupabaseAuthError = (message: string): string => {
   return message;
 };
 
-export interface SignUpData {
+interface SignUpData {
   email: string;
   password: string;
   name: string;
@@ -55,7 +55,7 @@ export interface SignUpData {
   level: string;
 }
 
-export interface AuthResponse {
+interface AuthResponse {
   success: boolean;
   user?: any;
   session?: any;

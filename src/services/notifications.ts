@@ -26,7 +26,7 @@ export interface NotificationStats {
   most_common_type: string;
 }
 
-export interface CreateNotificationData {
+interface CreateNotificationData {
   profile_id: string;
   title: string;
   message: string;

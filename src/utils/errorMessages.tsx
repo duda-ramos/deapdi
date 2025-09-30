@@ -1,13 +1,13 @@
 import React from 'react';
 import { AlertCircle, RefreshCw, Settings, Wifi } from 'lucide-react';
 
-export interface ErrorAction {
+interface ErrorAction {
   label: string;
   action: () => void;
   variant?: 'primary' | 'secondary';
 }
 
-export const getErrorMessage = (error: string): { message: string; actions: ErrorAction[] } => {
+const getErrorMessage = (error: string): { message: string; actions: ErrorAction[] } => {
   // Supabase specific errors
   if (error.includes('Invalid Refresh Token') || error.includes('refresh_token_not_found')) {
     return {

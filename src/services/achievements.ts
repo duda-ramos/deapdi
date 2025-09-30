@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { supabaseRequest } from './api';
 import type { Achievement } from '../types';
 
-export interface AchievementTemplate {
+interface AchievementTemplate {
   id: string;
   title: string;
   description: string;
@@ -39,7 +39,7 @@ export interface AchievementNotification {
   category: string;
 }
 
-export interface UserStats {
+interface UserStats {
   completedPDIs: number;
   completedTasks: number;
   completedCourses: number;

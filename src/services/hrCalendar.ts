@@ -46,7 +46,7 @@ export interface CalendarRequest {
   reviewer?: any;
 }
 
-export interface CalendarSettings {
+interface CalendarSettings {
   vacation_min_advance_days: number;
   dayoff_min_advance_days: number;
   max_dayoff_per_year: number;

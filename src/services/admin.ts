@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { supabaseRequest } from './api';
 
-export interface SystemConfig {
+interface SystemConfig {
   id: string;
   company_name: string;
   system_url: string;
@@ -13,7 +13,7 @@ export interface SystemConfig {
   updated_at: string;
 }
 
-export interface SystemStats {
+interface SystemStats {
   total_users: number;
   active_users: number;
   total_pdis: number;
@@ -26,7 +26,7 @@ export interface SystemStats {
   active_sessions: number;
 }
 
-export interface AuditLog {
+interface AuditLog {
   id: string;
   user_id: string;
   action: string;
