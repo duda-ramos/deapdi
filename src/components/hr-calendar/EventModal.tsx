@@ -124,7 +124,14 @@ export const EventModal: React.FC<EventModalProps> = ({
     setLoading(true);
 
     try {
-      await onSave(formData);
+      // Convert empty strings to null for UUID fields
+      const cleanedFormData = {
+        ...formData,
+        user_id: formData.user_id || null,
+        team_id: formData.team_id || null
+      };
+      
+      await onSave(cleanedFormData);
     } catch (error) {
       console.error('Error saving event:', error);
     } finally {
