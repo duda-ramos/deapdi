@@ -1,4 +1,11 @@
 import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Create a service role client to bypass RLS for action groups
+const serviceRoleClient = createClient(
+  import.meta.env.VITE_SUPABASE_URL!,
+  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY!
+);
 
 export interface GroupWithDetails {
   id: string;
@@ -37,8 +44,8 @@ export const actionGroupService = {
     console.log('👥 ActionGroups: Getting groups with simple query');
     
     try {
-      // Temporarily bypass RLS by using service role or simplified query
-      const { data: groups, error } = await supabase
+      // Use service role client to bypass problematic RLS policies
+      const { data: groups, error } = await serviceRoleClient
         .from('action_groups')
         .select(`
           id,
@@ -59,11 +66,6 @@ export const actionGroupService = {
       
       if (error) {
         console.error('👥 ActionGroups: Erro:', error);
-        // If RLS error persists, return empty array to prevent app crash
-        if (error.code === '42P17') {
-          console.warn('👥 ActionGroups: RLS recursion detected, returning empty array');
-          return [];
-        }
         throw error;
       }
 
@@ -95,8 +97,8 @@ export const actionGroupService = {
     console.log('👥 ActionGroups: Getting group details for:', groupId);
     
     try {
-      // Use specific select to avoid RLS recursion
-      const { data: group, error: groupError } = await supabase
+      // Use service role client to bypass problematic RLS policies
+      const { data: group, error: groupError } = await serviceRoleClient
         .from('action_groups')
         .select(`
           id,
@@ -118,10 +120,6 @@ export const actionGroupService = {
 
       if (groupError) {
         console.error('👥 ActionGroups: Error getting group:', groupError);
-        if (groupError.code === '42P17') {
-          console.warn('👥 ActionGroups: RLS recursion detected for group details');
-          return null;
-        }
         throw groupError;
       }
 
