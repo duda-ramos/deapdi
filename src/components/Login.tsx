@@ -7,9 +7,8 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 
 export const Login: React.FC = () => {
-  const { signIn, signUp } = useAuth();
-  
-  // Form states
+  const { signIn, signUp, authError, clearAuthError } = useAuth();
+
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -45,14 +44,11 @@ export const Login: React.FC = () => {
     setError('');
     setSuccess('');
     setIsLoading(true);
-
-    console.log('🔵 Login: Starting sign in...', loginForm.email);
+    clearAuthError();
 
     try {
       await signIn(loginForm.email, loginForm.password);
-      console.log('✅ Login: Sign in successful');
     } catch (err: any) {
-      console.error('❌ Login: Sign in failed:', err);
       setError(err.message || 'Erro ao fazer login. Tente novamente.');
     } finally {
       setIsLoading(false);
@@ -63,8 +59,8 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    clearAuthError();
 
-    // Validation
     if (signupForm.password !== signupForm.confirmPassword) {
       setError('As senhas não coincidem');
       return;
@@ -86,7 +82,6 @@ export const Login: React.FC = () => {
     }
 
     setIsLoading(true);
-    console.log('🔵 Login: Starting sign up...', signupForm.email);
 
     try {
       await signUp({
@@ -97,7 +92,6 @@ export const Login: React.FC = () => {
         level: signupForm.level
       });
 
-      console.log('✅ Login: Sign up successful');
       setSuccess('Conta criada com sucesso! Você já pode fazer login.');
       setIsSignUp(false);
       setLoginForm({ email: signupForm.email, password: '' });
@@ -109,9 +103,7 @@ export const Login: React.FC = () => {
         position: '',
         level: 'Júnior'
       });
-
     } catch (err: any) {
-      console.error('❌ Login: Sign up failed:', err);
       setError(err.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
       setIsLoading(false);
@@ -121,6 +113,7 @@ export const Login: React.FC = () => {
   const resetForms = () => {
     setError('');
     setSuccess('');
+    clearAuthError();
     setLoginForm({ email: '', password: '' });
     setSignupForm({
       name: '',
@@ -136,6 +129,12 @@ export const Login: React.FC = () => {
     setIsSignUp(mode);
     resetForms();
   };
+
+  React.useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
@@ -241,6 +240,7 @@ export const Login: React.FC = () => {
                 <Button
                   type="submit"
                   loading={isLoading}
+                  disabled={isLoading}
                   className="w-full"
                   size="lg"
                 >
@@ -373,6 +373,7 @@ export const Login: React.FC = () => {
                 <Button
                   type="submit"
                   loading={isLoading}
+                  disabled={isLoading}
                   className="w-full"
                   size="lg"
                 >

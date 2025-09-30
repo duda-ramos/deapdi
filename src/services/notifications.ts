@@ -26,7 +26,7 @@ export interface NotificationStats {
   most_common_type: string;
 }
 
-export interface CreateNotificationData {
+interface CreateNotificationData {
   profile_id: string;
   title: string;
   message: string;
@@ -300,53 +300,93 @@ export const notificationService = {
   },
   // Real-time subscription with enhanced error handling
   subscribeToNotifications(
-    profileId: string, 
+    profileId: string,
     callback: (notification: Notification) => void,
     statusCallback?: (status: string) => void
   ) {
     console.log('🔔 Notifications: Setting up enhanced subscription for profile:', profileId);
-    
-    const channel = supabase
-      .channel(`notifications_${profileId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `profile_id=eq.${profileId}`
-        },
-        (payload) => {
-          console.log('🔔 Notifications: Received real-time notification:', payload);
-          if (payload.new) {
-            callback(payload.new as Notification);
+
+    if (!supabase) {
+      console.error('🔔 Notifications: Cannot subscribe - Supabase not initialized');
+      if (statusCallback) {
+        statusCallback('ERROR');
+      }
+      return null;
+    }
+
+    let isUnsubscribed = false;
+
+    try {
+      const channel = supabase
+        .channel(`notifications_${profileId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `profile_id=eq.${profileId}`
+          },
+          (payload) => {
+            if (isUnsubscribed) return;
+
+            try {
+              console.log('🔔 Notifications: Received real-time notification:', payload);
+              if (payload.new) {
+                callback(payload.new as Notification);
+              }
+            } catch (err) {
+              console.error('🔔 Notifications: Error in callback:', err);
+            }
           }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `profile_id=eq.${profileId}`
+          },
+          (payload) => {
+            if (isUnsubscribed) return;
+            console.log('🔔 Notifications: Notification updated:', payload);
+          }
+        )
+        .subscribe((status, err) => {
+          if (isUnsubscribed) return;
+
+          console.log('🔔 Notifications: Subscription status:', status);
+          if (err) {
+            console.error('🔔 Notifications: Subscription error:', err);
+          }
+          if (statusCallback) {
+            try {
+              statusCallback(status);
+            } catch (callbackErr) {
+              console.error('🔔 Notifications: Error in status callback:', callbackErr);
+            }
+          }
+        });
+
+      const originalUnsubscribe = channel.unsubscribe.bind(channel);
+      channel.unsubscribe = () => {
+        if (!isUnsubscribed) {
+          isUnsubscribed = true;
+          console.log('🔔 Notifications: Unsubscribing channel for profile:', profileId);
+          return originalUnsubscribe();
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `profile_id=eq.${profileId}`
-        },
-        (payload) => {
-          console.log('🔔 Notifications: Notification updated:', payload);
-          // Handle notification updates if needed
-        }
-      )
-      .subscribe((status, err) => {
-        console.log('🔔 Notifications: Subscription status:', status);
-        if (err) {
-          console.error('🔔 Notifications: Subscription error:', err);
-        }
-        if (statusCallback) {
-          statusCallback(status);
-        }
-      });
-    
-    return channel;
+        return Promise.resolve({ status: 'ok', error: null });
+      };
+
+      return channel;
+    } catch (error) {
+      console.error('🔔 Notifications: Failed to create subscription:', error);
+      if (statusCallback) {
+        statusCallback('ERROR');
+      }
+      return null;
+    }
   },
 
   // Specific notification creators

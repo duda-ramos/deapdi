@@ -30,7 +30,7 @@ export interface CreateTeamData {
   status?: 'active' | 'inactive';
 }
 
-export interface TeamHierarchy {
+interface TeamHierarchy {
   team: Team;
   manager: Profile | null;
   members: Profile[];

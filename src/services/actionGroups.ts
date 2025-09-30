@@ -23,7 +23,7 @@ export interface GroupWithDetails {
   completed_tasks: number;
 }
 
-export interface GroupParticipant {
+interface GroupParticipant {
   id: string;
   profile_id: string;
   group_id: string;
@@ -38,7 +38,7 @@ export interface GroupParticipant {
   };
 }
 
-export interface GroupTask {
+interface GroupTask {
   id: string;
   title: string;
   description: string | null;
@@ -55,7 +55,7 @@ export interface GroupTask {
   };
 }
 
-export interface MemberContribution {
+interface MemberContribution {
   profile_id: string;
   name: string;
   avatar_url: string | null;
@@ -75,7 +75,7 @@ export interface CreateGroupData {
   linked_pdi_id?: string;
 }
 
-export interface UpdateGroupData {
+interface UpdateGroupData {
   title?: string;
   description?: string;
   deadline?: string;
@@ -91,7 +91,7 @@ export interface CreateTaskData {
   group_id: string;
 }
 
-export interface UpdateTaskData {
+interface UpdateTaskData {
   title?: string;
   description?: string;
   assignee_id?: string;
@@ -99,7 +99,7 @@ export interface UpdateTaskData {
   status?: 'todo' | 'in-progress' | 'done';
 }
 
-export interface GroupStatistics {
+interface GroupStatistics {
   total_groups: number;
   active_groups: number;
   completed_groups: number;
@@ -110,7 +110,7 @@ export interface GroupStatistics {
   tasks_completed_this_month: number;
 }
 
-export interface TaskNotification {
+interface TaskNotification {
   task_id: string;
   task_title: string;
   assignee_id: string;

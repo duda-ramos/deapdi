@@ -3,7 +3,7 @@ import { apiRateLimiter } from '../utils/security';
 /**
  * Enhanced fetch wrapper with rate limiting and error handling
  */
-export const apiRequest = async (
+const apiRequest = async (
   url: string,
   options: RequestInit = {},
   rateLimitKey?: string

@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { Profile, PDI, Competency, Achievement } from '../types';
 
-export interface ReportData {
+interface ReportData {
   profiles: Profile[];
   pdis: PDI[];
   competencies: Competency[];
