@@ -1,38 +1,18 @@
 import React from 'react';
-import { sanitizeText } from '../../utils/security';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   helperText?: string;
-  sanitize?: boolean;
 }
 
 export const Input: React.FC<InputProps> = ({
   label,
   error,
   helperText,
-  sanitize = false,
   className = '',
-  onChange,
   ...props
 }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (sanitize && onChange) {
-      const sanitizedValue = sanitizeText(e.target.value);
-      const sanitizedEvent = {
-        ...e,
-        target: {
-          ...e.target,
-          value: sanitizedValue
-        }
-      };
-      onChange(sanitizedEvent as React.ChangeEvent<HTMLInputElement>);
-    } else if (onChange) {
-      onChange(e);
-    }
-  };
-
   return (
     <div className="space-y-1">
       {label && (
@@ -44,7 +24,6 @@ export const Input: React.FC<InputProps> = ({
         className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
           error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
         } ${className}`}
-        onChange={handleChange}
         {...props}
       />
       {error && (

@@ -1,11 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { ProfileWithRelations } from '../types';
-import { supabase, cleanInvalidSessions } from '../lib/supabase';
-import { authService } from '../services/auth';
+import { Profile } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
-  user: ProfileWithRelations | null;
+  user: Profile | null;
   supabaseUser: SupabaseUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -25,204 +24,127 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<ProfileWithRelations | null>(null);
+  const [user, setUser] = useState<Profile | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const isHandlingAuthError = useRef(false);
-  const authStateChangeCount = useRef(0);
-  const lastAuthEvent = useRef<{ event: string; timestamp: number } | null>(null);
 
-  const ensureProfileExists = async (authUser: SupabaseUser): Promise<ProfileWithRelations | null> => {
-    if (!supabase) {
-      console.warn('Supabase client unavailable while ensuring profile.');
-      return null;
-    }
-
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authUser.id)
-      .maybeSingle();
-
-    if (existingProfile) {
-      return existingProfile;
-    }
-
-    const newProfile = {
-      id: authUser.id,
-      email: authUser.email || '',
-      name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-      role: 'employee' as const,
-      status: 'active' as const,
-      position: authUser.user_metadata?.position || 'Colaborador',
-      level: authUser.user_metadata?.level || 'Júnior',
-      points: 0,
-      avatar_url: authUser.user_metadata?.avatar_url || null,
-      bio: null,
-      team_id: null,
-      manager_id: null
-    };
-
-    const { data: createdProfile } = await supabase
-      .from('profiles')
-      .insert(newProfile)
-      .select()
-      .single();
-
-    return createdProfile || newProfile as any;
-  };
-
+  // Safety timeout - force loading to false after 5 seconds
   useEffect(() => {
-    let isMounted = true;
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
 
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // Initialize auth state
+  useEffect(() => {
     const initializeAuth = async () => {
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
-
-      // Clean any invalid sessions before initializing
-      cleanInvalidSessions();
-
       try {
         const { data: { session } } = await supabase.auth.getSession();
-
-        if (isMounted && session?.user) {
+        
+        if (session?.user) {
           setSupabaseUser(session.user);
-          const profile = await ensureProfileExists(session.user);
-          if (isMounted) {
-            setUser(profile);
-          }
+          
+          // Simple profile fetch without joins
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          setUser(data || null);
+        } else {
+          setUser(null);
+          setSupabaseUser(null);
         }
       } catch (error) {
-        if (error instanceof Error && error.message.includes('Refresh Token Not Found')) {
-          if (!isHandlingAuthError.current) {
-            isHandlingAuthError.current = true;
-            cleanInvalidSessions();
-            await supabase.auth.signOut();
-            isHandlingAuthError.current = false;
-          }
-        } else if (error instanceof Error && (
-          error.message.includes('Invalid API key') ||
-          error.message.includes('JWT expired') ||
-          error.message.includes('invalid_grant')
-        )) {
-          console.error('🔴 Auth initialization failed with invalid credentials:', error.message);
-          cleanInvalidSessions();
-          if (isMounted) {
-            setUser(null);
-            setSupabaseUser(null);
-          }
-        }
+        console.error('Auth initialization error:', error);
+        setUser(null);
+        setSupabaseUser(null);
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        // CRITICAL: Always set loading to false
+        setLoading(false);
       }
     };
-
-    if (!supabase) {
-      setLoading(false);
-      return () => {
-        isMounted = false;
-      };
-    }
 
     initializeAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Prevent rapid-fire duplicate events
-      const now = Date.now();
-      if (lastAuthEvent.current &&
-          lastAuthEvent.current.event === event &&
-          now - lastAuthEvent.current.timestamp < 1000) {
-        console.log(`🚫 Debouncing duplicate ${event} event`);
-        return;
-      }
-      lastAuthEvent.current = { event, timestamp: now };
-
-      // Limit total auth state changes to prevent infinite loops
-      authStateChangeCount.current += 1;
-      if (authStateChangeCount.current > 10) {
-        console.error('⚠️ Too many auth state changes detected. Stopping to prevent infinite loop.');
-        console.error('   This usually indicates invalid credentials. Check your .env file.');
-        cleanInvalidSessions();
-        setUser(null);
-        setSupabaseUser(null);
-        setLoading(false);
-        return;
-      }
-
-      console.log(`🔑 Auth state change: ${event} (count: ${authStateChangeCount.current})`);
-
-      if (event === 'SIGNED_IN' && session?.user) {
-        setSupabaseUser(session.user);
-        try {
-          const profile = await ensureProfileExists(session.user);
-          setUser(profile);
-        } catch (error) {
-          console.error('Error creating/fetching profile:', error);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setSupabaseUser(null);
-        cleanInvalidSessions();
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log('✅ Token refreshed successfully');
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        setSupabaseUser(session.user);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    // Clean any stale sessions before new sign in
-    cleanInvalidSessions();
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    const result = await authService.signIn(email, password);
+      if (error) throw error;
 
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-
-    if (result.user) {
-      setSupabaseUser(result.user);
-      const profile = await ensureProfileExists(result.user);
-      setUser(profile);
+      if (data.user) {
+        setSupabaseUser(data.user);
+        
+        // Simple profile fetch
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+        
+        setUser(profile || null);
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Erro ao fazer login');
     }
   };
 
   const signUp = async (userData: any) => {
-    const result = await authService.signUp(userData);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            name: userData.name,
+            position: userData.position,
+            level: userData.level
+          }
+        }
+      });
 
-    if (!result.success) {
-      throw new Error(result.error);
-    }
+      if (error) throw error;
 
-    if (result.user) {
-      setSupabaseUser(result.user);
-      const profile = await ensureProfileExists(result.user);
-      setUser(profile);
+      if (data.user) {
+        setSupabaseUser(data.user);
+        // Profile will be created by database trigger
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Erro ao criar conta');
     }
   };
 
   const signOut = async () => {
-    cleanInvalidSessions();
-    await authService.signOut();
-    setUser(null);
-    setSupabaseUser(null);
-    authStateChangeCount.current = 0;
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSupabaseUser(null);
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   const refreshUser = async () => {
     if (supabaseUser) {
-      const profile = await ensureProfileExists(supabaseUser);
-      setUser(profile);
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', supabaseUser.id)
+          .single();
+        
+        setUser(data || null);
+      } catch (error) {
+        console.error('Refresh user error:', error);
+      }
     }
   };
 

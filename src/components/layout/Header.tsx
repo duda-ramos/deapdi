@@ -43,7 +43,6 @@ export const Header: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={signOut}
-              data-testid="logout-button"
               className="text-gray-600 hover:text-gray-900"
             >
               <LogOut size={16} />

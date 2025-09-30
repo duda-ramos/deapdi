@@ -7,13 +7,13 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 
 export const Login: React.FC = () => {
-  const { signIn, signUp } = useAuth();
-
+  const { signIn, signUp, loading } = useAuth();
+  
+  // Form states
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   // Login form
   const [loginForm, setLoginForm] = useState({
@@ -43,14 +43,11 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    setIsLoading(true);
 
     try {
       await signIn(loginForm.email, loginForm.password);
     } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login. Tente novamente.');
-    } finally {
-      setIsLoading(false);
+      setError(err.message);
     }
   };
 
@@ -59,6 +56,7 @@ export const Login: React.FC = () => {
     setError('');
     setSuccess('');
 
+    // Validation
     if (signupForm.password !== signupForm.confirmPassword) {
       setError('As senhas não coincidem');
       return;
@@ -78,8 +76,6 @@ export const Login: React.FC = () => {
       setError('Cargo é obrigatório');
       return;
     }
-
-    setIsLoading(true);
 
     try {
       await signUp({
@@ -101,10 +97,9 @@ export const Login: React.FC = () => {
         position: '',
         level: 'Júnior'
       });
+
     } catch (err: any) {
-      setError(err.message || 'Erro ao criar conta. Tente novamente.');
-    } finally {
-      setIsLoading(false);
+      setError(err.message);
     }
   };
 
@@ -230,8 +225,7 @@ export const Login: React.FC = () => {
 
                 <Button
                   type="submit"
-                  loading={isLoading}
-                  disabled={isLoading}
+                  loading={loading}
                   className="w-full"
                   size="lg"
                 >
@@ -363,8 +357,7 @@ export const Login: React.FC = () => {
 
                 <Button
                   type="submit"
-                  loading={isLoading}
-                  disabled={isLoading}
+                  loading={loading}
                   className="w-full"
                   size="lg"
                 >

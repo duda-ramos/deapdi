@@ -2,58 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Security Headers -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://js.sentry-cdn.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      img-src 'self' data: https: blob:;
-      font-src 'self' https://fonts.gstatic.com;
-      connect-src 'self' https://*.supabase.co https://*.supabase.io https://www.google-analytics.com https://sentry.io https://*.sentry.io;
-      frame-src 'none';
-      object-src 'none';
-      base-uri 'self';
-      form-action 'self';
-      upgrade-insecure-requests;
-    ">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-Frame-Options" content="DENY">
-    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
-    
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TalentFlow - Sistema de Desenvolvimento de Colaboradores</title>
-    <meta name="description" content="Plataforma de desenvolvimento profissional com gamificação para empresas">
-    <meta name="keywords" content="desenvolvimento, carreira, competências, PDI, gamificação">
-    <meta name="author" content="TalentFlow">
-    <meta name="robots" content="noindex, nofollow">
-    
-    <!-- Preload critical resources -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Favicon and app icons -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
+    <title>Sistema de Desenvolvimento de Colaboradores com Gamificação</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Production analytics and monitoring -->
-    <script>
-      // Performance monitoring
-      if ('performance' in window && 'measure' in performance) {
-        window.addEventListener('load', () => {
-          performance.mark('app-loaded');
-          const loadTime = performance.now();
-          console.log(`App loaded in ${loadTime.toFixed(2)}ms`);
-        });
-      }
-    </script>
   </body>
 </html>
