@@ -192,9 +192,9 @@ export const databaseService = {
       .from('pdis')
       .select(`
         *,
-        mentor:profiles!inner(name),
-        created_by_profile:profiles!inner(name),
-        validated_by_profile:profiles!inner(name)
+        mentor:profiles!pdis_mentor_id_fkey(name),
+        created_by_profile:profiles!pdis_created_by_fkey(name),
+        validated_by_profile:profiles!pdis_validated_by_fkey(name)
       `)
       .eq('profile_id', profileId)
       .order('created_at', { ascending: false });

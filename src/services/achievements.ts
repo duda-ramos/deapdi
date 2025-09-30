@@ -108,27 +108,7 @@ export const achievementService = {
       if (achievementsError) throw achievementsError;
 
       // Get user stats for progress calculation
-      let stats: UserStats;
-      try {
-        stats = await this.getUserStats(profileId);
-      } catch (error: any) {
-        // Handle infinite recursion or other policy errors
-        if (error?.message?.includes('infinite recursion')) {
-          console.warn('Policy recursion detected, using fallback stats');
-          stats = {
-            completedPDIs: 0,
-            completedTasks: 0,
-            completedCourses: 0,
-            competenciesRated: 0,
-            mentorshipSessions: 0,
-            careerProgressions: 0,
-            actionGroupTasks: 0,
-            wellnessCheckins: 0
-          };
-        } else {
-          throw error;
-        }
-      }
+      const stats = await this.getUserStats(profileId);
 
       return templates.map(template => {
         const userAchievement = userAchievements.find(a => a.template_id === template.id);
@@ -259,14 +239,16 @@ export const achievementService = {
     console.log('🏆 Achievements: Using fallback method for user stats');
 
     // Initialize all stats to 0
-    let completedPDIs = 0;
-    let completedTasks = 0;
-    let completedCourses = 0;
-    let competenciesRated = 0;
-    let mentorshipSessions = 0;
-    let careerProgressions = 0;
-    let actionGroupTasks = 0;
-    let wellnessCheckins = 0;
+    const stats: UserStats = {
+      completedPDIs: 0,
+      completedTasks: 0,
+      completedCourses: 0,
+      competenciesRated: 0,
+      mentorshipSessions: 0,
+      careerProgressions: 0,
+      actionGroupTasks: 0,
+      wellnessCheckins: 0
+    };
 
     // Get completed PDIs with minimal query
     try {
@@ -277,7 +259,7 @@ export const achievementService = {
         .in('status', ['completed', 'validated']);
 
       if (!error && pdis) {
-        completedPDIs = pdis.length;
+        stats.completedPDIs = pdis.length;
       }
     } catch (error) {
       console.warn('🏆 Achievements: Could not fetch PDI stats:', error);
@@ -292,7 +274,7 @@ export const achievementService = {
         .eq('status', 'done');
 
       if (!error && tasks) {
-        completedTasks = tasks.length;
+        stats.completedTasks = tasks.length;
       }
     } catch (error) {
       console.warn('🏆 Achievements: Could not fetch task stats:', error);
@@ -307,7 +289,7 @@ export const achievementService = {
         .eq('status', 'completed');
 
       if (!error && enrollments) {
-        completedCourses = enrollments.length;
+        stats.completedCourses = enrollments.length;
       }
     } catch (error) {
       console.warn('🏆 Achievements: Could not fetch course stats:', error);
@@ -321,15 +303,11 @@ export const achievementService = {
         .eq('profile_id', profileId);
 
       if (!error && competencies) {
-        competenciesRated = competencies.filter(c => c.self_rating || c.manager_rating).length;
+        stats.competenciesRated = competencies.filter(c => c.self_rating || c.manager_rating).length;
       }
     } catch (error) {
       console.warn('🏆 Achievements: Could not fetch competency stats:', error);
     }
-
-    // Skip mentorship sessions to avoid complex joins that might cause recursion
-    // This can be implemented later with a simpler approach if needed
-    mentorshipSessions = 0;
 
     // Get career track progress with minimal query
     try {
@@ -339,7 +317,7 @@ export const achievementService = {
         .eq('profile_id', profileId);
 
       if (!error && careerTracks) {
-        careerProgressions = careerTracks.filter(ct => ct.progress > 0).length;
+        stats.careerProgressions = careerTracks.filter(ct => ct.progress > 0).length;
       }
     } catch (error) {
       console.warn('🏆 Achievements: Could not fetch career track stats:', error);
@@ -355,7 +333,7 @@ export const achievementService = {
         .not('group_id', 'is', null);
 
       if (!error && groupTasks) {
-        actionGroupTasks = groupTasks.length;
+        stats.actionGroupTasks = groupTasks.length;
       }
     } catch (error) {
       console.warn('🏆 Achievements: Could not fetch action group task stats:', error);
@@ -369,22 +347,13 @@ export const achievementService = {
         .eq('employee_id', profileId);
 
       if (!error && checkins) {
-        wellnessCheckins = checkins.length;
+        stats.wellnessCheckins = checkins.length;
       }
     } catch (error) {
       console.warn('🏆 Achievements: Could not fetch wellness checkin stats:', error);
     }
 
-    return {
-      completedPDIs,
-      completedTasks,
-      completedCourses,
-      competenciesRated,
-      mentorshipSessions,
-      careerProgressions,
-      actionGroupTasks,
-      wellnessCheckins
-    };
+    return stats;
   },
 
   async getUserMentorshipIds(profileId: string): Promise<string[]> {
