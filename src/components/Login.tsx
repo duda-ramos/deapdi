@@ -7,13 +7,14 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 
 export const Login: React.FC = () => {
-  const { signIn, signUp, loading } = useAuth();
+  const { signIn, signUp } = useAuth();
   
   // Form states
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Login form
   const [loginForm, setLoginForm] = useState({
@@ -43,11 +44,18 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setIsLoading(true);
+
+    console.log('🔵 Login: Starting sign in...', loginForm.email);
 
     try {
       await signIn(loginForm.email, loginForm.password);
+      console.log('✅ Login: Sign in successful');
     } catch (err: any) {
-      setError(err.message);
+      console.error('❌ Login: Sign in failed:', err);
+      setError(err.message || 'Erro ao fazer login. Tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -77,6 +85,9 @@ export const Login: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
+    console.log('🔵 Login: Starting sign up...', signupForm.email);
+
     try {
       await signUp({
         email: signupForm.email,
@@ -86,6 +97,7 @@ export const Login: React.FC = () => {
         level: signupForm.level
       });
 
+      console.log('✅ Login: Sign up successful');
       setSuccess('Conta criada com sucesso! Você já pode fazer login.');
       setIsSignUp(false);
       setLoginForm({ email: signupForm.email, password: '' });
@@ -99,7 +111,10 @@ export const Login: React.FC = () => {
       });
 
     } catch (err: any) {
-      setError(err.message);
+      console.error('❌ Login: Sign up failed:', err);
+      setError(err.message || 'Erro ao criar conta. Tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -225,7 +240,7 @@ export const Login: React.FC = () => {
 
                 <Button
                   type="submit"
-                  loading={loading}
+                  loading={isLoading}
                   className="w-full"
                   size="lg"
                 >
@@ -357,7 +372,7 @@ export const Login: React.FC = () => {
 
                 <Button
                   type="submit"
-                  loading={loading}
+                  loading={isLoading}
                   className="w-full"
                   size="lg"
                 >
