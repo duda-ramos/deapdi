@@ -4,6 +4,42 @@ import { Database } from '../types/database';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+type JWTPayload = {
+  exp?: number;
+  iat?: number;
+  iss?: string;
+  issuer?: string;
+};
+
+const decodeBase64 = (value: string): string => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(normalized.length + (4 - (normalized.length % 4)) % 4, '=');
+
+  if (typeof globalThis !== 'undefined' && typeof globalThis.atob === 'function') {
+    return globalThis.atob(padded);
+  }
+
+  if (typeof globalThis !== 'undefined' && typeof (globalThis as any).Buffer !== 'undefined') {
+    return (globalThis as any).Buffer.from(padded, 'base64').toString('utf-8');
+  }
+
+  throw new Error('No base64 decoder available');
+};
+
+const decodeJWTPayload = (token: string | undefined): JWTPayload | null => {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+
+  try {
+    const base64Payload = parts[1];
+    const payloadString = decodeBase64(base64Payload);
+    return JSON.parse(payloadString);
+  } catch {
+    return null;
+  }
+};
+
 // Check if credentials are placeholders or invalid
 const isPlaceholder = (value: string | undefined) => {
   if (!value) return true;
@@ -11,98 +47,91 @@ const isPlaceholder = (value: string | undefined) => {
   return placeholders.some(p => value.toLowerCase().includes(p));
 };
 
-// Validate Supabase URL format
+// Validate Supabase URL format (allowing generated IDs and custom subdomains)
 const isValidSupabaseUrl = (url: string | undefined): boolean => {
   if (!url) return false;
-  const supabaseUrlPattern = /^https:\/\/[a-z0-9]{20}\.supabase\.co$/;
+  const supabaseUrlPattern = /^https:\/\/[a-z0-9-]{1,32}\.supabase\.co$/i;
   return supabaseUrlPattern.test(url);
 };
 
 // Check if JWT token is from Bolt (invalid issuer)
 const isBoltToken = (token: string | undefined): boolean => {
-  if (!token) return false;
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return false;
-    const payload = JSON.parse(atob(parts[1]));
-    return payload.iss === 'bolt' || payload.issuer === 'bolt';
-  } catch {
-    return false;
-  }
+  const payload = decodeJWTPayload(token);
+  if (!payload) return false;
+  return payload.iss === 'bolt' || payload.issuer === 'bolt';
 };
 
 // Validate token has reasonable lifetime
 const hasValidLifetime = (token: string | undefined): boolean => {
-  if (!token) return false;
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return false;
-    const payload = JSON.parse(atob(parts[1]));
-    if (!payload.iat || !payload.exp) return false;
-    const lifetime = payload.exp - payload.iat;
-    return lifetime > 3600; // At least 1 hour
-  } catch {
-    return false;
+  const payload = decodeJWTPayload(token);
+  if (!payload?.iat || !payload.exp) return false;
+  const lifetime = payload.exp - payload.iat;
+  return lifetime > 0;
+};
+
+// Check if JWT token is expired
+export const isJWTExpired = (token: string): boolean => {
+  const payload = decodeJWTPayload(token);
+  if (!payload?.exp) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+
+  if (payload.iat && payload.iat === payload.exp) {
+    console.warn('⚠️ JWT token has zero lifetime (iat === exp)');
+    return true;
   }
+
+  return payload.exp <= now;
 };
 
 if (!supabaseUrl || !supabaseAnonKey || isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
   console.error('⚠️ Supabase credentials are missing or invalid');
 } else if (!isValidSupabaseUrl(supabaseUrl)) {
-  console.error('⚠️ Supabase URL format is invalid. Expected format: https://[20-char-id].supabase.co');
+  console.error('⚠️ Supabase URL format is invalid. Expected format similar to https://<project>.supabase.co');
   console.error('   Current URL:', supabaseUrl);
 } else if (isBoltToken(supabaseAnonKey)) {
   console.error('⚠️ Detected Bolt-generated token. Please use a valid Supabase ANON_KEY from your Supabase Dashboard.');
   console.error('   Go to: https://supabase.com/dashboard → Your Project → Settings → API');
 } else if (!hasValidLifetime(supabaseAnonKey)) {
   console.error('⚠️ Token has invalid lifetime (too short or zero). Please get a new token from Supabase Dashboard.');
+} else if (isJWTExpired(supabaseAnonKey)) {
+  console.error('⚠️ Supabase ANON_KEY is expired. Please update your credentials.');
 }
 
-export const supabase = (supabaseUrl && supabaseAnonKey && !isPlaceholder(supabaseUrl) && !isPlaceholder(supabaseAnonKey)) ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'supabase.auth.token',
-    flowType: 'pkce'
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'talentflow-web'
-    },
-    fetch: (url, options = {}) => {
-      return fetch(url, {
-        ...options,
-        signal: AbortSignal.timeout(15000)
-      });
-    }
-  }
-}) : null;
+const shouldInitializeClient = (
+  supabaseUrl &&
+  supabaseAnonKey &&
+  !isPlaceholder(supabaseUrl) &&
+  !isPlaceholder(supabaseAnonKey) &&
+  isValidSupabaseUrl(supabaseUrl) &&
+  !isBoltToken(supabaseAnonKey) &&
+  hasValidLifetime(supabaseAnonKey) &&
+  !isJWTExpired(supabaseAnonKey)
+);
 
-// Check if JWT token is expired
-export const isJWTExpired = (token: string): boolean => {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return false;
-
-    const payload = JSON.parse(atob(parts[1]));
-    if (!payload.exp) return false;
-
-    const now = Math.floor(Date.now() / 1000);
-
-    // If iat === exp, token has zero lifetime (invalid)
-    if (payload.iat && payload.iat === payload.exp) {
-      console.warn('⚠️ JWT token has zero lifetime (iat === exp)');
-      return true;
-    }
-
-    // Check if expired
-    return payload.exp <= now;
-  } catch {
-    return false;
-  }
-};
+export const supabase = shouldInitializeClient
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        storageKey: 'supabase.auth.token',
+        flowType: 'pkce'
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'talentflow-web'
+        },
+        fetch: (url, options = {}) => {
+          return fetch(url, {
+            ...options,
+            signal: AbortSignal.timeout(15000)
+          });
+        }
+      }
+    })
+  : null;
 // Migration control - prevent automatic migrations
 export const shouldRunMigrations = () => {
   // Only run migrations if explicitly enabled
@@ -117,7 +146,10 @@ export const cleanInvalidSessions = () => {
     if (stored) {
       try {
         const session = JSON.parse(stored);
-        if (session.access_token && isJWTExpired(session.access_token)) {
+        if (
+          session.access_token &&
+          (isJWTExpired(session.access_token) || !hasValidLifetime(session.access_token))
+        ) {
           console.log('🧹 Cleaning expired session from localStorage');
           localStorage.removeItem(storageKey);
         }
@@ -137,6 +169,8 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
     const isPlaceholderCreds = isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey);
     const isBolt = isBoltToken(supabaseAnonKey);
     const isInvalidUrl = !isValidSupabaseUrl(supabaseUrl);
+    const isExpired = !!supabaseAnonKey && isJWTExpired(supabaseAnonKey);
+    const hasLifetime = !!supabaseAnonKey && hasValidLifetime(supabaseAnonKey);
 
     let errorMsg = 'Supabase client not initialized';
     if (isPlaceholderCreds) {
@@ -144,12 +178,22 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
     } else if (isBolt) {
       errorMsg = 'Detected Bolt-generated token. Please use a valid Supabase ANON_KEY from your Supabase Dashboard (Settings → API).';
     } else if (isInvalidUrl) {
-      errorMsg = 'Invalid Supabase URL format. Expected: https://[20-char-id].supabase.co';
+      errorMsg = 'Invalid Supabase URL format. Expected something like https://your-project.supabase.co';
+    } else if (isExpired) {
+      errorMsg = 'Your Supabase ANON_KEY has expired. Please update your .env file with a new key from your Supabase Dashboard.';
+    } else if (!hasLifetime) {
+      errorMsg = 'Supabase ANON_KEY has an invalid lifetime. Generate a fresh key from your Supabase Dashboard.';
     }
 
-    return { healthy: false, error: errorMsg, isExpiredToken: false, isInvalidKey: isBolt, isBoltToken: isBolt };
+    return {
+      healthy: false,
+      error: errorMsg,
+      isExpiredToken: isExpired,
+      isInvalidKey: isBolt || !hasLifetime || isPlaceholderCreds,
+      isBoltToken: isBolt
+    };
   }
- 
+
   // Check if JWT token is expired
   if (supabaseAnonKey && isJWTExpired(supabaseAnonKey)) {
     try {

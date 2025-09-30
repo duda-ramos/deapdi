@@ -56,6 +56,7 @@ const useSupabaseSetup = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [isExpiredToken, setIsExpiredToken] = React.useState(false);
   const [isInvalidKey, setIsInvalidKey] = React.useState(false);
+  const [isBoltToken, setIsBoltToken] = React.useState(false);
 
   React.useEffect(() => {
     let mounted = true;
@@ -95,7 +96,7 @@ const useSupabaseSetup = () => {
           setError(healthCheck.error || null);
           setIsExpiredToken(healthCheck.isExpiredToken || false);
           setIsInvalidKey(healthCheck.isInvalidKey || false);
-          setIsInvalidKey(healthCheck.isInvalidKey || false);
+          setIsBoltToken(healthCheck.isBoltToken || false);
         }
       } catch (error) {
         if (mounted) {
@@ -116,7 +117,7 @@ const useSupabaseSetup = () => {
     };
   }, []);
 
-  return { setupComplete, checking, error, isExpiredToken, isInvalidKey, setSetupComplete };
+  return { setupComplete, checking, error, isExpiredToken, isInvalidKey, isBoltToken, setSetupComplete };
 };
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
