@@ -4,11 +4,19 @@ import { Database } from '../types/database';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase environment variables - using fallback mode');
+// Check if credentials are placeholders
+const isPlaceholder = (value: string | undefined) => {
+  if (!value) return true;
+  const placeholders = ['your-project-url-here', 'your-anon-key-here', 'your_supabase', 'example'];
+  return placeholders.some(p => value.toLowerCase().includes(p));
+};
+
+if (!supabaseUrl || !supabaseAnonKey || isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
+  console.warn('⚠️ Supabase credentials are missing or invalid - using fallback mode');
+  console.warn('📝 Please update your .env file with valid Supabase credentials');
 }
 
-export const supabase = supabaseUrl && supabaseAnonKey ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase = (supabaseUrl && supabaseAnonKey && !isPlaceholder(supabaseUrl) && !isPlaceholder(supabaseAnonKey)) ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -46,7 +54,11 @@ export const shouldRunMigrations = () => {
 // Check if database is properly initialized
 export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
   if (!supabase) {
-    return { healthy: false, error: 'Supabase client not initialized', isExpiredToken: false };
+    const isPlaceholderCreds = isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey);
+    const errorMsg = isPlaceholderCreds
+      ? 'Please configure your Supabase credentials in the .env file. The current values are placeholders.'
+      : 'Supabase client not initialized';
+    return { healthy: false, error: errorMsg, isExpiredToken: false };
   }
 
   // Check if JWT token is expired
