@@ -33,6 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const lastAuthEvent = useRef<{ event: string; timestamp: number } | null>(null);
 
   const ensureProfileExists = async (authUser: SupabaseUser): Promise<ProfileWithRelations | null> => {
+    if (!supabase) {
+      console.warn('Supabase client unavailable while ensuring profile.');
+      return null;
+    }
+
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('*')
@@ -115,6 +120,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     };
+
+    if (!supabase) {
+      setLoading(false);
+      return () => {
+        isMounted = false;
+      };
+    }
 
     initializeAuth();
 
