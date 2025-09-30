@@ -98,7 +98,6 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
       error: 'Your Supabase ANON_KEY has expired. Please update your .env file with a new key from your Supabase Dashboard.',
       isExpiredToken: true,
       isInvalidKey: false
-      isInvalidKey: false
     };
   }
 
@@ -296,7 +295,6 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
       healthy: false,
       error: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       isExpiredToken: false,
-      isInvalidKey: false
       isInvalidKey: false
     };
   }
