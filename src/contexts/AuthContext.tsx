@@ -31,16 +31,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Safety timeout - force loading to false after 5 seconds
   useEffect(() => {
-    const timeout = setTimeout(() => {
+              .select('*')
       setLoading(false);
     }, 5000);
 
     return () => clearTimeout(timeout);
   }, []);
 
-  // Initialize auth state
+            console.error('Profile fetch failed completely:', fetchError);
   useEffect(() => {
-    const initializeAuth = async () => {
+            // Emergency fallback: Create profile from session data
       try {
         // Check if Supabase is available
         if (!supabase) {
@@ -51,7 +51,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+              status: 'active' as const,
+              team_id: null,
+              manager_id: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
         
         if (session?.user) {
           setSupabaseUser(session.user);
@@ -113,26 +117,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             } else {
               setUser(profileData);
-            }
-          } catch (profileError) {
-            console.error('Failed to fetch profile:', profileError);
-            // Emergency fallback: Create basic profile from session
-            if (session?.user) {
-              setUser({
-                id: session.user.id,
-                email: session.user.email || '',
-                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                role: 'employee' as const,
-                avatar_url: session.user.user_metadata?.avatar_url || null,
-                level: 'Junior',
-                position: 'Employee',
-                points: 0,
-                bio: null,
-                status: 'active' as const
-              } as any);
-            } else {
-              setUser(null);
-            }
+            console.error('Profile fetch error - using fallback:', profileError);
+            // Always use fallback profile when there's an error
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+              role: 'employee' as const,
+              avatar_url: session.user.user_metadata?.avatar_url || null,
+              level: 'Junior',
+              position: 'Employee',
+              points: 0,
+              bio: null,
+              status: 'active' as const,
+              team_id: null,
+              manager_id: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+              team_id: null,
+              manager_id: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            } as any);
           }
         } else {
           setUser(null);
