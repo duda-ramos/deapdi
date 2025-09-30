@@ -44,6 +44,12 @@ export const checkDatabaseHealth = async () => {
         throw new Error(`REST API unreachable: ${restResponse.status}`);
       }
     } catch (fetchError) {
+      if (fetchError instanceof TypeError && fetchError.message === 'Failed to fetch') {
+        return { 
+          healthy: false, 
+          error: 'Cannot connect to Supabase. Please check your internet connection and verify that VITE_SUPABASE_URL is correct in your .env file.' 
+        };
+      }
       return { 
         healthy: false, 
         error: `Cannot reach Supabase REST API: ${fetchError instanceof Error ? fetchError.message : 'Network error'}` 
@@ -63,6 +69,12 @@ export const checkDatabaseHealth = async () => {
         throw new Error(`Auth API unreachable: ${authResponse.status}`);
       }
     } catch (fetchError) {
+      if (fetchError instanceof TypeError && fetchError.message === 'Failed to fetch') {
+        return { 
+          healthy: false, 
+          error: 'Cannot connect to Supabase Auth API. Please check your internet connection and verify that VITE_SUPABASE_URL is correct in your .env file.' 
+        };
+      }
       return { 
         healthy: false, 
         error: `Cannot reach Supabase Auth API: ${fetchError instanceof Error ? fetchError.message : 'Network error'}` 
@@ -70,19 +82,38 @@ export const checkDatabaseHealth = async () => {
     }
 
     // 3. Test database query
-    const { error } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true });
-    
-    if (error) {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true });
+      
+      if (error) {
+        return { 
+          healthy: false, 
+          error: `Database query failed: ${error.message}` 
+        };
+      }
+    } catch (queryError) {
+      if (queryError instanceof TypeError && queryError.message === 'Failed to fetch') {
+        return { 
+          healthy: false, 
+          error: 'Cannot connect to Supabase database. Please check your internet connection and verify your Supabase configuration.' 
+        };
+      }
       return { 
         healthy: false, 
-        error: `Database query failed: ${error.message}` 
+        error: `Database connection failed: ${queryError instanceof Error ? queryError.message : 'Unknown error'}` 
       };
     }
     
-    return { healthy: !error, error: error?.message };
+    return { healthy: true, error: null };
   } catch (error) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      return { 
+        healthy: false, 
+        error: 'Cannot connect to Supabase. Please check your internet connection and verify that your .env file contains the correct VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY values.' 
+      };
+    }
     return { 
       healthy: false, 
       error: `Supabase connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
