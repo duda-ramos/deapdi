@@ -10,16 +10,21 @@ import {
   Target,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  DollarSign
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
+import { supabase } from '../lib/supabase';
 import { Profile, PDI, Competency } from '../types';
 import { Card } from '../components/ui/Card';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { ErrorMessage } from '../utils/errorMessages';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Table } from '../components/ui/Table';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { AddSalaryModal } from '../components/modals/AddSalaryModal';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 const HRArea: React.FC = () => {
@@ -27,7 +32,10 @@ const HRArea: React.FC = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [pendingPDIs, setPendingPDIs] = useState<PDI[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [selectedTab, setSelectedTab] = useState('overview');
+  const [showAddSalaryModal, setShowAddSalaryModal] = useState(false);
+  const [selectedProfileForSalary, setSelectedProfileForSalary] = useState<string>('');
 
   useEffect(() => {
     if (user && (user.role === 'hr' || user.role === 'admin')) {
@@ -38,35 +46,94 @@ const HRArea: React.FC = () => {
   const loadHRData = async () => {
     try {
       setLoading(true);
-      const profilesData = await databaseService.getProfiles();
+      setError('');
+      
+      const [profilesData, pendingPDIsData] = await Promise.all([
+        databaseService.getProfiles(),
+        // Get pending PDIs for validation
+        supabase
+          .from('pdis')
+          .select(`
+            *,
+            profile:profiles!profile_id(name, position),
+            mentor:profiles!mentor_id(name)
+          `)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+      ]);
+      
       setProfiles(profilesData || []);
       
-      // TODO: Load pending PDIs for validation
-      // const pendingPDIsData = await databaseService.getPendingPDIs();
-      // setPendingPDIs(pendingPDIsData || []);
+      if (pendingPDIsData.data) {
+        setPendingPDIs(pendingPDIsData.data);
+      }
     } catch (error) {
       console.error('Erro ao carregar dados do RH:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao carregar dados do RH');
     } finally {
       setLoading(false);
     }
   };
 
-  // Mock data for charts
-  const teamPerformanceData = [
-    { team: 'Desenvolvimento', performance: 85, members: 12 },
-    { team: 'Design', performance: 92, members: 8 },
-    { team: 'Marketing', performance: 78, members: 10 },
-    { team: 'Vendas', performance: 88, members: 15 },
-    { team: 'Suporte', performance: 90, members: 6 }
-  ];
+  const handleAddSalary = (profileId: string) => {
+    setSelectedProfileForSalary(profileId);
+    setShowAddSalaryModal(true);
+  };
 
-  const competencyGapData = [
-    { competency: 'React', current: 3.2, target: 4.5 },
-    { competency: 'Liderança', current: 2.8, target: 4.0 },
-    { competency: 'Comunicação', current: 4.1, target: 4.5 },
-    { competency: 'TypeScript', current: 2.5, target: 4.0 },
-    { competency: 'Gestão de Projetos', current: 3.5, target: 4.2 }
-  ];
+  const handleSalarySuccess = () => {
+    setSelectedProfileForSalary('');
+    loadHRData(); // Reload data to reflect changes
+  };
+  // Mock data for charts
+  const teamPerformanceData = React.useMemo(() => {
+    // Calculate real team performance based on profiles data
+    const teamMap = new Map();
+    
+    profiles.forEach(profile => {
+      if (profile.team?.name) {
+        const teamName = profile.team.name;
+        if (!teamMap.has(teamName)) {
+          teamMap.set(teamName, { members: [], totalPoints: 0 });
+        }
+        teamMap.get(teamName).members.push(profile);
+        teamMap.get(teamName).totalPoints += profile.points;
+      }
+    });
+
+    return Array.from(teamMap.entries()).map(([teamName, data]) => ({
+      team: teamName,
+      performance: Math.min(100, Math.round((data.totalPoints / data.members.length) / 10)), // Normalize to 0-100
+      members: data.members.length
+    }));
+  }, [profiles]);
+
+  const [competencyGapData, setCompetencyGapData] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    const loadCompetencyGaps = async () => {
+      try {
+        const { reportService } = await import('../services/reports');
+        const gaps = await reportService.generateCompetencyGapReport();
+        
+        // Transform for chart display
+        const chartData = gaps.slice(0, 5).map(gap => ({
+          competency: gap.competencyName,
+          current: gap.currentLevel,
+          target: gap.targetLevel
+        }));
+        
+        setCompetencyGapData(chartData);
+      } catch (error) {
+        console.error('Error loading competency gaps:', error);
+        // Fallback to empty array
+        setCompetencyGapData([]);
+      }
+    };
+
+    if (profiles.length > 0) {
+      loadCompetencyGaps();
+    }
+  }, [profiles]);
 
   const engagementData = [
     { month: 'Jan', engagement: 78, satisfaction: 82 },
@@ -124,6 +191,22 @@ const HRArea: React.FC = () => {
           {value === 'active' ? 'Ativo' : 'Inativo'}
         </Badge>
       )
+    },
+    {
+      key: 'actions',
+      label: 'Ações',
+      render: (value: any, row: Profile) => (
+        <div className="flex items-center space-x-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleAddSalary(row.id)}
+            title="Adicionar histórico salarial"
+          >
+            <DollarSign size={14} />
+          </Button>
+        </div>
+      )
     }
   ];
 
@@ -139,30 +222,47 @@ const HRArea: React.FC = () => {
   }
 
   if (loading) {
+    return <LoadingScreen message="Carregando dados do RH..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Área de RH</h1>
+          <p className="text-gray-600 mt-1">Gestão estratégica de pessoas e desenvolvimento</p>
+        </div>
+        <ErrorMessage error={error} onRetry={loadHRData} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Área de RH</h1>
           <p className="text-gray-600 mt-1">Gestão estratégica de pessoas e desenvolvimento</p>
         </div>
+        <div className="flex items-center space-x-3">
+          <Button
+            onClick={() => setShowAddSalaryModal(true)}
+            variant="secondary"
+          >
+            <DollarSign size={16} className="mr-2" />
+            Gerenciar Salários
+          </Button>
+        </div>
       </div>
 
       {/* Tab Navigation */}
-      <Card className="p-4">
-        <div className="flex space-x-1">
+      <Card className="p-3 md:p-4">
+        <div className="flex space-x-1 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setSelectedTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center space-x-2 px-3 md:px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 selectedTab === tab.id
                   ? 'bg-blue-100 text-blue-700 border border-blue-300'
                   : 'text-gray-600 hover:bg-gray-100'
@@ -177,43 +277,43 @@ const HRArea: React.FC = () => {
 
       {/* Overview Tab */}
       {selectedTab === 'overview' && (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-blue-500 mr-3" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{profiles.length}</div>
+                  <div className="text-xl md:text-2xl font-bold text-gray-900">{profiles.length}</div>
                   <div className="text-sm text-gray-600">Total Colaboradores</div>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-green-500 mr-3" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-xl md:text-2xl font-bold text-gray-900">
                     {profiles.filter(p => p.status === 'active').length}
                   </div>
                   <div className="text-sm text-gray-600">Ativos</div>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-purple-500 mr-3" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">87%</div>
+                  <div className="text-xl md:text-2xl font-bold text-gray-900">87%</div>
                   <div className="text-sm text-gray-600">Engajamento</div>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-orange-500 mr-3" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">23</div>
+                  <div className="text-xl md:text-2xl font-bold text-gray-900">23</div>
                   <div className="text-sm text-gray-600">PDIs Pendentes</div>
                 </div>
               </div>
@@ -221,9 +321,9 @@ const HRArea: React.FC = () => {
           </div>
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             {/* Role Distribution */}
-            <Card className="p-6">
+            <Card className="p-4 md:p-6">
               <h3 className="text-lg font-semibold mb-4">Distribuição por Função</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
@@ -235,16 +335,16 @@ const HRArea: React.FC = () => {
                     outerRadius={100}
                     dataKey="value"
                   >
-                    {roleDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    {roleDistribution.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {roleDistribution.map((item, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {roleDistribution.map((item) => (
+                  <div key={item.name} className="flex items-center space-x-2">
                     <div 
                       className="w-3 h-3 rounded-full" 
                       style={{ backgroundColor: item.color }}
@@ -256,7 +356,7 @@ const HRArea: React.FC = () => {
             </Card>
 
             {/* Engagement Trend */}
-            <Card className="p-6">
+            <Card className="p-4 md:p-6">
               <h3 className="text-lg font-semibold mb-4">Tendência de Engajamento</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={engagementData}>
@@ -272,7 +372,7 @@ const HRArea: React.FC = () => {
           </div>
 
           {/* Team Performance */}
-          <Card className="p-6">
+          <Card className="p-4 md:p-6">
             <h3 className="text-lg font-semibold mb-4">Performance por Equipe</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={teamPerformanceData}>
@@ -289,20 +389,31 @@ const HRArea: React.FC = () => {
 
       {/* Employees Tab */}
       {selectedTab === 'employees' && (
-        <div className="space-y-6">
-          <Card className="p-6">
+        <div className="space-y-4 md:space-y-6">
+          <Card className="p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Lista de Colaboradores</h3>
-              <Button>
-                Exportar Relatório
-              </Button>
+              <div className="flex items-center space-x-3">
+                <Button
+                  onClick={() => setShowAddSalaryModal(true)}
+                  variant="secondary"
+                >
+                  <DollarSign size={16} className="mr-2" />
+                  Adicionar Histórico Salarial
+                </Button>
+                <Button>
+                  Exportar Relatório
+                </Button>
+              </div>
             </div>
-            <Table
-              columns={employeeColumns}
-              data={profiles}
-              loading={loading}
-              emptyMessage="Nenhum colaborador encontrado"
-            />
+            <div className="overflow-x-auto">
+              <Table
+                columns={employeeColumns}
+                data={profiles}
+                loading={loading}
+                emptyMessage="Nenhum colaborador encontrado"
+              />
+            </div>
           </Card>
         </div>
       )}
@@ -390,6 +501,17 @@ const HRArea: React.FC = () => {
         </div>
       )}
 
+      {/* Add Salary Modal */}
+      <AddSalaryModal
+        isOpen={showAddSalaryModal}
+        onClose={() => {
+          setShowAddSalaryModal(false);
+          setSelectedProfileForSalary('');
+        }}
+        profiles={profiles}
+        selectedProfileId={selectedProfileForSalary}
+        onSuccess={handleSalarySuccess}
+      />
       {/* Development Tab */}
       {selectedTab === 'development' && (
         <div className="space-y-6">
@@ -510,8 +632,18 @@ const HRArea: React.FC = () => {
                   <p className="text-gray-600 text-sm mb-4">
                     {report.description}
                   </p>
-                  <Button size="sm" className="w-full">
-                    Gerar Relatório
+                  <Button 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => {
+                      if (report.title === 'Calendário de Férias') {
+                        window.location.href = '/hr-calendar';
+                      } else {
+                        // Gerar outros relatórios
+                      }
+                    }}
+                  >
+                    {report.title === 'Calendário de Férias' ? 'Abrir Calendário' : 'Gerar Relatório'}
                   </Button>
                 </Card>
               </motion.div>

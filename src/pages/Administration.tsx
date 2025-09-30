@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Settings, 
-  Database, 
-  Shield, 
-  Bell, 
+import {
+  Settings,
+  Database,
+  Shield,
+  Bell,
   Palette,
   Users,
   BarChart3,
@@ -12,31 +12,42 @@ import {
   Download,
   Upload,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Target
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { databaseService } from '../services/database';
+import { MigrationManager } from '../components/admin/MigrationManager';
+import CompetencyManager from '../components/admin/CompetencyManager';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
+import { supabase } from '../lib/supabase';
 
 const Administration: React.FC = () => {
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState('system');
   const [showBackupModal, setShowBackupModal] = useState(false);
-  const [systemStats, setSystemStats] = useState({
-    totalUsers: 0,
-    activeUsers: 0,
-    totalPDIs: 0,
-    systemUptime: '99.9%',
-    lastBackup: '2024-01-15 10:30:00'
+  const [systemStats, setSystemStats] = useState<any>(null);
+  const [systemConfig, setSystemConfig] = useState({
+    company_name: 'TalentFlow Corp',
+    system_url: 'https://talentflow.empresa.com',
+    timezone: 'America/Sao_Paulo',
+    default_language: 'pt-BR',
+    admin_email: 'admin@empresa.com',
+    maintenance_mode: false
   });
+  const [configLoading, setConfigLoading] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   const tabs = [
     { id: 'system', label: 'Sistema', icon: <Settings size={16} /> },
     { id: 'database', label: 'Banco de Dados', icon: <Database size={16} /> },
+    { id: 'migrations', label: 'Migrações', icon: <RefreshCw size={16} /> },
+    { id: 'competencies', label: 'Competências', icon: <Target size={16} /> },
     { id: 'security', label: 'Segurança', icon: <Shield size={16} /> },
     { id: 'notifications', label: 'Notificações', icon: <Bell size={16} /> },
     { id: 'appearance', label: 'Aparência', icon: <Palette size={16} /> },
@@ -45,17 +56,83 @@ const Administration: React.FC = () => {
 
   useEffect(() => {
     loadSystemStats();
+    loadSystemConfig();
+    loadAuditLogs();
   }, []);
 
   const loadSystemStats = async () => {
-    // Mock data - in real app, this would come from API
-    setSystemStats({
-      totalUsers: 156,
-      activeUsers: 142,
-      totalPDIs: 234,
-      systemUptime: '99.9%',
-      lastBackup: '2024-01-15 10:30:00'
-    });
+    try {
+      const [profiles, pdis] = await Promise.all([
+        databaseService.getProfiles(),
+        supabase.from('pdis').select('id', { count: 'exact', head: true })
+      ]);
+
+      setSystemStats({
+        totalUsers: profiles?.length || 0,
+        activeUsers: profiles?.filter(p => p.status === 'active').length || 0,
+        totalPDIs: pdis.count || 0,
+        systemUptime: '99.9%', // This would come from monitoring service
+        lastBackup: new Date().toISOString().split('T')[0] + ' 03:00:00'
+      });
+    } catch (error) {
+      console.error('Error loading system stats:', error);
+      setSystemStats({
+        totalUsers: 0,
+        activeUsers: 0,
+        totalPDIs: 0,
+        systemUptime: 'N/A',
+        lastBackup: 'N/A'
+      });
+    }
+  };
+
+  const loadSystemConfig = async () => {
+    try {
+      // In a real implementation, this would load from a system_config table
+      const savedConfig = localStorage.getItem('system_config');
+      if (savedConfig) {
+        setSystemConfig(JSON.parse(savedConfig));
+      }
+    } catch (error) {
+      console.error('Error loading system config:', error);
+    }
+  };
+
+  const loadAuditLogs = async () => {
+    try {
+      const { adminService } = await import('../services/admin');
+      const logs = await adminService.getAuditLogs(10);
+      setAuditLogs(logs ?? []);
+    } catch (error) {
+      console.error('Error loading audit logs:', error);
+      setAuditLogs([]);
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    try {
+      setConfigLoading(true);
+      const { adminService } = await import('../services/admin');
+      await adminService.updateSystemConfig(systemConfig);
+      
+      // Create audit log
+      if (user) {
+        await adminService.createAuditLog(
+          user.id,
+          'Configuração do sistema atualizada',
+          'system_config',
+          undefined,
+          { updated_fields: Object.keys(systemConfig) }
+        );
+      }
+      
+      alert('Configurações salvas com sucesso!');
+    } catch (error) {
+      console.error('Error saving config:', error);
+      alert('Erro ao salvar configurações');
+    } finally {
+      setConfigLoading(false);
+    }
   };
 
   if (!user || user.role !== 'admin') {
@@ -304,6 +381,16 @@ const Administration: React.FC = () => {
         </div>
       )}
 
+      {/* Migrations Tab */}
+      {selectedTab === 'migrations' && (
+        <MigrationManager />
+      )}
+
+      {/* Competencies Tab */}
+      {selectedTab === 'competencies' && (
+        <CompetencyManager />
+      )}
+
       {/* Security Tab */}
       {selectedTab === 'security' && (
         <div className="space-y-6">
@@ -383,24 +470,26 @@ const Administration: React.FC = () => {
 
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Log de Auditoria</h3>
-            <div className="space-y-3">
-              {[
-                { action: 'Login realizado', user: 'admin@empresa.com', time: '10:30:15', ip: '192.168.1.100' },
-                { action: 'Usuário criado', user: 'rh@empresa.com', time: '09:45:22', ip: '192.168.1.101' },
-                { action: 'Configuração alterada', user: 'admin@empresa.com', time: '09:15:33', ip: '192.168.1.100' },
-                { action: 'Backup executado', user: 'sistema', time: '03:00:00', ip: 'localhost' }
-              ].map((log, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {auditLogs.map((log, index) => (
+                <div key={log.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <span className="font-medium text-gray-900">{log.action}</span>
-                    <span className="text-sm text-gray-500 ml-2">por {log.user}</span>
+                    <span className="text-sm text-gray-500 ml-2">
+                      por {log.user?.email || 'Sistema'}
+                    </span>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-gray-600">{log.time}</div>
-                    <div className="text-xs text-gray-500">{log.ip}</div>
+                    <div className="text-sm text-gray-600">
+                      {new Date(log.created_at).toLocaleTimeString('pt-BR')}
+                    </div>
+                    <div className="text-xs text-gray-500">{log.ip_address}</div>
                   </div>
                 </div>
               ))}
+              {auditLogs.length === 0 && (
+                <p className="text-sm text-gray-500 text-center">Nenhum registro de auditoria disponível.</p>
+              )}
             </div>
           </Card>
         </div>

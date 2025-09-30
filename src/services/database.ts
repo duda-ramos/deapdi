@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { supabaseRequest } from './api';
 import { 
   Profile, 
   Team, 
@@ -15,45 +16,53 @@ import {
 export const databaseService = {
   // Profiles
   async getProfiles(filters?: { role?: string; team_id?: string; status?: string }) {
-    console.log('🗄️ Database: Getting profiles with filters:', filters);
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      return [];
+    }
+
     let query = supabase
       .from('profiles')
       .select(`
         *,
         team:teams!profiles_team_id_fkey(name),
-        manager:profiles!manager_id(name)
+        manager:manager_id(name)
       `);
 
     if (filters?.role) query = query.eq('role', filters.role);
     if (filters?.team_id) query = query.eq('team_id', filters.team_id);
     if (filters?.status) query = query.eq('status', filters.status);
 
-    const { data, error } = await query;
-    console.log('🗄️ Database: getProfiles result', { count: data?.length, error });
-    if (error) throw error;
-    return data;
+    return supabaseRequest(() => query, 'getProfiles');
   },
 
   async updateProfile(id: string, updates: Partial<Profile>) {
-    const { data, error } = await supabase
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
+    return supabaseRequest(() => supabase
       .from('profiles')
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+      .single(), 'updateProfile');
   },
 
   // Teams
   async getTeams() {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('teams')
       .select(`
         *,
         manager:profiles!teams_manager_id_fkey(name),
-        members:profiles!team_id(id, name, position)
+        members:profiles!profiles_team_id_fkey(id, name, position)
       `);
 
     if (error) throw error;
@@ -61,6 +70,11 @@ export const databaseService = {
   },
 
   async createTeam(team: Omit<Team, 'id' | 'created_at' | 'updated_at'>) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     const { data, error } = await supabase
       .from('teams')
       .insert(team)
@@ -73,28 +87,51 @@ export const databaseService = {
 
   // Career Tracks
   async getCareerTrack(profileId: string) {
-    const { data, error } = await supabase
-      .from('career_tracks')
-      .select('*')
-      .eq('profile_id', profileId)
-      .single();
-
-    if (error) throw error;
-    return data;
+    console.log('🗄️ Database: Getting career track for profile:', profileId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('career_tracks')
+        .select(`
+          *,
+          template:career_track_templates(name, profession, stages)
+        `)
+        .eq('profile_id', profileId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('🗄️ Database: Career track query error:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Career track result:', !!data);
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Career track fetch failed:', error);
+      return null; // Return null instead of throwing to allow fallback handling
+    }
   },
 
   async updateCareerTrack(profileId: string, updates: Partial<CareerTrack>) {
-    const { data, error } = await supabase
+    console.log('🗄️ Database: Updating career track for profile:', profileId, updates);
+    
+    return supabaseRequest(() => supabase
       .from('career_tracks')
       .update(updates)
       .eq('profile_id', profileId)
       .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+      .single(), 'updateCareerTrack');
   },
 
+  async createCareerTrack(careerTrack: Omit<CareerTrack, 'id' | 'created_at' | 'updated_at'>) {
+    console.log('🗄️ Database: Creating career track:', careerTrack);
+    
+    return supabaseRequest(() => supabase
+      .from('career_tracks')
+      .insert(careerTrack)
+      .select()
+      .single(), 'createCareerTrack');
+  },
   // Competencies
   async getCompetencies(profileId: string) {
     const { data, error } = await supabase
@@ -102,6 +139,27 @@ export const databaseService = {
       .select('*')
       .eq('profile_id', profileId)
       .order('name');
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getAllCompetencies() {
+    const { data, error } = await supabase
+      .from('competencies')
+      .select('*')
+      .order('name');
+
+    if (error) throw error;
+    return data;
+  },
+
+  async createCompetency(competency: Omit<Competency, 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await supabase
+      .from('competencies')
+      .insert(competency)
+      .select()
+      .single();
 
     if (error) throw error;
     return data;
@@ -119,15 +177,24 @@ export const databaseService = {
     return data;
   },
 
+  async deleteCompetency(id: string) {
+    const { error } = await supabase
+      .from('competencies')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
   // PDIs
   async getPDIs(profileId: string) {
     const { data, error } = await supabase
       .from('pdis')
       .select(`
         *,
-        mentor:profiles!mentor_id(name),
-        created_by_profile:profiles!created_by(name),
-        validated_by_profile:profiles!validated_by(name)
+        mentor:profiles!inner(name),
+        created_by_profile:profiles!inner(name),
+        validated_by_profile:profiles!inner(name)
       `)
       .eq('profile_id', profileId)
       .order('created_at', { ascending: false });
@@ -161,34 +228,51 @@ export const databaseService = {
 
   // Achievements
   async getAchievements(profileId: string) {
-    const { data, error } = await supabase
-      .from('achievements')
-      .select('*')
-      .eq('profile_id', profileId)
-      .order('unlocked_at', { ascending: false });
+    console.log('🗄️ Database: Getting achievements for profile:', profileId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('achievements')
+        .select(`
+          *,
+          template:achievement_templates(*)
+        `)
+        .eq('profile_id', profileId)
+        .order('unlocked_at', { ascending: false });
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('🗄️ Database: Error fetching achievements:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Achievements result:', { count: data?.length });
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error fetching achievements:', error);
+      throw error;
+    }
   },
 
   async unlockAchievement(profileId: string, achievementTemplate: string) {
-    // This would typically be called by a database function or trigger
-    // For now, we'll implement it as a simple insert
-    const { data, error } = await supabase
-      .from('achievements')
-      .insert({
-        profile_id: profileId,
-        title: achievementTemplate, // This should be looked up from templates
-        description: 'Achievement unlocked!',
-        icon: '🏆',
-        points: 100,
-        unlocked_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    console.log('🗄️ Database: Manually unlocking achievement:', achievementTemplate, 'for profile:', profileId);
+    
+    try {
+      // This is now handled by triggers, but keeping for manual testing
+      const { data, error } = await supabase.rpc('manual_check_achievements', {
+        p_profile_id: profileId
+      });
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('🗄️ Database: Error unlocking achievement:', error);
+        throw error;
+      }
+      
+      console.log('🗄️ Database: Achievement unlock result:', data);
+      return data;
+    } catch (error) {
+      console.error('🗄️ Database: Critical error unlocking achievement:', error);
+      throw error;
+    }
   },
 
   // Salary History
@@ -251,5 +335,37 @@ export const databaseService = {
 
     if (error) throw error;
     return data;
+  },
+
+  // Action Groups
+  // Action Groups - Now handled by actionGroupService
+  async getActionGroups(profileId?: string) {
+    // Deprecated - use actionGroupService.getGroups() instead
+    console.warn('🗄️ Database: getActionGroups is deprecated, use actionGroupService.getGroups()');
+    const { actionGroupService } = await import('../services/actionGroups');
+    return actionGroupService.getGroups(profileId);
+  },
+
+  // Enhanced PDI methods
+  async getPendingPDIs(): Promise<PDI[]> {
+    console.log('🗄️ Database: Getting pending PDIs for validation');
+    
+    try {
+      const { data, error } = await supabase
+        .from('pdis')
+        .select(`
+          *,
+          profile:profiles!profile_id(name, position),
+          mentor:profiles!mentor_id(name)
+        `)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('🗄️ Database: Error getting pending PDIs:', error);
+      return [];
+    }
   }
 };

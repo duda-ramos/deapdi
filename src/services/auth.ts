@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Profile } from '../types';
+import { ProfileWithRelations } from '../types';
 
 export interface SignUpData {
   email: string;
@@ -17,14 +17,14 @@ export interface AuthResponse {
 }
 
 class AuthService {
-  /**
-   * Sign up a new user
-   */
   async signUp(data: SignUpData): Promise<AuthResponse> {
-    console.log('🔐 AuthService: Starting signup process');
-    console.log('🔐 AuthService: Email:', data.email);
-    console.log('🔐 AuthService: Name:', data.name);
-    
+    if (!supabase) {
+      return {
+        success: false,
+        error: 'Sistema não configurado. Entre em contato com o administrador.'
+      };
+    }
+
     try {
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
@@ -38,14 +38,7 @@ class AuthService {
         }
       });
 
-      console.log('🔐 AuthService: Signup response:', { 
-        user: !!authData.user, 
-        session: !!authData.session, 
-        error 
-      });
-
       if (error) {
-        console.error('🔐 AuthService: Signup error:', error);
         return {
           success: false,
           error: this.formatError(error.message)
@@ -59,15 +52,12 @@ class AuthService {
         };
       }
 
-      console.log('🔐 AuthService: Signup successful');
       return {
         success: true,
         user: authData.user,
         session: authData.session
       };
-
     } catch (error: any) {
-      console.error('🔐 AuthService: Signup exception:', error);
       return {
         success: false,
         error: this.formatError(error.message)
@@ -75,42 +65,49 @@ class AuthService {
     }
   }
 
-  /**
-   * Sign in user
-   */
   async signIn(email: string, password: string): Promise<AuthResponse> {
-    console.log('🔐 AuthService: Starting signin process');
-    console.log('🔐 AuthService: Email:', email);
+    if (!supabase) {
+      return {
+        success: false,
+        error: 'Sistema não configurado. Entre em contato com o administrador.'
+      };
+    }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('TIMEOUT')), 10000);
+      });
+
+      const signInPromise = supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      console.log('🔐 AuthService: Signin response:', { 
-        user: !!data.user, 
-        session: !!data.session, 
-        error 
-      });
+      const { data, error } = await Promise.race([
+        signInPromise,
+        timeoutPromise
+      ]) as any;
 
       if (error) {
-        console.error('🔐 AuthService: Signin error:', error);
         return {
           success: false,
           error: this.formatError(error.message)
         };
       }
 
-      console.log('🔐 AuthService: Signin successful');
       return {
         success: true,
         user: data.user,
         session: data.session
       };
-
     } catch (error: any) {
-      console.error('🔐 AuthService: Signin exception:', error);
+      if (error.message === 'TIMEOUT') {
+        return {
+          success: false,
+          error: 'Tempo limite de conexão excedido. Verifique sua internet.'
+        };
+      }
+
       return {
         success: false,
         error: this.formatError(error.message)
@@ -118,93 +115,72 @@ class AuthService {
     }
   }
 
-  /**
-   * Sign out user
-   */
   async signOut(): Promise<void> {
-    console.log('🔐 AuthService: Signing out');
+    if (!supabase) {
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('🔐 AuthService: Signout error:', error);
       throw error;
     }
-    console.log('🔐 AuthService: Signout successful');
   }
 
-  /**
-   * Get current session
-   */
   async getSession() {
-    console.log('🔐 AuthService: Getting session');
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error('🔐 AuthService: Get session error:', error);
+    if (!supabase) {
       return null;
     }
 
-    console.log('🔐 AuthService: Session retrieved:', !!session);
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error) {
+      return null;
+    }
+
     return session;
   }
 
-  /**
-   * Get user profile
-   */
-  async getProfile(userId: string): Promise<Profile | null> {
-    console.log('🔐 AuthService: Getting profile for user:', userId);
+  async getProfile(userId: string): Promise<ProfileWithRelations | null> {
+    if (!supabase) {
+      return null;
+    }
 
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, achievements(*)')
         .eq('id', userId)
         .maybeSingle();
 
       if (error) {
-        console.error('🔐 AuthService: Profile fetch error:', error);
         return null;
       }
 
-      console.log('🔐 AuthService: Profile retrieved:', !!data);
       return data;
-
     } catch (error) {
-      console.error('🔐 AuthService: Profile fetch exception:', error);
       return null;
     }
   }
 
-  /**
-   * Update user profile
-   */
-  async updateProfile(userId: string, updates: Partial<Profile>): Promise<Profile | null> {
-    console.log('🔐 AuthService: Updating profile for user:', userId);
+  async updateProfile(userId: string, updates: Partial<ProfileWithRelations>): Promise<ProfileWithRelations | null> {
+    if (!supabase) {
+      throw new Error('Sistema não configurado');
+    }
 
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', userId)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('🔐 AuthService: Profile update error:', error);
-        throw error;
-      }
-
-      console.log('🔐 AuthService: Profile updated successfully');
-      return data;
-
-    } catch (error) {
-      console.error('🔐 AuthService: Profile update exception:', error);
+    if (error) {
       throw error;
     }
+
+    return data;
   }
 
-  /**
-   * Format error messages for user display
-   */
   private formatError(message: string): string {
     if (message.includes('Invalid login credentials')) {
       return 'Email ou senha incorretos. Verifique suas credenciais.';

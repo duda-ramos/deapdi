@@ -2,6 +2,29 @@ import { Database } from './database';
 
 // Export database types for easier access
 export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type ProfileWithRelations = Profile & {
+  achievements?: Achievement[];
+  team?: Team;
+  manager?: Profile;
+  is_onboarded?: boolean;
+  onboarding_progress?: any;
+  onboarding_completed_at?: string;
+  birth_date?: string;
+  phone?: string;
+  location?: string;
+  admission_date?: string;
+  area?: string;
+  certifications?: string[];
+  hard_skills?: string[];
+  soft_skills?: string[];
+  languages?: Record<string, string>;
+  emergency_contact?: string;
+  mental_health_consent?: boolean;
+  preferred_session_type?: string;
+  career_objectives?: string;
+  development_interests?: string[];
+  mentorship_availability?: boolean;
+};
 export type Team = Database['public']['Tables']['teams']['Row'];
 export type CareerTrack = Database['public']['Tables']['career_tracks']['Row'];
 export type SalaryEntry = Database['public']['Tables']['salary_history']['Row'];
@@ -12,6 +35,22 @@ export type ActionGroup = Database['public']['Tables']['action_groups']['Row'];
 export type Task = Database['public']['Tables']['tasks']['Row'];
 export type PsychologicalRecord = Database['public']['Tables']['psychological_records']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
+export type NotificationPreferences = {
+  id: string;
+  profile_id: string;
+  pdi_approved: boolean;
+  pdi_rejected: boolean;
+  task_assigned: boolean;
+  achievement_unlocked: boolean;
+  mentorship_scheduled: boolean;
+  mentorship_cancelled: boolean;
+  group_invitation: boolean;
+  deadline_reminder: boolean;
+  email_notifications: boolean;
+  push_notifications: boolean;
+  created_at: string;
+  updated_at: string;
+};
 
 // Legacy types for backward compatibility (will be removed in Phase 2)
 export interface User {
@@ -102,6 +141,47 @@ export type PDIStatus = 'pending' | 'in-progress' | 'completed' | 'validated';
 export type GroupStatus = 'active' | 'completed' | 'cancelled';
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
+
+// HR Calendar types
+export interface CalendarEvent {
+  id: string;
+  type: 'aniversario' | 'aniversario_empresa' | 'ferias' | 'feriado' | 'evento' | 'day_off' | 'ferias_coletivas';
+  title: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  all_day: boolean;
+  category: string;
+  status: 'pending' | 'approved' | 'rejected' | 'confirmed';
+  created_by?: string;
+  approved_by?: string;
+  user_id?: string;
+  team_id?: string;
+  is_public: boolean;
+  color: string;
+  metadata?: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CalendarRequest {
+  id: string;
+  event_type: 'ferias' | 'day_off';
+  requester_id: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  manager_approval?: boolean;
+  hr_approval?: boolean;
+  comments?: string;
+  rejection_reason?: string;
+  days_requested: number;
+  created_at: string;
+  updated_at: string;
+}
 
 // API Response types
 export interface ApiResponse<T> {

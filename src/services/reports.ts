@@ -32,16 +32,17 @@ export interface TeamReport {
 
 export const reportService = {
   async generatePerformanceReport(profileId?: string): Promise<PerformanceReport[]> {
+    console.log('📊 Reports: Generating performance report for profile:', profileId);
+    
     try {
       // Get profiles data
       let profilesQuery = supabase
         .from('profiles')
         .select(`
           *,
-          team:teams!profiles_team_id_fkey(name),
-          pdis(id, status),
-          competencies(self_rating, manager_rating),
-          achievements(id)
+          pdis!pdis_profile_id_fkey(id, status),
+          competencies!competencies_profile_id_fkey(self_rating, manager_rating),
+          achievements!achievements_profile_id_fkey(id)
         `);
 
       if (profileId) {
@@ -49,7 +50,12 @@ export const reportService = {
       }
 
       const { data: profiles, error } = await profilesQuery;
-      if (error) throw error;
+      if (error) {
+        console.error('📊 Reports: Error fetching profiles for performance report:', error);
+        throw error;
+      }
+
+      console.log('📊 Reports: Profiles fetched:', profiles?.length);
 
       return profiles?.map(profile => ({
         profileId: profile.id,
@@ -57,33 +63,42 @@ export const reportService = {
         position: profile.position,
         level: profile.level,
         points: profile.points,
-        completedPDIs: profile.pdis?.filter((pdi: any) => pdi.status === 'completed' || pdi.status === 'validated').length || 0,
+        completedPDIs: profile.pdis?.filter((pdi: any) => 
+          pdi.status === 'completed' || pdi.status === 'validated'
+        ).length || 0,
         averageCompetencyRating: this.calculateAverageRating(profile.competencies || []),
         achievementsCount: profile.achievements?.length || 0,
         engagementScore: this.calculateEngagementScore(profile)
       })) || [];
     } catch (error) {
-      console.error('Error generating performance report:', error);
+      console.error('📊 Reports: Critical error generating performance report:', error);
       throw error;
     }
   },
 
   async generateTeamReport(): Promise<TeamReport[]> {
+    console.log('📊 Reports: Generating team report');
+    
     try {
       const { data: teams, error } = await supabase
         .from('teams')
         .select(`
           *,
-          members:profiles(
+          members:profiles!profiles_team_id_fkey(
             id,
             name,
             points,
-            pdis(status),
-            competencies(self_rating, manager_rating)
+            pdis!pdis_profile_id_fkey(status),
+            competencies!competencies_profile_id_fkey(self_rating, manager_rating)
           )
         `);
 
-      if (error) throw error;
+      if (error) {
+        console.error('📊 Reports: Error fetching teams for team report:', error);
+        throw error;
+      }
+
+      console.log('📊 Reports: Teams fetched:', teams?.length);
 
       return teams?.map(team => ({
         teamId: team.id,
@@ -95,21 +110,28 @@ export const reportService = {
         topPerformers: this.getTopPerformers(team.members || [], 3)
       })) || [];
     } catch (error) {
-      console.error('Error generating team report:', error);
+      console.error('📊 Reports: Critical error generating team report:', error);
       throw error;
     }
   },
 
   async generateCompetencyGapReport() {
+    console.log('📊 Reports: Generating competency gap report');
+    
     try {
       const { data: competencies, error } = await supabase
         .from('competencies')
         .select(`
           *,
-          profile:profiles(name, position, level)
+          profile:profiles!competencies_profile_id_fkey(name, position, level)
         `);
 
-      if (error) throw error;
+      if (error) {
+        console.error('📊 Reports: Error fetching competencies for gap report:', error);
+        throw error;
+      }
+
+      console.log('📊 Reports: Competencies fetched:', competencies?.length);
 
       const gaps = competencies?.map(comp => ({
         competencyName: comp.name,
@@ -122,9 +144,10 @@ export const reportService = {
         gap: comp.target_level - Math.max(comp.self_rating || 0, comp.manager_rating || 0)
       })).filter(gap => gap.gap > 0) || [];
 
+      console.log('📊 Reports: Competency gaps calculated:', gaps.length);
       return gaps.sort((a, b) => b.gap - a.gap);
     } catch (error) {
-      console.error('Error generating competency gap report:', error);
+      console.error('📊 Reports: Critical error generating competency gap report:', error);
       throw error;
     }
   },

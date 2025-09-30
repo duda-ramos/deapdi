@@ -1,48 +1,129 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, Check, Trash2, BookMarked as MarkAsRead } from 'lucide-react';
+import { 
+  Bell, 
+  X, 
+  Check, 
+  Trash2, 
+  Settings, 
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  Info,
+  AlertTriangle,
+  Calendar,
+  Trophy,
+  Target,
+  Users
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { notificationService } from '../services/notifications';
+import { notificationService, NotificationPreferences, NotificationStats } from '../services/notifications';
 import type { Notification } from '../types';
+import { supabase } from '../lib/supabase';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
+import { Modal } from './ui/Modal';
+import { Card } from './ui/Card';
 
 export const NotificationCenter: React.FC = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
+  const [stats, setStats] = useState<NotificationStats | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const maxReconnectAttempts = 5;
 
   useEffect(() => {
     if (user) {
       loadNotifications();
+      loadPreferences();
+      loadStats();
+      setupNotificationSubscription();
       
-      // Subscribe to real-time notifications
+      // Request browser notification permission
+      notificationService.requestBrowserPermission();
+    }
+  }, [user, reconnectAttempts]);
+
+  const setupNotificationSubscription = () => {
+    if (!user) return;
+    
+    // Check if Supabase is properly configured
+    if (!supabase) {
+      console.warn('🔔 NotificationCenter: Supabase not configured, skipping real-time subscription');
+      setSubscriptionStatus('disconnected');
+      return;
+    }
+    
+    console.log('🔔 NotificationCenter: Setting up subscription, attempt:', reconnectAttempts + 1);
+    setSubscriptionStatus('connecting');
+    
+    try {
       const subscription = notificationService.subscribeToNotifications(
         user.id,
         (newNotification) => {
+          console.log('🔔 NotificationCenter: New notification received:', newNotification);
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
+          setSubscriptionStatus('connected');
+          setReconnectAttempts(0);
           
-          // Show browser notification if permission granted
-          if (Notification.permission === 'granted') {
-            new Notification(newNotification.title, {
-              body: newNotification.message,
-              icon: '/favicon.ico'
-            });
+          // Show browser notification
+          notificationService.showBrowserNotification(
+            newNotification.title,
+            newNotification.message
+          );
+        },
+        (status) => {
+          console.log('🔔 NotificationCenter: Subscription status changed:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            setSubscriptionStatus('connected');
+            setReconnectAttempts(0);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setSubscriptionStatus('disconnected');
+            
+            if (reconnectAttempts < maxReconnectAttempts) {
+              const delay = Math.pow(2, reconnectAttempts) * 1000;
+              console.log(`🔔 NotificationCenter: Reconnecting in ${delay}ms...`);
+              
+              setTimeout(() => {
+                setReconnectAttempts(prev => prev + 1);
+              }, delay);
+            }
           }
         }
       );
 
       return () => {
-        subscription.unsubscribe();
+        console.log('🔔 NotificationCenter: Cleaning up subscription');
+        if (subscription) {
+          subscription.unsubscribe();
+        }
       };
+    } catch (error) {
+      console.error('🔔 NotificationCenter: Subscription setup failed:', error);
+      setSubscriptionStatus('disconnected');
     }
-  }, [user]);
+  };
 
   const loadNotifications = async () => {
     if (!user) return;
+    
+    // Check if Supabase is properly configured
+    if (!supabase) {
+      console.warn('🔔 NotificationCenter: Supabase not configured, skipping notifications');
+      // Show user-friendly error message
+      setNotifications([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -53,10 +134,67 @@ export const NotificationCenter: React.FC = () => {
       
       setNotifications(allNotifications || []);
       setUnreadCount(unreadNotifications?.length || 0);
+      setLoading(false);
     } catch (error) {
       console.error('Error loading notifications:', error);
-    } finally {
+      
+      // Handle Supabase connection issues
+      if (error instanceof Error && (
+        error.message.includes('Não foi possível conectar ao Supabase') ||
+        error.message.includes('Unable to connect to Supabase') ||
+        error.message.includes('Failed to fetch')
+      )) {
+        console.warn('🔔 NotificationCenter: Network error, setting empty state');
+        setNotifications([]);
+        setUnreadCount(0);
+      } else {
+        console.warn('🔔 NotificationCenter: Error loading notifications, setting empty state');
+        setNotifications([]);
+        setUnreadCount(0);
+      }
       setLoading(false);
+    }
+  };
+
+  const loadPreferences = async () => {
+    if (!user) return;
+    
+    try {
+      const prefs = await notificationService.getPreferences(user.id);
+      setPreferences(prefs);
+    } catch (error) {
+      console.warn('Error loading preferences, using defaults:', error);
+      setPreferences(notificationService.getDefaultPreferences(user.id));
+    }
+  };
+
+  const loadStats = async () => {
+    if (!user) return;
+    
+    // Check if Supabase is properly configured
+    if (!supabase) {
+      console.warn('🔔 NotificationCenter: Supabase not configured, skipping stats');
+      // Don't show error to user for stats - just fail silently
+      setStats(notificationService.getDefaultStats());
+      return;
+    }
+    
+    try {
+      const statsData = await notificationService.getStats(user.id);
+      setStats(statsData);
+    } catch (error) {
+      // Handle Supabase connection issues gracefully
+      if (error instanceof Error && (
+        error.message.includes('Não foi possível conectar ao Supabase') ||
+        error.message.includes('Unable to connect to Supabase') ||
+        error.message.includes('Failed to fetch')
+      )) {
+        console.warn('🔔 NotificationCenter: Network error loading stats, using defaults');
+      } else {
+        console.warn('🔔 NotificationCenter: Error loading stats, using defaults');
+      }
+      // Set default stats if loading fails
+      setStats(notificationService.getDefaultStats());
     }
   };
 
@@ -101,12 +239,57 @@ export const NotificationCenter: React.FC = () => {
     }
   };
 
-  const getNotificationIcon = (type: Notification['type']) => {
+  const handleUpdatePreferences = async (updates: Partial<NotificationPreferences>) => {
+    if (!user) return;
+    
+    try {
+      const updated = await notificationService.updatePreferences(user.id, updates);
+      setPreferences(updated);
+    } catch (error) {
+      console.warn('Error updating preferences:', error);
+      // Update local state even if backend fails
+      if (preferences) {
+        setPreferences({ ...preferences, ...updates });
+      }
+    }
+  };
+
+  const handleCreateTestNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      await notificationService.createTestNotifications(user.id);
+      await loadNotifications();
+    } catch (error) {
+      console.error('Error creating test notifications:', error);
+    }
+  };
+
+  const getNotificationIcon = (type: Notification['type'], category?: string) => {
+    if (category) {
+      switch (category) {
+        case 'pdi_approved':
+        case 'pdi_rejected':
+          return <Target size={16} className="text-blue-500" />;
+        case 'task_assigned':
+          return <CheckCircle size={16} className="text-green-500" />;
+        case 'achievement_unlocked':
+          return <Trophy size={16} className="text-yellow-500" />;
+        case 'mentorship_scheduled':
+        case 'mentorship_cancelled':
+          return <Calendar size={16} className="text-purple-500" />;
+        case 'group_invitation':
+          return <Users size={16} className="text-indigo-500" />;
+        default:
+          break;
+      }
+    }
+
     switch (type) {
-      case 'success': return '✅';
-      case 'warning': return '⚠️';
-      case 'error': return '❌';
-      default: return 'ℹ️';
+      case 'success': return <CheckCircle size={16} className="text-green-500" />;
+      case 'warning': return <AlertTriangle size={16} className="text-yellow-500" />;
+      case 'error': return <AlertCircle size={16} className="text-red-500" />;
+      default: return <Info size={16} className="text-blue-500" />;
     }
   };
 
@@ -119,6 +302,22 @@ export const NotificationCenter: React.FC = () => {
     }
   };
 
+  const getConnectionStatusColor = () => {
+    switch (subscriptionStatus) {
+      case 'connected': return 'text-green-500';
+      case 'connecting': return 'text-yellow-500';
+      default: return 'text-red-500';
+    }
+  };
+
+  const getConnectionStatusText = () => {
+    switch (subscriptionStatus) {
+      case 'connected': return 'Conectado';
+      case 'connecting': return 'Conectando...';
+      default: return 'Desconectado';
+    }
+  };
+
   return (
     <div className="relative">
       {/* Notification Bell */}
@@ -128,10 +327,20 @@ export const NotificationCenter: React.FC = () => {
       >
         <Bell size={20} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center"
+          >
             {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          </motion.span>
         )}
+        
+        {/* Connection Status Indicator */}
+        <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full ${
+          subscriptionStatus === 'connected' ? 'bg-green-500' :
+          subscriptionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+        }`} />
       </button>
 
       {/* Notification Panel */}
@@ -153,10 +362,46 @@ export const NotificationCenter: React.FC = () => {
             >
               {/* Header */}
               <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                   <h3 className="text-lg font-semibold text-gray-900">
                     Notificações
                   </h3>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setShowPreferences(true)}
+                      className="text-gray-400 hover:text-gray-600 p-1"
+                      title="Configurações"
+                    >
+                      <Settings size={16} />
+                    </button>
+                    <button
+                      onClick={loadNotifications}
+                      className="text-gray-400 hover:text-gray-600 p-1"
+                      title="Atualizar"
+                    >
+                      <RefreshCw size={16} />
+                    </button>
+                    <button
+                      onClick={() => setIsOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 p-1"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Stats and Actions */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <span className={getConnectionStatusColor()}>●</span>
+                    <span className="text-gray-600">{getConnectionStatusText()}</span>
+                    {stats && (
+                      <Badge variant="default" size="sm">
+                        {stats.notifications_today} hoje
+                      </Badge>
+                    )}
+                  </div>
+                  
                   <div className="flex items-center space-x-2">
                     {unreadCount > 0 && (
                       <Button
@@ -165,16 +410,21 @@ export const NotificationCenter: React.FC = () => {
                         onClick={handleMarkAllAsRead}
                         className="text-xs"
                       >
-                        <Check size={14} className="mr-1" />
+                        <Check size={12} className="mr-1" />
                         Marcar todas
                       </Button>
                     )}
-                    <button
-                      onClick={() => setIsOpen(false)}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <X size={16} />
-                    </button>
+                    
+                    {import.meta.env.DEV && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleCreateTestNotifications}
+                        className="text-xs"
+                      >
+                        Teste
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -202,8 +452,8 @@ export const NotificationCenter: React.FC = () => {
                         }`}
                       >
                         <div className="flex items-start space-x-3">
-                          <div className="text-lg">
-                            {getNotificationIcon(notification.type)}
+                          <div className="flex-shrink-0 mt-1">
+                            {getNotificationIcon(notification.type, notification.category)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between">
@@ -216,9 +466,16 @@ export const NotificationCenter: React.FC = () => {
                                 <p className="text-sm text-gray-600 mt-1">
                                   {notification.message}
                                 </p>
-                                <p className="text-xs text-gray-400 mt-2">
-                                  {new Date(notification.created_at).toLocaleString('pt-BR')}
-                                </p>
+                                <div className="flex items-center space-x-2 mt-2">
+                                  <p className="text-xs text-gray-400">
+                                    {new Date(notification.created_at).toLocaleString('pt-BR')}
+                                  </p>
+                                  {notification.category && (
+                                    <Badge variant="default" size="sm">
+                                      {notification.category.replace('_', ' ')}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                               <div className="flex items-center space-x-1 ml-2">
                                 {!notification.read && (
@@ -239,6 +496,21 @@ export const NotificationCenter: React.FC = () => {
                                 </button>
                               </div>
                             </div>
+                            
+                            {/* Action URL */}
+                            {notification.action_url && (
+                              <button
+                                onClick={() => {
+                                  window.location.href = notification.action_url!;
+                                  if (!notification.read) {
+                                    handleMarkAsRead(notification.id);
+                                  }
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800 mt-2"
+                              >
+                                Ver detalhes →
+                              </button>
+                            )}
                           </div>
                         </div>
                       </motion.div>
@@ -250,6 +522,165 @@ export const NotificationCenter: React.FC = () => {
           </>
         )}
       </AnimatePresence>
+
+      {/* Preferences Modal */}
+      <Modal
+        isOpen={showPreferences}
+        onClose={() => setShowPreferences(false)}
+        title="Preferências de Notificação"
+        size="lg"
+      >
+        {preferences && (
+          <div className="space-y-6">
+            {/* Statistics */}
+            {stats && (
+              <Card className="p-4 bg-blue-50">
+                <h4 className="font-medium text-blue-900 mb-3">Estatísticas</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-blue-700">Total de notificações:</span>
+                    <span className="font-medium ml-2">{stats.total_notifications}</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700">Não lidas:</span>
+                    <span className="font-medium ml-2">{stats.unread_notifications}</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700">Hoje:</span>
+                    <span className="font-medium ml-2">{stats.notifications_today}</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700">Tipo mais comum:</span>
+                    <span className="font-medium ml-2">{stats.most_common_type}</span>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Notification Types */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-4">Tipos de Notificação</h4>
+              <div className="space-y-3">
+                {[
+                  { key: 'pdi_approved', label: 'PDI Aprovado', icon: <CheckCircle size={16} className="text-green-500" /> },
+                  { key: 'pdi_rejected', label: 'PDI Rejeitado', icon: <AlertTriangle size={16} className="text-yellow-500" /> },
+                  { key: 'task_assigned', label: 'Tarefa Atribuída', icon: <Target size={16} className="text-blue-500" /> },
+                  { key: 'achievement_unlocked', label: 'Conquista Desbloqueada', icon: <Trophy size={16} className="text-yellow-500" /> },
+                  { key: 'mentorship_scheduled', label: 'Mentoria Agendada', icon: <Calendar size={16} className="text-purple-500" /> },
+                  { key: 'mentorship_cancelled', label: 'Mentoria Cancelada', icon: <X size={16} className="text-red-500" /> },
+                  { key: 'group_invitation', label: 'Convite para Grupo', icon: <Users size={16} className="text-indigo-500" /> },
+                  { key: 'deadline_reminder', label: 'Lembrete de Prazo', icon: <AlertCircle size={16} className="text-orange-500" /> }
+                ].map((item) => (
+                  <div key={item.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      {item.icon}
+                      <span className="text-sm font-medium text-gray-900">{item.label}</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={preferences[item.key as keyof NotificationPreferences] as boolean}
+                        onChange={(e) => handleUpdatePreferences({
+                          [item.key]: e.target.checked
+                        })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Delivery Methods */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-4">Métodos de Entrega</h4>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Bell size={16} className="text-blue-500" />
+                    <span className="text-sm font-medium text-gray-900">Notificações no Sistema</span>
+                  </div>
+                  <span className="text-sm text-gray-600">Sempre ativo</span>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-lg">📧</span>
+                    <span className="text-sm font-medium text-gray-900">Email</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={preferences.email_notifications}
+                      onChange={(e) => handleUpdatePreferences({
+                        email_notifications: e.target.checked
+                      })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-lg">🔔</span>
+                    <span className="text-sm font-medium text-gray-900">Push (Navegador)</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={preferences.push_notifications}
+                      onChange={(e) => handleUpdatePreferences({
+                        push_notifications: e.target.checked
+                      })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Connection Status */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900 mb-2">Status da Conexão</h4>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    subscriptionStatus === 'connected' ? 'bg-green-500' :
+                    subscriptionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+                  }`} />
+                  <span className="text-sm text-gray-600">{getConnectionStatusText()}</span>
+                </div>
+                {subscriptionStatus === 'disconnected' && reconnectAttempts < maxReconnectAttempts && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setReconnectAttempts(0)}
+                  >
+                    Reconectar
+                  </Button>
+                )}
+              </div>
+              {reconnectAttempts >= maxReconnectAttempts && (
+                <p className="text-xs text-red-600 mt-2">
+                  Máximo de tentativas de reconexão atingido. Recarregue a página.
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                variant="secondary"
+                onClick={() => setShowPreferences(false)}
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

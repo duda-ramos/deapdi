@@ -47,21 +47,38 @@ const Reports: React.FC = () => {
     setLoading(true);
     try {
       switch (selectedReport) {
-        case 'performance':
-          const perfData = await reportService.generatePerformanceReport();
+        case 'performance': {
+          const perfData = await reportService.generatePerformanceReport(
+            user?.role === 'manager' ? user.id : undefined
+          );
           setPerformanceData(perfData);
           break;
-        case 'team':
+        }
+        case 'team': {
           const teamData = await reportService.generateTeamReport();
           setTeamData(teamData);
           break;
-        case 'competency':
+        }
+        case 'competency': {
           const gapData = await reportService.generateCompetencyGapReport();
           setCompetencyGaps(gapData);
           break;
+        }
       }
     } catch (error) {
       console.error('Error loading report data:', error);
+      // Set empty data on error to prevent crashes
+      switch (selectedReport) {
+        case 'performance':
+          setPerformanceData([]);
+          break;
+        case 'team':
+          setTeamData([]);
+          break;
+        case 'competency':
+          setCompetencyGaps([]);
+          break;
+      }
     } finally {
       setLoading(false);
     }

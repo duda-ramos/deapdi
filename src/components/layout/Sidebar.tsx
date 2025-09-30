@@ -7,13 +7,18 @@ import {
   TrendingUp, 
   Target, 
   Users, 
-  Heart,
+  Heart, 
+  Brain,
+  Calendar,
   Trophy,
+  Award,
   Settings,
   BookOpen,
   BarChart3,
   UserCog,
-  FileText
+  FileText,
+  Building,
+  TestTube
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../types';
@@ -35,11 +40,19 @@ const sidebarItems: SidebarItem[] = [
   { id: 'groups', label: 'Grupos de Ação', icon: <Users size={20} />, path: '/groups', roles: ['admin', 'hr', 'manager', 'employee'] },
   { id: 'achievements', label: 'Conquistas', icon: <Trophy size={20} />, path: '/achievements', roles: ['admin', 'hr', 'manager', 'employee'] },
   { id: 'learning', label: 'Aprendizado', icon: <BookOpen size={20} />, path: '/learning', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'certificates', label: 'Certificados', icon: <Award size={20} />, path: '/certificates', roles: ['admin', 'hr', 'manager', 'employee'] },
   { id: 'mentorship', label: 'Mentoria', icon: <Users size={20} />, path: '/mentorship', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'mental-health', label: 'Bem-estar', icon: <Brain size={20} />, path: '/mental-health', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'people', label: 'Gestão de Pessoas', icon: <Users size={20} />, path: '/people', roles: ['admin', 'manager'] },
+  { id: 'teams', label: 'Gestão de Times', icon: <Building size={20} />, path: '/teams', roles: ['admin'] },
   { id: 'reports', label: 'Relatórios', icon: <FileText size={20} />, path: '/reports', roles: ['admin', 'hr', 'manager'] },
-  { id: 'users', label: 'Gerenciar Usuários', icon: <UserCog size={20} />, path: '/users', roles: ['admin', 'hr'] },
+  { id: 'users', label: 'Criar Usuários', icon: <UserCog size={20} />, path: '/users', roles: ['admin', 'hr'] },
   { id: 'hr', label: 'Área de RH', icon: <Heart size={20} />, path: '/hr', roles: ['admin', 'hr'] },
+  { id: 'hr-calendar', label: 'Calendário', icon: <Calendar size={20} />, path: '/hr-calendar', roles: ['admin', 'hr'] },
+  { id: 'mental-health-admin', label: 'Portal do Psicólogo', icon: <Brain size={20} />, path: '/mental-health/admin', roles: ['hr'] },
+  { id: 'career-management', label: 'Gerenciar Trilhas', icon: <TrendingUp size={20} />, path: '/career-management', roles: ['admin'] },
   { id: 'admin', label: 'Administração', icon: <Settings size={20} />, path: '/admin', roles: ['admin'] },
+  { id: 'qa', label: 'Garantia de Qualidade', icon: <TestTube size={20} />, path: '/qa', roles: ['admin'] },
 ];
 
 export const Sidebar: React.FC = () => {
@@ -86,28 +99,6 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      {/* User info at bottom */}
-      {user && (
-        <div className="absolute bottom-6 left-6 right-6">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
-            <div className="flex items-center space-x-3">
-              <img
-                src={user.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
-                alt={user.name}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                <p className="text-xs text-gray-500 capitalize">{user.role}</p>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-xs text-gray-600">Pontos</span>
-              <span className="text-sm font-bold text-blue-600">{user.points}</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
