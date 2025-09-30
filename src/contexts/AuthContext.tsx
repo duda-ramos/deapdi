@@ -29,115 +29,167 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const ensureProfileExists = async (authUser: SupabaseUser): Promise<ProfileWithRelations | null> => {
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authUser.id)
-      .maybeSingle();
+  // Safety timeout - force loading to false after 5 seconds
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
 
-    if (existingProfile) {
-      return existingProfile;
-    }
-
-    const newProfile = {
-      id: authUser.id,
-      email: authUser.email || '',
-      name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-      role: 'employee' as const,
-      status: 'active' as const,
-      position: authUser.user_metadata?.position || 'Colaborador',
-      level: authUser.user_metadata?.level || 'Júnior',
-      points: 0,
-      avatar_url: authUser.user_metadata?.avatar_url || null,
-      bio: null,
-      team_id: null,
-      manager_id: null
-    };
-
-    const { data: createdProfile } = await supabase
-      .from('profiles')
-      .insert(newProfile)
-      .select()
-      .single();
-
-    return createdProfile || newProfile as any;
-  };
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
     const initializeAuth = async () => {
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Check if Supabase is available
+        if (!supabase) {
+          console.warn('🔐 Auth: Supabase not available, using offline mode');
+          setUser(null);
+          setSupabaseUser(null);
+          setLoading(false);
+          return;
+        }
 
-        if (isMounted && session?.user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
           setSupabaseUser(session.user);
-          const profile = await ensureProfileExists(session.user);
-          if (isMounted) {
-            setUser(profile);
+          
+          try {
+            // Emergency: Use service account or bypass RLS for profile fetch
+            let profileData = null;
+            let profileError = null;
+            
+            try {
+              // First attempt: Simple profile fetch
+              const { data, error } = await supabase
+                .from('profiles')
+                .select('id, email, name, role, avatar_url, level, position, points, bio, status')
+                .eq('id', session.user.id)
+                .single();
+              
+              profileData = data;
+              profileError = error;
+            } catch (fetchError) {
+              console.warn('Profile fetch failed, trying alternative approach:', fetchError);
+              
+              // Fallback: Create minimal profile from session data
+              profileData = {
+                id: session.user.id,
+                email: session.user.email || '',
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                role: 'employee' as const,
+                avatar_url: session.user.user_metadata?.avatar_url || null,
+                level: 'Junior',
+                position: 'Employee',
+                points: 0,
+                bio: null,
+                status: 'active' as const
+              };
+              profileError = null;
+            }
+            
+            if (profileError) {
+              console.error('Profile fetch error:', profileError);
+              // If it's an RLS recursion error, still set the user but without profile data
+              if (profileError.code === '42P17' || profileError.message?.includes('infinite recursion')) {
+                console.warn('RLS recursion detected, using basic user data only');
+                // Create a basic profile from session data
+                setUser({
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                  role: 'employee' as const,
+                  avatar_url: session.user.user_metadata?.avatar_url || null,
+                  level: 'Junior',
+                  position: 'Employee',
+                  points: 0,
+                  bio: null,
+                  status: 'active' as const,
+                  team_id: null,
+                  manager_id: null,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                } as any);
+              } else {
+                throw profileError;
+              }
+            } else {
+              setUser(profileData);
+            }
+          } catch (profileError) {
+            console.error('Profile fetch error - using fallback:', profileError);
+            // Always use fallback profile when there's an error
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+              role: 'employee' as const,
+              avatar_url: session.user.user_metadata?.avatar_url || null,
+              level: 'Junior',
+              position: 'Employee',
+              points: 0,
+              bio: null,
+              status: 'active' as const,
+              team_id: null,
+              manager_id: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            } as any);
           }
+        } else {
+          setUser(null);
+          setSupabaseUser(null);
         }
       } catch (error) {
+        console.error('Auth initialization error:', error);
+        
+        // Handle invalid refresh token errors by clearing session data
         if (error instanceof Error && error.message.includes('Refresh Token Not Found')) {
-          await supabase.auth.signOut();
+          try {
+            if (supabase) {
+              await supabase.auth.signOut();
+            }
+            // Force full page reload to clear all client-side state
+            window.location.href = '/login';
+            return; // Exit early to prevent further execution
+          } catch (signOutError) {
+            console.error('Error clearing invalid session:', signOutError);
+          }
         }
+        
+        setUser(null);
+        setSupabaseUser(null);
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        // CRITICAL: Always set loading to false
+        setLoading(false);
       }
     };
 
     initializeAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        setSupabaseUser(session.user);
-        const profile = await ensureProfileExists(session.user);
-        setUser(profile);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setSupabaseUser(null);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     const result = await authService.signIn(email, password);
-
     if (!result.success) {
       throw new Error(result.error);
     }
-
+    
     if (result.user) {
       setSupabaseUser(result.user);
-      const profile = await ensureProfileExists(result.user);
+      const profile = await authService.getProfile(result.user.id);
       setUser(profile);
     }
   };
 
   const signUp = async (userData: any) => {
     const result = await authService.signUp(userData);
-
     if (!result.success) {
       throw new Error(result.error);
     }
-
+    
     if (result.user) {
       setSupabaseUser(result.user);
-      const profile = await ensureProfileExists(result.user);
-      setUser(profile);
     }
   };
 
@@ -149,7 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     if (supabaseUser) {
-      const profile = await ensureProfileExists(supabaseUser);
+      const profile = await authService.getProfile(supabaseUser.id);
       setUser(profile);
     }
   };

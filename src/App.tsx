@@ -2,6 +2,7 @@ import React from 'react';
 import { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { useErrorHandler } from './hooks/useErrorHandler';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AchievementProvider } from './contexts/AchievementContext';
@@ -53,45 +54,49 @@ const AchievementWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
 const useSupabaseSetup = () => {
   const [setupComplete, setSetupComplete] = React.useState(false);
   const [checking, setChecking] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [isExpiredToken, setIsExpiredToken] = React.useState(false);
 
   React.useEffect(() => {
     const checkSetup = async () => {
       const hasUrl = !!import.meta.env.VITE_SUPABASE_URL;
       const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
       const offlineMode = localStorage.getItem('OFFLINE_MODE') === 'true';
-
+      
       if (offlineMode) {
         setSetupComplete(true);
         setChecking(false);
         return;
       }
-
+      
       if (!hasUrl || !hasKey) {
         setSetupComplete(false);
         setChecking(false);
-        setError('Missing Supabase credentials');
         return;
       }
-
+      
+      // Check if Supabase connection is actually working
       try {
-        const healthCheck = await checkDatabaseHealth(10000);
-        setSetupComplete(healthCheck.healthy);
-        setError(healthCheck.error || null);
-        setIsExpiredToken(healthCheck.isExpiredToken || false);
+        const healthCheck = await checkDatabaseHealth();
+        const isSetup = healthCheck.healthy;
+        
+        if (import.meta.env.DEV) {
+          console.log('🔧 Setup Check:', { hasUrl, hasKey, offlineMode, healthy: healthCheck.healthy, error: healthCheck.error, isSetup });
+        }
+        
+        setSetupComplete(isSetup);
       } catch (error) {
+        if (import.meta.env.DEV) {
+          console.log('🔧 Setup Check Failed:', error);
+        }
         setSetupComplete(false);
-        setError(error instanceof Error ? error.message : 'Unknown error occurred');
       }
-
+      
       setChecking(false);
     };
 
     checkSetup();
   }, []);
 
-  return { setupComplete, checking, error, isExpiredToken, setSetupComplete };
+  return { setupComplete, checking, setSetupComplete };
 };
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -123,18 +128,14 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
-  const { setupComplete, checking, error, isExpiredToken, setSetupComplete } = useSupabaseSetup();
+  const { setupComplete, checking, setSetupComplete } = useSupabaseSetup();
 
   if (checking) {
     return <LoadingScreen message="Verificando configuração..." />;
   }
 
   if (!setupComplete) {
-    return <SetupCheck
-      onSetupComplete={() => setSetupComplete(true)}
-      initialError={error}
-      isExpiredToken={isExpiredToken}
-    />;
+    return <SetupCheck onSetupComplete={() => setSetupComplete(true)} />;
   }
 
   if (loading) {

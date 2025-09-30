@@ -1,22 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import {
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Settings,
+import { 
+  AlertTriangle, 
+  CheckCircle, 
+  XCircle, 
+  Settings, 
   Database,
   Wifi,
   WifiOff,
   Copy,
   ExternalLink,
-  RefreshCw,
-  Activity
+  RefreshCw
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card } from './ui/Card';
-import { ConnectionDiagnostics } from './ConnectionDiagnostics';
 
 interface SetupStatus {
   hasUrl: boolean;
@@ -31,18 +29,16 @@ interface SetupStatus {
 
 interface SetupCheckProps {
   onSetupComplete: () => void;
-  initialError?: string | null;
-  isExpiredToken?: boolean;
 }
 
-export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initialError, isExpiredToken }) => {
+export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete }) => {
   const [status, setStatus] = useState<SetupStatus>({
     hasUrl: false,
     hasKey: false,
     urlValue: '',
     keyValue: '',
     connectionWorking: false,
-    connectionError: initialError || '',
+    connectionError: '',
     authEnabled: false,
     projectOnline: false
   });
@@ -51,25 +47,14 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
     url: '',
     key: ''
   });
-
+  
   const [showManualSetup, setShowManualSetup] = useState(false);
   const [testing, setTesting] = useState(false);
   const [offlineMode, setOfflineMode] = useState(false);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   useEffect(() => {
     checkEnvironmentVariables();
   }, []);
-
-  // Show expired token warning if detected
-  useEffect(() => {
-    if (isExpiredToken) {
-      setStatus(prev => ({
-        ...prev,
-        connectionError: initialError || 'Your Supabase credentials have expired. Please update your .env file.'
-      }));
-    }
-  }, [isExpiredToken, initialError]);
 
   const checkEnvironmentVariables = async () => {
     console.log('🔍 SetupCheck: Checking environment variables...');
@@ -105,20 +90,7 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
   const testConnection = async (url: string, key: string) => {
     console.log('🧪 SetupCheck: Testing connection...');
     setTesting(true);
-
-    // Add connection timeout
-    const timeoutId = setTimeout(() => {
-      console.error('⏱️ SetupCheck: Connection test timed out');
-      setStatus(prev => ({
-        ...prev,
-        connectionWorking: false,
-        connectionError: 'Connection test timed out. Please check your Supabase configuration.',
-        authEnabled: false,
-        projectOnline: false
-      }));
-      setTesting(false);
-    }, 10000);
-
+    
     try {
       // Test 1: Basic connection
       console.log('🧪 SetupCheck: Test 1 - Basic connection');
@@ -174,10 +146,8 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
       }));
       
       console.log('✅ SetupCheck: All tests passed!');
-      clearTimeout(timeoutId);
-
+      
     } catch (error: any) {
-      clearTimeout(timeoutId);
       console.error('❌ SetupCheck: Connection test failed:', error);
       
       let errorMessage = error.message;
@@ -254,10 +224,6 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
     );
   }
 
-  if (showDiagnostics) {
-    return <ConnectionDiagnostics onClose={() => setShowDiagnostics(false)} />;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
@@ -273,33 +239,6 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
             <h1 className="text-3xl font-bold text-gray-900">Configuração Necessária</h1>
             <p className="text-gray-600 mt-2">O Supabase precisa ser configurado para continuar</p>
           </div>
-
-          {/* Expired Token Warning */}
-          {isExpiredToken && (
-            <Card className="p-6 mb-6 bg-red-50 border-red-200">
-              <div className="flex items-start space-x-3">
-                <AlertTriangle className="text-red-600 flex-shrink-0 mt-1" size={24} />
-                <div>
-                  <h3 className="text-lg font-semibold text-red-900 mb-2">
-                    Token Expirado
-                  </h3>
-                  <p className="text-red-800 mb-4">
-                    Suas credenciais do Supabase expiraram. Para continuar, você precisa atualizar o arquivo .env com novas credenciais.
-                  </p>
-                  <div className="bg-red-100 p-3 rounded-lg text-sm">
-                    <p className="font-medium text-red-900 mb-2">Como resolver:</p>
-                    <ol className="list-decimal list-inside space-y-1 text-red-800">
-                      <li>Acesse o <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline">Supabase Dashboard</a></li>
-                      <li>Vá em Settings → API</li>
-                      <li>Copie a nova Project URL e anon/public key</li>
-                      <li>Atualize seu arquivo .env</li>
-                      <li>Reinicie o servidor de desenvolvimento</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
 
           {/* Diagnostic Panel */}
           <Card className="p-6 mb-6">
@@ -373,14 +312,6 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
               >
                 <RefreshCw size={16} className="mr-2" />
                 Testar Novamente
-              </Button>
-              <Button
-                onClick={() => setShowDiagnostics(true)}
-                variant="outline"
-                size="sm"
-              >
-                <Activity size={16} className="mr-2" />
-                Diagnóstico Completo
               </Button>
             </div>
           </Card>
