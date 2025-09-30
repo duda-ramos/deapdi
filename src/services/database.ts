@@ -25,8 +25,8 @@ export const databaseService = {
       .from('profiles')
       .select(`
         *,
-        team:teams!inner(name),
-        manager:profiles!inner(name)
+        team:teams!profiles_team_id_fkey(name),
+        manager:profiles!profiles_manager_id_fkey(name)
       `);
 
     if (filters?.role) query = query.eq('role', filters.role);
@@ -61,8 +61,8 @@ export const databaseService = {
       .from('teams')
       .select(`
         *,
-        manager:profiles!inner(name),
-        members:profiles!inner(id, name, position)
+        manager:profiles!teams_manager_id_fkey(name),
+        members:profiles!profiles_team_id_fkey(id, name, position)
       `);
 
     if (error) throw error;
