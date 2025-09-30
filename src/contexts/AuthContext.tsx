@@ -29,15 +29,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Safety timeout - force loading to false after 5 seconds
+  // Safety timeout - force loading to false after 10 seconds
   useEffect(() => {
     const timeout = setTimeout(() => {
-      console.warn('⏱️ Auth: Timeout reached, forcing loading to false');
-      setLoading(false);
-    }, 5000);
+      console.warn('⏱️ Auth: Safety timeout reached, forcing loading to false');
+      if (loading) {
+        setLoading(false);
+        setUser(null);
+        setSupabaseUser(null);
+      }
+    }, 10000);
 
     return () => clearTimeout(timeout);
-  }, []);
+  }, [loading]);
 
   /**
    * Create or update profile for authenticated user
@@ -117,16 +121,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    let isMounted = true;
+    let authTimeout: NodeJS.Timeout | null = null;
+
     const initializeAuth = async () => {
       try {
         console.log('🔐 Auth: Initializing...');
 
+        // Set a timeout for initialization
+        authTimeout = setTimeout(() => {
+          if (isMounted && loading) {
+            console.warn('⏱️ Auth: Initialization timeout, completing anyway');
+            setLoading(false);
+          }
+        }, 8000);
+
         // Check if Supabase is available
         if (!supabase) {
           console.warn('🔐 Auth: Supabase not available, using offline mode');
-          setUser(null);
-          setSupabaseUser(null);
-          setLoading(false);
+          if (isMounted) {
+            setUser(null);
+            setSupabaseUser(null);
+            setLoading(false);
+          }
+          if (authTimeout) clearTimeout(authTimeout);
           return;
         }
 
@@ -137,17 +155,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw sessionError;
         }
 
-        if (session?.user) {
-          console.log('🔐 Auth: Session found for user:', session.user.email);
-          setSupabaseUser(session.user);
+        if (isMounted) {
+          if (session?.user) {
+            console.log('🔐 Auth: Session found for user:', session.user.email);
+            setSupabaseUser(session.user);
 
-          // Ensure profile exists and set it
-          const profile = await ensureProfileExists(session.user);
-          setUser(profile);
-        } else {
-          console.log('🔐 Auth: No active session');
-          setUser(null);
-          setSupabaseUser(null);
+            // Ensure profile exists and set it
+            const profile = await ensureProfileExists(session.user);
+            if (isMounted) {
+              setUser(profile);
+            }
+          } else {
+            console.log('🔐 Auth: No active session');
+            setUser(null);
+            setSupabaseUser(null);
+          }
         }
       } catch (error) {
         console.error('🔐 Auth: Initialization error:', error);
@@ -164,11 +186,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
 
-        setUser(null);
-        setSupabaseUser(null);
+        if (isMounted) {
+          setUser(null);
+          setSupabaseUser(null);
+        }
       } finally {
         console.log('🔐 Auth: Initialization complete');
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
+        if (authTimeout) clearTimeout(authTimeout);
       }
     };
 
@@ -194,6 +221,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => {
+      isMounted = false;
+      if (authTimeout) clearTimeout(authTimeout);
       subscription.unsubscribe();
     };
   }, []);
