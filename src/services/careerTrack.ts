@@ -13,7 +13,7 @@ export interface CareerTrackTemplate {
   updated_at: string;
 }
 
-interface CareerStage {
+export interface CareerStage {
   name: string;
   level: number;
   description: string;
@@ -47,7 +47,7 @@ export interface ProgressBreakdown {
   pdiDetails: PDIDetail[];
 }
 
-interface CompetencyDetail {
+export interface CompetencyDetail {
   name: string;
   currentLevel: number;
   requiredLevel: number;
@@ -55,7 +55,7 @@ interface CompetencyDetail {
   achieved: boolean;
 }
 
-interface PDIDetail {
+export interface PDIDetail {
   total: number;
   completed: number;
   percentage: number;

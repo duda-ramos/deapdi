@@ -22,7 +22,7 @@ export interface PsychologySession {
   psychologist?: any;
 }
 
-interface TherapeuticActivity {
+export interface TherapeuticActivity {
   id: string;
   title: string;
   description: string;
@@ -36,7 +36,7 @@ interface TherapeuticActivity {
   updated_at: string;
 }
 
-interface PsychologicalForm {
+export interface PsychologicalForm {
   id: string;
   title: string;
   description: string;
@@ -51,7 +51,7 @@ interface PsychologicalForm {
   updated_at: string;
 }
 
-interface FormQuestion {
+export interface FormQuestion {
   id: string;
   question: string;
   type: 'scale' | 'multiple_choice' | 'text' | 'yes_no';
@@ -90,7 +90,7 @@ export interface SessionRequest {
   psychologist?: any;
 }
 
-interface EmotionalCheckin {
+export interface EmotionalCheckin {
   id: string;
   employee_id: string;
   mood_rating: number; // Maps to mood_rating in database
@@ -118,7 +118,7 @@ export interface MentalHealthAlert {
   employee?: any;
 }
 
-interface WellnessResource {
+export interface WellnessResource {
   id: string;
   title: string;
   description: string;
@@ -132,14 +132,14 @@ interface WellnessResource {
   updated_at: string;
 }
 
-interface ResourceFavorite {
+export interface ResourceFavorite {
   id: string;
   user_id: string;
   resource_id: string;
   created_at: string;
 }
 
-interface CheckinSettings {
+export interface CheckinSettings {
   id: string;
   user_id: string;
   frequency: 'daily' | 'weekly' | 'custom';
@@ -151,7 +151,7 @@ interface CheckinSettings {
   updated_at: string;
 }
 
-interface FormTemplate {
+export interface FormTemplate {
   id: string;
   title: string;
   description?: string;
@@ -168,7 +168,7 @@ interface FormTemplate {
   updated_at: string;
 }
 
-interface AlertRule {
+export interface AlertRule {
   id: string;
   name: string;
   description?: string;

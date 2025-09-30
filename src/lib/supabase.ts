@@ -4,213 +4,70 @@ import { Database } from '../types/database';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-type JWTPayload = {
-  exp?: number;
-  iat?: number;
-  iss?: string;
-  issuer?: string;
-};
-
-const decodeBase64 = (value: string): string => {
-  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized.padEnd(normalized.length + (4 - (normalized.length % 4)) % 4, '=');
-
-  if (typeof globalThis !== 'undefined' && typeof globalThis.atob === 'function') {
-    return globalThis.atob(padded);
-  }
-
-  if (typeof globalThis !== 'undefined' && typeof (globalThis as any).Buffer !== 'undefined') {
-    return (globalThis as any).Buffer.from(padded, 'base64').toString('utf-8');
-  }
-
-  throw new Error('No base64 decoder available');
-};
-
-const decodeJWTPayload = (token: string | undefined): JWTPayload | null => {
-  if (!token) return null;
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-
-  try {
-    const base64Payload = parts[1];
-    const payloadString = decodeBase64(base64Payload);
-    return JSON.parse(payloadString);
-  } catch {
-    return null;
-  }
-};
-
-// Check if credentials are placeholders or invalid
+// Check if credentials are placeholders
 const isPlaceholder = (value: string | undefined) => {
   if (!value) return true;
   const placeholders = ['your-project-url-here', 'your-anon-key-here', 'your_supabase', 'example'];
   return placeholders.some(p => value.toLowerCase().includes(p));
 };
 
-// Validate Supabase URL format (allowing generated IDs and custom subdomains)
-const isValidSupabaseUrl = (url: string | undefined): boolean => {
-  if (!url) return false;
-  const supabaseUrlPattern = /^https:\/\/[a-z0-9-]{1,32}\.supabase\.co$/i;
-  return supabaseUrlPattern.test(url);
-};
-
-// Check if JWT token is from Bolt (invalid issuer)
-const isBoltToken = (token: string | undefined): boolean => {
-  const payload = decodeJWTPayload(token);
-  if (!payload) return false;
-  return payload.iss === 'bolt' || payload.issuer === 'bolt';
-};
-
-// Validate token has reasonable lifetime
-const hasValidLifetime = (token: string | undefined): boolean => {
-  const payload = decodeJWTPayload(token);
-  if (!payload?.iat || !payload.exp) return false;
-  const lifetime = payload.exp - payload.iat;
-  return lifetime > 0;
-};
-
-// Check if JWT token is expired
-const isJWTExpired = (token: string): boolean => {
-  const payload = decodeJWTPayload(token);
-  if (!payload?.exp) return false;
-
-  const now = Math.floor(Date.now() / 1000);
-
-  if (payload.iat && payload.iat === payload.exp) {
-    console.warn('⚠️ JWT token has zero lifetime (iat === exp)');
-    return true;
-  }
-
-  return payload.exp <= now;
-};
-
 if (!supabaseUrl || !supabaseAnonKey || isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
-  console.error('⚠️ Supabase credentials are missing or invalid');
-} else if (!isValidSupabaseUrl(supabaseUrl)) {
-  console.error('⚠️ Supabase URL format is invalid. Expected format similar to https://<project>.supabase.co');
-  console.error('   Current URL:', supabaseUrl);
-} else if (isBoltToken(supabaseAnonKey)) {
-  console.error('⚠️ Detected Bolt-generated token. Please use a valid Supabase ANON_KEY from your Supabase Dashboard.');
-  console.error('   Go to: https://supabase.com/dashboard → Your Project → Settings → API');
-} else if (!hasValidLifetime(supabaseAnonKey)) {
-  console.error('⚠️ Token has invalid lifetime (too short or zero). Please get a new token from Supabase Dashboard.');
-} else if (isJWTExpired(supabaseAnonKey)) {
-  console.error('⚠️ Supabase ANON_KEY is expired. Please update your credentials.');
+  console.warn('⚠️ Supabase credentials are missing or invalid - using fallback mode');
+  console.warn('📝 Please update your .env file with valid Supabase credentials');
 }
 
-const shouldInitializeClient = (
-  supabaseUrl &&
-  supabaseAnonKey &&
-  !isPlaceholder(supabaseUrl) &&
-  !isPlaceholder(supabaseAnonKey) &&
-  isValidSupabaseUrl(supabaseUrl) &&
-  !isBoltToken(supabaseAnonKey) &&
-  hasValidLifetime(supabaseAnonKey) &&
-  !isJWTExpired(supabaseAnonKey)
-);
+export const supabase = (supabaseUrl && supabaseAnonKey && !isPlaceholder(supabaseUrl) && !isPlaceholder(supabaseAnonKey)) ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'talentflow-web'
+    }
+  }
+}) : null;
 
-export const supabase = shouldInitializeClient
-  ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-        storageKey: 'supabase.auth.token',
-        flowType: 'pkce'
-      },
-      global: {
-        headers: {
-          'X-Client-Info': 'talentflow-web'
-        },
-        fetch: (url, options = {}) => {
-          return fetch(url, {
-            ...options,
-            signal: AbortSignal.timeout(15000)
-          });
-        }
-      }
-    })
-  : null;
+// Check if JWT token is expired
+export const isJWTExpired = (token: string): boolean => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+
+    const payload = JSON.parse(atob(parts[1]));
+    if (!payload.exp) return false;
+
+    // Check if token is expired (with 5 minute buffer)
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp < (now + 300);
+  } catch {
+    return false;
+  }
+};
 // Migration control - prevent automatic migrations
-const shouldRunMigrations = () => {
+export const shouldRunMigrations = () => {
   // Only run migrations if explicitly enabled
   return import.meta.env.VITE_RUN_MIGRATIONS === 'true';
 };
 
-// Clean invalid sessions from localStorage
-export const cleanInvalidSessions = () => {
-  try {
-    const storageKey = 'supabase.auth.token';
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      try {
-        const session = JSON.parse(stored);
-        if (
-          session.access_token &&
-          (isJWTExpired(session.access_token) || !hasValidLifetime(session.access_token))
-        ) {
-          console.log('🧹 Cleaning expired session from localStorage');
-          localStorage.removeItem(storageKey);
-        }
-      } catch (e) {
-        console.log('🧹 Removing malformed session from localStorage');
-        localStorage.removeItem(storageKey);
-      }
-    }
-  } catch (error) {
-    console.warn('Error cleaning sessions:', error);
-  }
-};
-
 // Check if database is properly initialized
-export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ healthy: boolean; error: string | null; isExpiredToken: boolean; isInvalidKey: boolean; isBoltToken: boolean }> => {
+export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
   if (!supabase) {
     const isPlaceholderCreds = isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey);
-    const isBolt = isBoltToken(supabaseAnonKey);
-    const isInvalidUrl = !isValidSupabaseUrl(supabaseUrl);
-    const isExpired = !!supabaseAnonKey && isJWTExpired(supabaseAnonKey);
-    const hasLifetime = !!supabaseAnonKey && hasValidLifetime(supabaseAnonKey);
-
-    let errorMsg = 'Supabase client not initialized';
-    if (isPlaceholderCreds) {
-      errorMsg = 'Please configure your Supabase credentials in the .env file. The current values are placeholders.';
-    } else if (isBolt) {
-      errorMsg = 'Detected Bolt-generated token. Please use a valid Supabase ANON_KEY from your Supabase Dashboard (Settings → API).';
-    } else if (isInvalidUrl) {
-      errorMsg = 'Invalid Supabase URL format. Expected something like https://your-project.supabase.co';
-    } else if (isExpired) {
-      errorMsg = 'Your Supabase ANON_KEY has expired. Please update your .env file with a new key from your Supabase Dashboard.';
-    } else if (!hasLifetime) {
-      errorMsg = 'Supabase ANON_KEY has an invalid lifetime. Generate a fresh key from your Supabase Dashboard.';
-    }
-
-    return {
-      healthy: false,
-      error: errorMsg,
-      isExpiredToken: isExpired,
-      isInvalidKey: isBolt || !hasLifetime || isPlaceholderCreds,
-      isBoltToken: isBolt
-    };
+    const errorMsg = isPlaceholderCreds
+      ? 'Please configure your Supabase credentials in the .env file. The current values are placeholders.'
+      : 'Supabase client not initialized';
+    return { healthy: false, error: errorMsg, isExpiredToken: false };
   }
 
   // Check if JWT token is expired
   if (supabaseAnonKey && isJWTExpired(supabaseAnonKey)) {
-    try {
-      const parts = supabaseAnonKey.split('.');
-      const payload = JSON.parse(atob(parts[1]));
-      const expDate = new Date(payload.exp * 1000).toISOString();
-      console.error('🔴 Supabase ANON_KEY expired at:', expDate);
-      console.error('🔴 Current time:', new Date().toISOString());
-    } catch (e) {
-      console.error('🔴 Supabase ANON_KEY is expired or malformed');
-    }
+    console.error('🔴 Supabase ANON_KEY is expired');
     return {
       healthy: false,
       error: 'Your Supabase ANON_KEY has expired. Please update your .env file with a new key from your Supabase Dashboard.',
-      isExpiredToken: true,
-      isInvalidKey: false,
-      isBoltToken: false
+      isExpiredToken: true
     };
   }
 
@@ -220,126 +77,154 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000): Promise<{ 
   });
 
   try {
-    // Test connection with better error handling for 400 status
+    // Comprehensive health check - test REST API, Auth API, and database query
     const healthCheckPromise = (async () => {
-      // First test: Basic API connectivity
+      // 1. Test REST API endpoint reachability
       const restUrl = `${supabaseUrl}/rest/v1/`;
-      const restResponse = await fetch(restUrl, {
-        method: 'HEAD',
-        headers: {
-          'apikey': supabaseAnonKey,
-          'Authorization': `Bearer ${supabaseAnonKey}`
-        },
-        signal: AbortSignal.timeout(5000)
-      });
+      try {
+        const restResponse = await fetch(restUrl, {
+          method: 'HEAD',
+          headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          },
+          signal: AbortSignal.timeout(5000)
+        });
 
-      if (restResponse.status === 400) {
-        const isBolt = isBoltToken(supabaseAnonKey);
+        // Check for 401/403 which might indicate expired token
+        if (restResponse.status === 401 || restResponse.status === 403) {
+          return {
+            healthy: false,
+            error: 'Authentication failed. Your Supabase credentials may be invalid or expired. Please check your .env file.',
+            isExpiredToken: true
+          };
+        }
+
+        if (!restResponse.ok && restResponse.status !== 404) {
+          throw new Error(`REST API unreachable: ${restResponse.status}`);
+        }
+      } catch (fetchError) {
+        if (fetchError instanceof TypeError && fetchError.message === 'Failed to fetch') {
+          return {
+            healthy: false,
+            error: 'Cannot connect to Supabase. Please check your internet connection and verify that VITE_SUPABASE_URL is correct in your .env file.',
+            isExpiredToken: false
+          };
+        }
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          return {
+            healthy: false,
+            error: 'Connection timeout. Supabase is taking too long to respond.',
+            isExpiredToken: false
+          };
+        }
         return {
           healthy: false,
-          error: isBolt
-            ? 'Detected Bolt-generated token (HTTP 400). Please use a valid Supabase ANON_KEY from your Supabase Dashboard.'
-            : 'Invalid Supabase API key. Please check your VITE_SUPABASE_ANON_KEY in the .env file.',
-          isExpiredToken: false,
-          isInvalidKey: true,
-          isBoltToken: isBolt
+          error: `Cannot reach Supabase REST API: ${fetchError instanceof Error ? fetchError.message : 'Network error'}`,
+          isExpiredToken: false
         };
       }
 
-      if (restResponse.status === 401 || restResponse.status === 403) {
+      // 2. Test Auth API endpoint
+      try {
+        const authUrl = `${supabaseUrl}/auth/v1/settings`;
+        const authResponse = await fetch(authUrl, {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseAnonKey
+          },
+          signal: AbortSignal.timeout(5000)
+        });
+
+        if (authResponse.status === 401 || authResponse.status === 403) {
+          return {
+            healthy: false,
+            error: 'Authentication failed. Your Supabase ANON_KEY may be invalid or expired.',
+            isExpiredToken: true
+          };
+        }
+
+        if (!authResponse.ok) {
+          throw new Error(`Auth API unreachable: ${authResponse.status}`);
+        }
+      } catch (fetchError) {
+        if (fetchError instanceof TypeError && fetchError.message === 'Failed to fetch') {
+          return {
+            healthy: false,
+            error: 'Cannot connect to Supabase Auth API. Please check your internet connection and verify that VITE_SUPABASE_URL is correct in your .env file.',
+            isExpiredToken: false
+          };
+        }
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          return {
+            healthy: false,
+            error: 'Auth API timeout. Supabase is taking too long to respond.',
+            isExpiredToken: false
+          };
+        }
         return {
           healthy: false,
-          error: 'Unauthorized access to Supabase. Please verify your API key is correct.',
-          isExpiredToken: false,
-          isInvalidKey: true,
-          isBoltToken: false
+          error: `Cannot reach Supabase Auth API: ${fetchError instanceof Error ? fetchError.message : 'Network error'}`,
+          isExpiredToken: false
         };
       }
 
-      // Second test: Auth API
-      const authUrl = `${supabaseUrl}/auth/v1/health`;
-      const authResponse = await fetch(authUrl, {
-        method: 'GET',
-        headers: {
-          'apikey': supabaseAnonKey
-        },
-        signal: AbortSignal.timeout(5000)
-      });
-
-      if (authResponse.status === 401 || authResponse.status === 403) {
-        console.warn(
-          `ℹ️ Supabase auth health endpoint returned HTTP ${authResponse.status}. This endpoint may not be public. Continuing other checks.`
-        );
-      } else if (authResponse.status === 400) {
-        const isBolt = isBoltToken(supabaseAnonKey);
+      // 3. Test database query
+      try {
+        // Simple query without RLS complications
+        const { error } = await supabase
+          .from('profiles')
+          .select('id')
+          .limit(1)
+          .single();
+        if (error) {
+          // If there's still an error, it might be empty table or other issue
+          console.warn('Database query warning:', error);
+          // Don't fail health check for empty table
+          if (error.code === 'PGRST116') {
+            return { healthy: true, error: null, isExpiredToken: false };
+          }
+        }
+      } catch (queryError) {
+        if (queryError instanceof TypeError && queryError.message === 'Failed to fetch') {
+          return {
+            healthy: false,
+            error: 'Cannot connect to Supabase database. Please check your internet connection and verify your Supabase configuration.',
+            isExpiredToken: false
+          };
+        }
         return {
           healthy: false,
-          error: isBolt
-            ? 'Bolt-generated token detected (HTTP 400 on auth health). Get a real Supabase ANON_KEY from your project dashboard.'
-            : 'Supabase auth health endpoint returned HTTP 400. Please verify your project configuration.',
-          isExpiredToken: false,
-          isInvalidKey: isBolt,
-          isBoltToken: isBolt
-        };
-      } else if (!authResponse.ok) {
-        return {
-          healthy: false,
-          error: `Cannot connect to Supabase auth health endpoint (HTTP ${authResponse.status}). Check your project status or network connection.`,
-          isExpiredToken: false,
-          isInvalidKey: false,
-          isBoltToken: false
+          error: `Database connection failed: ${queryError instanceof Error ? queryError.message : 'Unknown error'}`,
+          isExpiredToken: false
         };
       }
 
-      // Third test: Database query (only if auth is working)
-      const { error } = await supabase
-        .from('profiles')
-        .select('id')
-        .limit(1)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        return {
-          healthy: false,
-          error: `Database error: ${error.message}. Check your RLS policies.`,
-          isExpiredToken: false,
-          isInvalidKey: false,
-          isBoltToken: false
-        };
-      }
-
-      return { healthy: true, error: null, isExpiredToken: false, isInvalidKey: false, isBoltToken: false };
+      return { healthy: true, error: null, isExpiredToken: false };
     })();
 
     // Race between health check and timeout
     return await Promise.race([healthCheckPromise, timeoutPromise]);
 
   } catch (error) {
-    // ... (existing error handling)
     if (error instanceof Error && error.message === 'Health check timeout') {
       return {
         healthy: false,
-        error: 'Connection timeout. Please check your internet connection and try again.',
-        isExpiredToken: false,
-        isInvalidKey: false,
-        isBoltToken: false
+        error: 'Connection timeout. Supabase is taking too long to respond. Please check your connection or try again later.',
+        isExpiredToken: false
       };
     }
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
       return {
         healthy: false,
-        error: 'Network error. Please check your internet connection.',
-        isExpiredToken: false,
-        isInvalidKey: false,
-        isBoltToken: false
+        error: 'Cannot connect to Supabase. Please check your internet connection and verify that your .env file contains the correct VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY values.',
+        isExpiredToken: false
       };
     }
     return {
       healthy: false,
-      error: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      isExpiredToken: false,
-      isInvalidKey: false,
-      isBoltToken: false
+      error: `Supabase connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      isExpiredToken: false
     };
   }
 };

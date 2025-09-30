@@ -31,4 +31,4 @@ export const LazyPeopleManagement = lazy(() => import('../pages/PeopleManagement
 
 
 // Action Groups service
-const LazyActionGroupService = lazy(() => import('../services/actionGroups'));
+export const LazyActionGroupService = lazy(() => import('../services/actionGroups'));

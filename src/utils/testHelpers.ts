@@ -2,7 +2,7 @@
  * Test helpers and utilities for manual testing
  */
 
-interface TestScenario {
+export interface TestScenario {
   id: string;
   title: string;
   description: string;
@@ -13,7 +13,7 @@ interface TestScenario {
   testData?: any;
 }
 
-interface TestStep {
+export interface TestStep {
   action: string;
   target: string;
   input?: string;

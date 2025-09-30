@@ -43,7 +43,7 @@ export interface MentorRating {
   created_at: string;
 }
 
-interface SessionSlot {
+export interface SessionSlot {
   id: string;
   mentor_id: string;
   day_of_week: number;
@@ -58,7 +58,7 @@ export interface MentorWithStats extends Profile {
   available_slots: SessionSlot[];
 }
 
-interface ScheduleSessionData {
+export interface ScheduleSessionData {
   mentorship_id: string;
   scheduled_start: string;
   duration_minutes: number;
