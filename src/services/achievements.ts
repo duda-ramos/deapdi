@@ -9,10 +9,8 @@ export interface AchievementTemplate {
   icon: string;
   points: number;
   category: string;
-  trigger_type: 'pdi_completed' | 'task_completed' | 'course_completed' | 'competency_rated' | 'career_progression' | 'mentorship_session' | 'action_group_task' | 'wellness_checkin';
-  trigger_condition: {
-    count: number;
-  };
+  trigger_type: string;
+  trigger_condition: any;
   created_at: string;
   updated_at: string;
 }
@@ -39,17 +37,6 @@ export interface AchievementNotification {
   category: string;
 }
 
-export interface UserStats {
-  completedPDIs: number;
-  completedTasks: number;
-  completedCourses: number;
-  competenciesRated: number;
-  mentorshipSessions: number;
-  careerProgressions: number;
-  actionGroupTasks: number;
-  wellnessCheckins: number;
-}
-
 export const achievementService = {
   async getTemplates() {
     console.log('🏆 Achievements: Getting templates');
@@ -61,7 +48,7 @@ export const achievementService = {
 
   async getUserAchievements(profileId: string) {
     console.log('🏆 Achievements: Getting user achievements for:', profileId);
-
+    
     try {
       return await supabaseRequest(() => supabase
         .from('achievements')
@@ -79,7 +66,7 @@ export const achievementService = {
 
   async getUserAchievementsWithTemplate(profileId: string) {
     console.log('🏆 Achievements: Getting user achievements with template for:', profileId);
-
+    
     return supabaseRequest(() => supabase
       .from('achievements')
       .select(`
@@ -108,7 +95,7 @@ export const achievementService = {
       if (achievementsError) throw achievementsError;
 
       // Get user stats for progress calculation
-      let stats: UserStats;
+      let stats;
       try {
         stats = await this.getUserStats(profileId);
       } catch (error: any) {
@@ -121,9 +108,7 @@ export const achievementService = {
             completedCourses: 0,
             competenciesRated: 0,
             mentorshipSessions: 0,
-            careerProgressions: 0,
-            actionGroupTasks: 0,
-            wellnessCheckins: 0
+            careerProgressions: 0
           };
         } else {
           throw error;
@@ -133,7 +118,7 @@ export const achievementService = {
       return templates.map(template => {
         const userAchievement = userAchievements.find(a => a.template_id === template.id);
         const isUnlocked = !!userAchievement;
-
+        
         let currentProgress = 0;
         let maxProgress = 1;
         let requirements: string[] = [];
@@ -146,47 +131,35 @@ export const achievementService = {
             currentProgress = Math.min(stats.completedPDIs, maxProgress);
             requirements = [`Completar ${maxProgress} PDI${maxProgress > 1 ? 's' : ''}`];
             break;
-
+            
           case 'task_completed':
             maxProgress = condition.count || 1;
             currentProgress = Math.min(stats.completedTasks, maxProgress);
             requirements = [`Completar ${maxProgress} tarefa${maxProgress > 1 ? 's' : ''}`];
             break;
-
+            
           case 'course_completed':
             maxProgress = condition.count || 1;
             currentProgress = Math.min(stats.completedCourses, maxProgress);
             requirements = [`Completar ${maxProgress} curso${maxProgress > 1 ? 's' : ''}`];
             break;
-
+            
           case 'competency_rated':
             maxProgress = condition.count || 1;
             currentProgress = Math.min(stats.competenciesRated, maxProgress);
             requirements = [`Avaliar ${maxProgress} competência${maxProgress > 1 ? 's' : ''}`];
             break;
-
+            
           case 'mentorship_session':
             maxProgress = condition.count || 1;
             currentProgress = Math.min(stats.mentorshipSessions, maxProgress);
             requirements = [`Participar de ${maxProgress} sessão${maxProgress > 1 ? 'ões' : ''} de mentoria`];
             break;
-
+            
           case 'career_progression':
             maxProgress = condition.count || 1;
             currentProgress = Math.min(stats.careerProgressions, maxProgress);
-            requirements = [`Progredir ${condition.count}% na trilha de carreira`];
-            break;
-
-          case 'action_group_task':
-            maxProgress = condition.count || 1;
-            currentProgress = Math.min(stats.actionGroupTasks, maxProgress);
-            requirements = [`Completar ${maxProgress} tarefa${maxProgress > 1 ? 's' : ''} em grupos de ação`];
-            break;
-
-          case 'wellness_checkin':
-            maxProgress = condition.count || 1;
-            currentProgress = Math.min(stats.wellnessCheckins, maxProgress);
-            requirements = [`Fazer ${maxProgress} check-in${maxProgress > 1 ? 's' : ''} emocional${maxProgress > 1 ? 'is' : ''}`];
+            requirements = [`Progredir em ${maxProgress} trilha${maxProgress > 1 ? 's' : ''} de carreira`];
             break;
         }
 
@@ -210,9 +183,9 @@ export const achievementService = {
     }
   },
 
-  async getUserStats(profileId: string): Promise<UserStats> {
+  async getUserStats(profileId: string) {
     console.log('🏆 Achievements: Getting user stats for profile:', profileId);
-
+    
     // Check if Supabase is available
     if (!supabase) {
       console.warn('🏆 Achievements: Supabase not available, returning default stats');
@@ -222,9 +195,7 @@ export const achievementService = {
         completedCourses: 0,
         competenciesRated: 0,
         mentorshipSessions: 0,
-        careerProgressions: 0,
-        actionGroupTasks: 0,
-        wellnessCheckins: 0
+        careerProgressions: 0
       };
     }
 
@@ -245,9 +216,7 @@ export const achievementService = {
         completedCourses: 0,
         competenciesRated: 0,
         mentorshipSessions: 0,
-        careerProgressions: 0,
-        actionGroupTasks: 0,
-        wellnessCheckins: 0
+        careerProgressions: 0
       };
     } catch (error) {
       console.warn('🏆 Achievements: Error calling RPC, using fallback method:', error);
@@ -255,9 +224,9 @@ export const achievementService = {
     }
   },
 
-  async getUserStatsFallback(profileId: string): Promise<UserStats> {
+  async getUserStatsFallback(profileId: string) {
     console.log('🏆 Achievements: Using fallback method for user stats');
-
+    
     // Initialize all stats to 0
     let completedPDIs = 0;
     let completedTasks = 0;
@@ -265,8 +234,6 @@ export const achievementService = {
     let competenciesRated = 0;
     let mentorshipSessions = 0;
     let careerProgressions = 0;
-    let actionGroupTasks = 0;
-    let wellnessCheckins = 0;
 
     // Get completed PDIs with minimal query
     try {
@@ -275,7 +242,7 @@ export const achievementService = {
         .select('status')
         .eq('profile_id', profileId)
         .in('status', ['completed', 'validated']);
-
+      
       if (!error && pdis) {
         completedPDIs = pdis.length;
       }
@@ -290,7 +257,7 @@ export const achievementService = {
         .select('status')
         .eq('assignee_id', profileId)
         .eq('status', 'done');
-
+      
       if (!error && tasks) {
         completedTasks = tasks.length;
       }
@@ -305,7 +272,7 @@ export const achievementService = {
         .select('status')
         .eq('profile_id', profileId)
         .eq('status', 'completed');
-
+      
       if (!error && enrollments) {
         completedCourses = enrollments.length;
       }
@@ -319,7 +286,7 @@ export const achievementService = {
         .from('competencies')
         .select('self_rating, manager_rating')
         .eq('profile_id', profileId);
-
+      
       if (!error && competencies) {
         competenciesRated = competencies.filter(c => c.self_rating || c.manager_rating).length;
       }
@@ -337,42 +304,12 @@ export const achievementService = {
         .from('career_tracks')
         .select('progress')
         .eq('profile_id', profileId);
-
+      
       if (!error && careerTracks) {
         careerProgressions = careerTracks.filter(ct => ct.progress > 0).length;
       }
     } catch (error) {
       console.warn('🏆 Achievements: Could not fetch career track stats:', error);
-    }
-
-    // Get action group tasks
-    try {
-      const { data: groupTasks, error } = await supabase
-        .from('tasks')
-        .select('id, group_id')
-        .eq('assignee_id', profileId)
-        .eq('status', 'done')
-        .not('group_id', 'is', null);
-
-      if (!error && groupTasks) {
-        actionGroupTasks = groupTasks.length;
-      }
-    } catch (error) {
-      console.warn('🏆 Achievements: Could not fetch action group task stats:', error);
-    }
-
-    // Get wellness check-ins
-    try {
-      const { data: checkins, error } = await supabase
-        .from('emotional_checkins')
-        .select('id')
-        .eq('profile_id', profileId);
-
-      if (!error && checkins) {
-        wellnessCheckins = checkins.length;
-      }
-    } catch (error) {
-      console.warn('🏆 Achievements: Could not fetch wellness checkin stats:', error);
     }
 
     return {
@@ -381,9 +318,7 @@ export const achievementService = {
       completedCourses,
       competenciesRated,
       mentorshipSessions,
-      careerProgressions,
-      actionGroupTasks,
-      wellnessCheckins
+      careerProgressions
     };
   },
 
@@ -404,38 +339,10 @@ export const achievementService = {
 
   async manualCheckAchievements(profileId: string) {
     console.log('🏆 Achievements: Manual check for profile:', profileId);
-
-    try {
-      const { data, error } = await supabase.rpc('manual_check_achievements', {
-        p_profile_id: profileId
-      });
-
-      if (error) throw error;
-
-      console.log('🏆 Achievements: Manual check completed:', data);
-      return data;
-    } catch (error) {
-      console.error('🏆 Achievements: Error during manual check:', error);
-      throw error;
-    }
-  },
-
-  // Trigger achievement check for specific action
-  async triggerAchievementCheck(profileId: string, triggerType: string) {
-    console.log('🏆 Achievements: Triggering check for:', { profileId, triggerType });
-
-    try {
-      const { error } = await supabase.rpc('check_and_unlock_achievements', {
-        p_profile_id: profileId,
-        p_trigger_type: triggerType
-      });
-
-      if (error) throw error;
-
-      console.log('🏆 Achievements: Trigger check completed');
-    } catch (error) {
-      console.error('🏆 Achievements: Error during trigger check:', error);
-    }
+    
+    return supabaseRequest(() => supabase.rpc('manual_check_achievements', {
+      p_profile_id: profileId
+    }), 'manualCheckAchievements');
   },
 
   // Subscribe to new achievements for real-time notifications
@@ -444,7 +351,7 @@ export const achievementService = {
     callback: (achievement: AchievementNotification) => void
   ) {
     console.log('🏆 Achievements: Setting up subscription for profile:', profileId);
-
+    
     const channel = supabase
       .channel(`achievements_${profileId}`)
       .on(
@@ -471,7 +378,7 @@ export const achievementService = {
         }
       )
       .subscribe();
-
+    
     return channel;
   },
 
@@ -486,7 +393,7 @@ export const achievementService = {
   },
 
   async updateTemplate(id: string, updates: Partial<AchievementTemplate>) {
-    console.log('�� Achievements: Updating template:', id);
+    console.log('🏆 Achievements: Updating template:', id);
     return supabaseRequest(() => supabase
       .from('achievement_templates')
       .update(updates)
