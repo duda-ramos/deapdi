@@ -132,6 +132,9 @@ export const performance = {
 /**
  * Memory usage monitoring
  */
+let memoryMonitorInterval: NodeJS.Timeout | null = null;
+let isMemoryMonitorRunning = false;
+
 export const memoryMonitor = {
   logMemoryUsage(context: string) {
     if (import.meta.env.DEV && 'memory' in performance) {
@@ -139,13 +142,13 @@ export const memoryMonitor = {
       const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
       const totalMB = Math.round(memory.totalJSHeapSize / 1024 / 1024);
       const limitMB = Math.round(memory.jsHeapSizeLimit / 1024 / 1024);
-      
+
       console.log(`💾 Memory (${context}):`, {
         used: `${usedMB}MB`,
         total: `${totalMB}MB`,
         limit: `${limitMB}MB`
       });
-      
+
       // Warn about high memory usage
       if (memory.usedJSHeapSize > PERFORMANCE_THRESHOLDS.MEMORY_WARNING) {
         console.warn(`🚨 Memory: High memory usage detected - ${usedMB}MB used`);
@@ -154,10 +157,27 @@ export const memoryMonitor = {
   },
 
   startMemoryMonitoring() {
+    // Prevent multiple monitoring instances
+    if (isMemoryMonitorRunning) {
+      console.warn('💾 Memory monitor already running');
+      return;
+    }
+
     if (import.meta.env.DEV) {
-      setInterval(() => {
+      isMemoryMonitorRunning = true;
+      memoryMonitorInterval = setInterval(() => {
         this.logMemoryUsage('periodic-check');
       }, 30000); // Check every 30 seconds
+      console.log('💾 Memory monitoring started');
+    }
+  },
+
+  stopMemoryMonitoring() {
+    if (memoryMonitorInterval) {
+      clearInterval(memoryMonitorInterval);
+      memoryMonitorInterval = null;
+      isMemoryMonitorRunning = false;
+      console.log('💾 Memory monitoring stopped');
     }
   }
 };

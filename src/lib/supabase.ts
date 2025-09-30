@@ -40,9 +40,21 @@ export const isJWTExpired = (token: string): boolean => {
 
     // Check if token is expired (with 5 minute buffer)
     const now = Math.floor(Date.now() / 1000);
-    return payload.exp < (now + 300);
-  } catch {
-    return false;
+    const isExpired = payload.exp < (now + 300);
+
+    if (isExpired && import.meta.env.DEV) {
+      const expirationDate = new Date(payload.exp * 1000);
+      console.error('🔴 JWT Token Expired:', {
+        expiredAt: expirationDate.toISOString(),
+        now: new Date().toISOString(),
+        tokenPreview: token.substring(0, 30) + '...'
+      });
+    }
+
+    return isExpired;
+  } catch (error) {
+    console.error('🔴 Error parsing JWT token:', error);
+    return true; // Treat parsing errors as expired
   }
 };
 // Migration control - prevent automatic migrations
@@ -51,35 +63,91 @@ export const shouldRunMigrations = () => {
   return import.meta.env.VITE_RUN_MIGRATIONS === 'true';
 };
 
+// Health check cache and circuit breaker
+let healthCheckCache: { result: any; timestamp: number } | null = null;
+const HEALTH_CHECK_CACHE_TTL = 60000; // 60 seconds
+let isHealthCheckRunning = false;
+let consecutiveFailures = 0;
+const MAX_CONSECUTIVE_FAILURES = 3;
+const CIRCUIT_BREAKER_COOLDOWN = 30000; // 30 seconds
+let circuitBreakerOpenUntil = 0;
+
 // Check if database is properly initialized
-export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
-  if (!supabase) {
-    const isPlaceholderCreds = isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey);
-    const errorMsg = isPlaceholderCreds
-      ? 'Please configure your Supabase credentials in the .env file. The current values are placeholders.'
-      : 'Supabase client not initialized';
-    return { healthy: false, error: errorMsg, isExpiredToken: false };
+export const checkDatabaseHealth = async (timeoutMs: number = 8000) => {
+  // Check cache first
+  if (healthCheckCache) {
+    const age = Date.now() - healthCheckCache.timestamp;
+    if (age < HEALTH_CHECK_CACHE_TTL) {
+      if (import.meta.env.DEV) {
+        console.log('🔧 Health Check: Using cached result', { ageMs: age });
+      }
+      return healthCheckCache.result;
+    }
   }
 
-  // Check if JWT token is expired
-  if (supabaseAnonKey && isJWTExpired(supabaseAnonKey)) {
-    console.error('🔴 Supabase ANON_KEY is expired');
+  // Check circuit breaker
+  const now = Date.now();
+  if (now < circuitBreakerOpenUntil) {
+    const waitTime = Math.ceil((circuitBreakerOpenUntil - now) / 1000);
+    console.warn(`🔴 Circuit breaker is open. Wait ${waitTime}s before retrying.`);
     return {
       healthy: false,
-      error: 'Your Supabase ANON_KEY has expired. Please update your .env file with a new key from your Supabase Dashboard.',
-      isExpiredToken: true
+      error: `Too many failed attempts. Please wait ${waitTime} seconds before retrying.`,
+      isExpiredToken: false
     };
   }
 
-  // Create timeout promise
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error('Health check timeout')), timeoutMs);
-  });
+  // Prevent concurrent health checks
+  if (isHealthCheckRunning) {
+    console.warn('🔧 Health Check: Already in progress, skipping duplicate');
+    return { healthy: false, error: 'Health check already in progress', isExpiredToken: false };
+  }
+
+  isHealthCheckRunning = true;
 
   try {
-    // Comprehensive health check - test REST API, Auth API, and database query
+    if (!supabase) {
+      const isPlaceholderCreds = isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey);
+      const errorMsg = isPlaceholderCreds
+        ? 'Please configure your Supabase credentials in the .env file. The current values are placeholders.'
+        : 'Supabase client not initialized';
+      const result = { healthy: false, error: errorMsg, isExpiredToken: false };
+      healthCheckCache = { result, timestamp: Date.now() };
+      consecutiveFailures++;
+      return result;
+    }
+
+    // Check if JWT token is expired
+    if (supabaseAnonKey && isJWTExpired(supabaseAnonKey)) {
+      console.error('🔴 Supabase ANON_KEY is expired');
+      const result = {
+        healthy: false,
+        error: 'Your Supabase ANON_KEY has expired. Please update your .env file with a new key from your Supabase Dashboard.',
+        isExpiredToken: true
+      };
+      healthCheckCache = { result, timestamp: Date.now() };
+      consecutiveFailures++;
+      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        circuitBreakerOpenUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN;
+        console.error(`🔴 Circuit breaker opened after ${consecutiveFailures} failures`);
+      }
+      return result;
+    }
+
+    // Create abort controller for cleanup
+    const abortController = new AbortController();
+
+    // Create timeout promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        abortController.abort();
+        reject(new Error('Health check timeout'));
+      }, timeoutMs);
+    });
+
+    // Comprehensive health check - simplified to single test
     const healthCheckPromise = (async () => {
-      // 1. Test REST API endpoint reachability
+      // Test REST API endpoint reachability
       const restUrl = `${supabaseUrl}/rest/v1/`;
       try {
         const restResponse = await fetch(restUrl, {
@@ -88,7 +156,7 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
             'apikey': supabaseAnonKey,
             'Authorization': `Bearer ${supabaseAnonKey}`
           },
-          signal: AbortSignal.timeout(5000)
+          signal: abortController.signal
         });
 
         // Check for 401/403 which might indicate expired token
@@ -104,17 +172,17 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
           throw new Error(`REST API unreachable: ${restResponse.status}`);
         }
       } catch (fetchError) {
+        if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
+          return {
+            healthy: false,
+            error: 'Connection timeout. Supabase is taking too long to respond.',
+            isExpiredToken: false
+          };
+        }
         if (fetchError instanceof TypeError && fetchError.message === 'Failed to fetch') {
           return {
             healthy: false,
             error: 'Cannot connect to Supabase. Please check your internet connection and verify that VITE_SUPABASE_URL is correct in your .env file.',
-            isExpiredToken: false
-          };
-        }
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          return {
-            healthy: false,
-            error: 'Connection timeout. Supabase is taking too long to respond.',
             isExpiredToken: false
           };
         }
@@ -125,106 +193,61 @@ export const checkDatabaseHealth = async (timeoutMs: number = 10000) => {
         };
       }
 
-      // 2. Test Auth API endpoint
-      try {
-        const authUrl = `${supabaseUrl}/auth/v1/settings`;
-        const authResponse = await fetch(authUrl, {
-          method: 'GET',
-          headers: {
-            'apikey': supabaseAnonKey
-          },
-          signal: AbortSignal.timeout(5000)
-        });
-
-        if (authResponse.status === 401 || authResponse.status === 403) {
-          return {
-            healthy: false,
-            error: 'Authentication failed. Your Supabase ANON_KEY may be invalid or expired.',
-            isExpiredToken: true
-          };
-        }
-
-        if (!authResponse.ok) {
-          throw new Error(`Auth API unreachable: ${authResponse.status}`);
-        }
-      } catch (fetchError) {
-        if (fetchError instanceof TypeError && fetchError.message === 'Failed to fetch') {
-          return {
-            healthy: false,
-            error: 'Cannot connect to Supabase Auth API. Please check your internet connection and verify that VITE_SUPABASE_URL is correct in your .env file.',
-            isExpiredToken: false
-          };
-        }
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          return {
-            healthy: false,
-            error: 'Auth API timeout. Supabase is taking too long to respond.',
-            isExpiredToken: false
-          };
-        }
-        return {
-          healthy: false,
-          error: `Cannot reach Supabase Auth API: ${fetchError instanceof Error ? fetchError.message : 'Network error'}`,
-          isExpiredToken: false
-        };
-      }
-
-      // 3. Test database query
-      try {
-        // Simple query without RLS complications
-        const { error } = await supabase
-          .from('profiles')
-          .select('id')
-          .limit(1)
-          .single();
-        if (error) {
-          // If there's still an error, it might be empty table or other issue
-          console.warn('Database query warning:', error);
-          // Don't fail health check for empty table
-          if (error.code === 'PGRST116') {
-            return { healthy: true, error: null, isExpiredToken: false };
-          }
-        }
-      } catch (queryError) {
-        if (queryError instanceof TypeError && queryError.message === 'Failed to fetch') {
-          return {
-            healthy: false,
-            error: 'Cannot connect to Supabase database. Please check your internet connection and verify your Supabase configuration.',
-            isExpiredToken: false
-          };
-        }
-        return {
-          healthy: false,
-          error: `Database connection failed: ${queryError instanceof Error ? queryError.message : 'Unknown error'}`,
-          isExpiredToken: false
-        };
-      }
-
       return { healthy: true, error: null, isExpiredToken: false };
     })();
 
     // Race between health check and timeout
-    return await Promise.race([healthCheckPromise, timeoutPromise]);
+    const result = await Promise.race([healthCheckPromise, timeoutPromise]);
+
+    // Cache successful result
+    healthCheckCache = { result, timestamp: Date.now() };
+
+    // Reset failure counter on success
+    if (result.healthy) {
+      consecutiveFailures = 0;
+    } else {
+      consecutiveFailures++;
+      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        circuitBreakerOpenUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN;
+        console.error(`🔴 Circuit breaker opened after ${consecutiveFailures} failures`);
+      }
+    }
+
+    return result;
 
   } catch (error) {
+    let result;
+
     if (error instanceof Error && error.message === 'Health check timeout') {
-      return {
+      result = {
         healthy: false,
         error: 'Connection timeout. Supabase is taking too long to respond. Please check your connection or try again later.',
         isExpiredToken: false
       };
-    }
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      return {
+    } else if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      result = {
         healthy: false,
         error: 'Cannot connect to Supabase. Please check your internet connection and verify that your .env file contains the correct VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY values.',
         isExpiredToken: false
       };
+    } else {
+      result = {
+        healthy: false,
+        error: `Supabase connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        isExpiredToken: false
+      };
     }
-    return {
-      healthy: false,
-      error: `Supabase connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      isExpiredToken: false
-    };
+
+    healthCheckCache = { result, timestamp: Date.now() };
+    consecutiveFailures++;
+
+    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      circuitBreakerOpenUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN;
+      console.error(`🔴 Circuit breaker opened after ${consecutiveFailures} failures`);
+    }
+
+    return result;
+  } finally {
+    isHealthCheckRunning = false;
   }
 };

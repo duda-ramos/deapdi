@@ -49,10 +49,13 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
     url: '',
     key: ''
   });
-  
+
   const [showManualSetup, setShowManualSetup] = useState(false);
   const [testing, setTesting] = useState(false);
   const [offlineMode, setOfflineMode] = useState(false);
+  const testingRef = React.useRef(false);
+  const lastTestTimeRef = React.useRef(0);
+  const TEST_COOLDOWN = 5000; // 5 seconds between tests
 
   useEffect(() => {
     checkEnvironmentVariables();
@@ -100,7 +103,28 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
   };
 
   const testConnection = async (url: string, key: string) => {
+    // Prevent concurrent tests
+    if (testingRef.current) {
+      console.warn('🧪 SetupCheck: Test already in progress');
+      return;
+    }
+
+    // Check cooldown
+    const now = Date.now();
+    const timeSinceLastTest = now - lastTestTimeRef.current;
+    if (timeSinceLastTest < TEST_COOLDOWN) {
+      const waitTime = Math.ceil((TEST_COOLDOWN - timeSinceLastTest) / 1000);
+      console.warn(`🧪 SetupCheck: Please wait ${waitTime}s before testing again`);
+      setStatus(prev => ({
+        ...prev,
+        connectionError: `Please wait ${waitTime} seconds before testing again.`
+      }));
+      return;
+    }
+
     console.log('🧪 SetupCheck: Testing connection...');
+    testingRef.current = true;
+    lastTestTimeRef.current = now;
     setTesting(true);
 
     // Add connection timeout
@@ -114,6 +138,7 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
         projectOnline: false
       }));
       setTesting(false);
+      testingRef.current = false;
     }, 10000);
 
     try {
@@ -196,6 +221,7 @@ export const SetupCheck: React.FC<SetupCheckProps> = ({ onSetupComplete, initial
       }));
     } finally {
       setTesting(false);
+      testingRef.current = false;
     }
   };
 

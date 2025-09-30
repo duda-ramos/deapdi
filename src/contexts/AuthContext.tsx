@@ -28,25 +28,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<ProfileWithRelations | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Safety timeout - force loading to false after 10 seconds
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.warn('⏱️ Auth: Safety timeout reached, forcing loading to false');
-      if (loading) {
-        setLoading(false);
-        setUser(null);
-        setSupabaseUser(null);
-      }
-    }, 10000);
-
-    return () => clearTimeout(timeout);
-  }, [loading]);
+  const initializingRef = React.useRef(false);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const profileCacheRef = React.useRef<Map<string, { profile: ProfileWithRelations; timestamp: number }>>(new Map());
+  const PROFILE_CACHE_TTL = 30000; // 30 seconds
 
   /**
    * Create or update profile for authenticated user
    */
   const ensureProfileExists = async (authUser: SupabaseUser): Promise<ProfileWithRelations | null> => {
+    // Check cache first
+    const cached = profileCacheRef.current.get(authUser.id);
+    if (cached) {
+      const age = Date.now() - cached.timestamp;
+      if (age < PROFILE_CACHE_TTL) {
+        console.log('✅ Profile found in cache:', authUser.email);
+        return cached.profile;
+      } else {
+        // Expired cache entry
+        profileCacheRef.current.delete(authUser.id);
+      }
+    }
+
     try {
       // First, try to fetch existing profile
       const { data: existingProfile, error: fetchError } = await supabase
@@ -57,6 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (existingProfile && !fetchError) {
         console.log('✅ Profile found for user:', authUser.email);
+        // Cache the profile
+        profileCacheRef.current.set(authUser.id, {
+          profile: existingProfile,
+          timestamp: Date.now()
+        });
         return existingProfile;
       }
 
@@ -121,18 +129,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (initializingRef.current) {
+      console.log('🔐 Auth: Already initializing, skipping');
+      return;
+    }
+
     let isMounted = true;
     let authTimeout: NodeJS.Timeout | null = null;
 
     const initializeAuth = async () => {
+      // Double-check after async
+      if (initializingRef.current) {
+        return;
+      }
+
+      initializingRef.current = true;
+
       try {
         console.log('🔐 Auth: Initializing...');
+
+        // Create abort controller for cleanup
+        abortControllerRef.current = new AbortController();
 
         // Set a timeout for initialization
         authTimeout = setTimeout(() => {
           if (isMounted && loading) {
             console.warn('⏱️ Auth: Initialization timeout, completing anyway');
             setLoading(false);
+            initializingRef.current = false;
           }
         }, 8000);
 
@@ -145,6 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(false);
           }
           if (authTimeout) clearTimeout(authTimeout);
+          initializingRef.current = false;
           return;
         }
 
@@ -196,6 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
         }
         if (authTimeout) clearTimeout(authTimeout);
+        initializingRef.current = false;
       }
     };
 
@@ -212,9 +239,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setSupabaseUser(null);
+        // Clear profile cache on signout
+        profileCacheRef.current.clear();
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         setSupabaseUser(session.user);
-        // Optionally refresh profile
+        // Invalidate cache on token refresh
+        profileCacheRef.current.delete(session.user.id);
         const profile = await ensureProfileExists(session.user);
         setUser(profile);
       }
@@ -223,7 +253,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       isMounted = false;
       if (authTimeout) clearTimeout(authTimeout);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       subscription.unsubscribe();
+      initializingRef.current = false;
     };
   }, []);
 
