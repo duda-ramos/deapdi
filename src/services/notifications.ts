@@ -306,6 +306,13 @@ export const notificationService = {
   ) {
     console.log('🔔 Notifications: Setting up enhanced subscription for profile:', profileId);
     
+    // Check if Supabase is available
+    if (!supabase) {
+      console.warn('🔔 Notifications: Supabase not available, skipping subscription');
+      statusCallback?.('CHANNEL_ERROR');
+      return null;
+    }
+    
     const channel = supabase
       .channel(`notifications_${profileId}`)
       .on(
@@ -321,19 +328,6 @@ export const notificationService = {
           if (payload.new) {
             callback(payload.new as Notification);
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `profile_id=eq.${profileId}`
-        },
-        (payload) => {
-          console.log('🔔 Notifications: Notification updated:', payload);
-          // Handle notification updates if needed
         }
       )
       .subscribe((status, err) => {

@@ -366,7 +366,7 @@ export const achievementService = {
       const { data: checkins, error } = await supabase
         .from('emotional_checkins')
         .select('id')
-        .eq('profile_id', profileId);
+        .eq('employee_id', profileId);
 
       if (!error && checkins) {
         wellnessCheckins = checkins.length;

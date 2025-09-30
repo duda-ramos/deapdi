@@ -355,9 +355,9 @@ export const databaseService = {
         .from('pdis')
         .select(`
           *,
-          profile:profiles!profile_id(name, position),
-          mentor:profiles!mentor_id(name)
-        `)
+          mentor:profiles!pdis_mentor_id_fkey(name),
+          created_by_profile:profiles!pdis_created_by_fkey(name),
+          validated_by_profile:profiles!pdis_validated_by_fkey(name)
         .eq('status', 'completed')
         .order('created_at', { ascending: false });
 

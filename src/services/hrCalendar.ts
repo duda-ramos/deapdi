@@ -107,9 +107,9 @@ export const hrCalendarService = {
       .from('calendar_events')
       .select(`
         *,
-        user:profiles!inner(id, name, avatar_url, position),
-        team:teams!inner(id, name),
-        creator:profiles!inner(id, name)
+        user:profiles!calendar_events_user_id_fkey(id, name, avatar_url, position),
+        team:teams!calendar_events_team_id_fkey(id, name),
+        creator:profiles!calendar_events_created_by_fkey(id, name)
       `);
 
     if (filters?.start_date) {
@@ -181,8 +181,8 @@ export const hrCalendarService = {
       .from('calendar_requests')
       .select(`
         *,
-        requester:profiles!inner(id, name, avatar_url, position, team_id),
-        reviewer:profiles!inner(id, name)
+        requester:profiles!calendar_requests_requester_id_fkey(id, name, avatar_url, position, team_id),
+        reviewer:profiles!calendar_requests_reviewed_by_fkey(id, name)
       `);
 
     if (filters?.requester_id) {
