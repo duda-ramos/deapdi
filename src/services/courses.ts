@@ -602,11 +602,10 @@ export const courseService = {
     }
   },
 
-  async completeModule(enrollmentId: string, moduleId: string, timeSpent = 0): Promise<void> {
-    console.log('📚 Courses: Completing module:', { enrollmentId, moduleId, timeSpent });
+  async completeModuleWithCheck(enrollmentId: string, moduleId: string, timeSpent = 0): Promise<void> {
+    console.log('📚 Courses: Completing module with check:', { enrollmentId, moduleId, timeSpent });
 
     try {
-      // Check if already completed
       const { data: existing } = await supabase
         .from('course_progress')
         .select('id')
@@ -619,7 +618,6 @@ export const courseService = {
         return;
       }
 
-      // Mark module as completed
       await supabaseRequest(() => supabase
         .from('course_progress')
         .insert({
@@ -644,8 +642,8 @@ export const courseService = {
     }), 'generateCourseCertificate');
   },
 
-  async getCertificate(id: string): Promise<any> {
-    console.log('📚 Courses: Getting certificate:', id);
+  async getCertificateWithDetails(id: string): Promise<any> {
+    console.log('📚 Courses: Getting certificate with details:', id);
 
     return supabaseRequest(() => supabase
       .from('certificates')
@@ -655,7 +653,7 @@ export const courseService = {
         profile:profiles(name, email)
       `)
       .eq('id', id)
-      .single(), 'getCertificate');
+      .single(), 'getCertificateWithDetails');
   },
 
   async getCourseWithProgress(courseId: string, profileId: string): Promise<CourseWithProgress> {
