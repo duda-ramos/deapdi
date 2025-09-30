@@ -25,8 +25,8 @@ export const databaseService = {
       .from('profiles')
       .select(`
         *,
-        team:teams!profiles_team_id_fkey(name),
-        manager:profiles!manager_id(name)
+        team:teams!inner(name),
+        manager:profiles!inner(name)
       `);
 
     if (filters?.role) query = query.eq('role', filters.role);
@@ -61,8 +61,8 @@ export const databaseService = {
       .from('teams')
       .select(`
         *,
-        manager:profiles!teams_manager_id_fkey(name),
-        members:profiles!team_id(id, name, position)
+        manager:profiles!inner(name),
+        members:profiles!inner(id, name, position)
       `);
 
     if (error) throw error;
@@ -162,9 +162,9 @@ export const databaseService = {
       .from('pdis')
       .select(`
         *,
-        mentor:profiles!mentor_id(name),
-        created_by_profile:profiles!created_by(name),
-        validated_by_profile:profiles!validated_by(name)
+        mentor:profiles!inner(name),
+        created_by_profile:profiles!inner(name),
+        validated_by_profile:profiles!inner(name)
       `)
       .eq('profile_id', profileId)
       .order('created_at', { ascending: false });

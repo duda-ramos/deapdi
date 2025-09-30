@@ -36,7 +36,7 @@ export const actionGroupService = {
   // Use simple queries with proper error handling for RLS recursion
   async getActionGroups(): Promise<any[]> {
     try {
-      // Now that RLS policies are fixed, we can use full queries again
+      // Use simplified queries to avoid RLS recursion issues
       const groups = await supabaseRequest(
         () => supabase!
           .from('action_groups')
@@ -46,7 +46,7 @@ export const actionGroupService = {
               id,
               profile_id,
               role,
-              profile:profiles(id, name, avatar_url, position)
+              profile:profiles!inner(id, name, avatar_url, position)
             ),
             tasks:tasks(
               id,
@@ -55,7 +55,7 @@ export const actionGroupService = {
               assignee_id,
               deadline,
               status,
-              assignee:profiles(id, name, avatar_url)
+              assignee:profiles!inner(id, name, avatar_url)
             )
           `)
           .order('created_at', { ascending: false }),
@@ -112,7 +112,7 @@ export const actionGroupService = {
             id,
             profile_id,
             role,
-            profile:profiles(id, name, avatar_url, position)
+            profile:profiles!inner(id, name, avatar_url, position)
           ),
           tasks:tasks(
             id,
@@ -121,7 +121,7 @@ export const actionGroupService = {
             assignee_id,
             deadline,
             status,
-            assignee:profiles(id, name, avatar_url)
+            assignee:profiles!inner(id, name, avatar_url)
           )
         `)
         .eq('id', groupId)
@@ -336,7 +336,7 @@ export const actionGroupService = {
         .from('action_group_participants')
         .select(`
           *,
-          profile:profiles(id, name, avatar_url, position)
+          profile:profiles!inner(id, name, avatar_url, position)
         `)
         .eq('group_id', groupId), 'getGroupParticipants');
     } catch (error) {

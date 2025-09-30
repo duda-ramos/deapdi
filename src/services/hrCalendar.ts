@@ -107,9 +107,9 @@ export const hrCalendarService = {
       .from('calendar_events')
       .select(`
         *,
-        user:profiles!user_id(id, name, avatar_url, position),
-        team:teams!team_id(id, name),
-        creator:profiles!created_by(id, name)
+        user:profiles!inner(id, name, avatar_url, position),
+        team:teams!inner(id, name),
+        creator:profiles!inner(id, name)
       `);
 
     if (filters?.start_date) {
@@ -181,8 +181,8 @@ export const hrCalendarService = {
       .from('calendar_requests')
       .select(`
         *,
-        requester:profiles!requester_id(id, name, avatar_url, position, team_id),
-        reviewer:profiles!reviewed_by(id, name)
+        requester:profiles!inner(id, name, avatar_url, position, team_id),
+        reviewer:profiles!inner(id, name)
       `);
 
     if (filters?.requester_id) {
@@ -240,7 +240,7 @@ export const hrCalendarService = {
       .eq('id', id)
       .select(`
         *,
-        requester:profiles!requester_id(id, name, email)
+        requester:profiles!inner(id, name, email)
       `)
       .single(), 'approveCalendarRequest');
 
@@ -286,7 +286,7 @@ export const hrCalendarService = {
       .eq('id', id)
       .select(`
         *,
-        requester:profiles!requester_id(id, name, email)
+        requester:profiles!inner(id, name, email)
       `)
       .single(), 'rejectCalendarRequest');
 
