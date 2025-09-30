@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { useAuth } from '../contexts/AuthContext';
 import { achievementService, type AchievementProgress } from '../services/achievements';
+import { databaseService } from '../services/database';
 import type { Achievement } from '../types';
 
 const Achievements: React.FC = () => {
