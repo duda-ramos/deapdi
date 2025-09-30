@@ -303,7 +303,7 @@ export const WellnessResources: React.FC<WellnessResourcesProps> = ({ employeeId
             <div className="flex items-center justify-between pt-4 border-t">
               <div className="text-sm text-gray-500">
                 Criado em {new Date(selectedResource.created_at).toLocaleDateString('pt-BR')}
-                  {new Date(resource.created_at).toLocaleDateString('pt-BR')}
+              </div>
               <div className="flex space-x-2">
                 <Button
                   variant="secondary"
