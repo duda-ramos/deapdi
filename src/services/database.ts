@@ -16,6 +16,11 @@ import {
 export const databaseService = {
   // Profiles
   async getProfiles(filters?: { role?: string; team_id?: string; status?: string }) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      return [];
+    }
+
     let query = supabase
       .from('profiles')
       .select(`
@@ -32,6 +37,11 @@ export const databaseService = {
   },
 
   async updateProfile(id: string, updates: Partial<Profile>) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     return supabaseRequest(() => supabase
       .from('profiles')
       .update(updates)
@@ -42,6 +52,11 @@ export const databaseService = {
 
   // Teams
   async getTeams() {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('teams')
       .select(`
@@ -55,6 +70,11 @@ export const databaseService = {
   },
 
   async createTeam(team: Omit<Team, 'id' | 'created_at' | 'updated_at'>) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     const { data, error } = await supabase
       .from('teams')
       .insert(team)

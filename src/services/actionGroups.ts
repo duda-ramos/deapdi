@@ -36,48 +36,67 @@ export const actionGroupService = {
   // Use simple queries with proper error handling for RLS recursion
   async getActionGroups(): Promise<any[]> {
     try {
-      return await supabaseRequest(
-        () => supabase
+      // Now that RLS policies are fixed, we can use full queries again
+      const groups = await supabaseRequest(
+        () => supabase!
           .from('action_groups')
-          .select('id, title, description, deadline, status, created_by, created_at')
+          .select(`
+            *,
+            participants:action_group_participants(
+              id,
+              profile_id,
+              role,
+              profile:profiles(id, name, avatar_url, position)
+            ),
+            tasks:tasks(
+              id,
+              title,
+              description,
+              assignee_id,
+              deadline,
+              status,
+              assignee:profiles(id, name, avatar_url)
+            )
+          `)
           .order('created_at', { ascending: false }),
         'getActionGroups'
       );
+
+      // Calculate progress and member contributions for each group
+      return groups.map(group => {
+        const totalTasks = group.tasks?.length || 0;
+        const completedTasks = group.tasks?.filter((t: any) => t.status === 'done').length || 0;
+        const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+        // Calculate member contributions
+        const memberContributions = group.participants?.map((participant: any) => {
+          const memberTasks = group.tasks?.filter((t: any) => t.assignee_id === participant.profile_id) || [];
+          const memberCompletedTasks = memberTasks.filter((t: any) => t.status === 'done').length;
+          const memberTotalTasks = memberTasks.length;
+          const completionRate = memberTotalTasks > 0 ? (memberCompletedTasks / memberTotalTasks) * 100 : 0;
+
+          return {
+            profile_id: participant.profile_id,
+            name: participant.profile?.name,
+            avatar_url: participant.profile?.avatar_url,
+            role: participant.role,
+            total_tasks: memberTotalTasks,
+            completed_tasks: memberCompletedTasks,
+            completion_rate: completionRate
+          };
+        }) || [];
+
+        return {
+          ...group,
+          progress,
+          total_tasks: totalTasks,
+          completed_tasks: completedTasks,
+          member_contributions: memberContributions
+        };
+      });
     } catch (error) {
-      // If RLS recursion error, return empty array to prevent app crash
-      if (error instanceof Error && error.message.includes('SUPABASE_RLS_RECURSION')) {
-        console.warn('RLS recursion detected - returning empty groups array');
-        return [];
-      }
+      console.error('👥 ActionGroups: Error getting groups:', error);
       throw error;
-    }
-  },
-
-  async getActionGroupsBasic(): Promise<any[]> {
-    try {
-      const groups = await supabaseRequest(() => supabase!
-        .from('action_groups')
-        .select('id, title, description, deadline, status, created_by, created_at')
-        .order('created_at', { ascending: false }), 'getActionGroups');
-
-      // Return basic groups data without complex joins to avoid RLS recursion
-      return (groups || []).map(group => ({
-        ...group,
-        progress: 0,
-        total_tasks: 0,
-        completed_tasks: 0,
-        participants: [],
-        tasks: [],
-        member_contributions: []
-      }));
-    } catch (error) {
-      // Handle RLS recursion specifically
-      if (error instanceof Error && error.message.includes('infinite recursion')) {
-        console.warn('👥 ActionGroups: RLS recursion detected, returning empty array');
-        return [];
-      }
-      console.error('👥 ActionGroups: Critical error getting groups:', error);
-      return [];
     }
   },
 
@@ -85,26 +104,43 @@ export const actionGroupService = {
     console.log('👥 ActionGroups: Getting group details for:', groupId);
     
     try {
-      // Use regular supabase client with basic query
       const group = await supabaseRequest(() => supabase!
         .from('action_groups')
-        .select('id, title, description, deadline, status, created_by, created_at')
+        .select(`
+          *,
+          participants:action_group_participants(
+            id,
+            profile_id,
+            role,
+            profile:profiles(id, name, avatar_url, position)
+          ),
+          tasks:tasks(
+            id,
+            title,
+            description,
+            assignee_id,
+            deadline,
+            status,
+            assignee:profiles(id, name, avatar_url)
+          )
+        `)
         .eq('id', groupId)
         .single(), 'getActionGroup');
 
+      // Calculate progress
+      const totalTasks = group.tasks?.length || 0;
+      const completedTasks = group.tasks?.filter((t: any) => t.status === 'done').length || 0;
+      const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
       return {
         ...group,
-        progress: 0,
-        participants: [],
-        tasks: []
+        progress,
+        total_tasks: totalTasks,
+        completed_tasks: completedTasks
       };
     } catch (error) {
-      if (error instanceof Error && error.message.includes('infinite recursion')) {
-        console.warn('👥 ActionGroups: RLS recursion detected, returning null');
-        return null;
-      }
       console.error('👥 ActionGroups: Error getting group details:', error);
-      return null;
+      throw error;
     }
   },
 

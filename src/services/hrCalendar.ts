@@ -98,6 +98,11 @@ export const hrCalendarService = {
   }): Promise<CalendarEvent[]> {
     console.log('📅 HRCalendar: Getting events with filters:', filters);
 
+    if (!supabase) {
+      console.warn('📅 HRCalendar: Supabase not available');
+      return [];
+    }
+
     let query = supabase
       .from('calendar_events')
       .select(`
@@ -166,6 +171,11 @@ export const hrCalendarService = {
     event_type?: string;
   }): Promise<CalendarRequest[]> {
     console.log('📅 HRCalendar: Getting requests with filters:', filters);
+
+    if (!supabase) {
+      console.warn('📅 HRCalendar: Supabase not available');
+      return [];
+    }
 
     let query = supabase
       .from('calendar_requests')
@@ -461,6 +471,18 @@ export const hrCalendarService = {
   async getStats(): Promise<CalendarStats> {
     console.log('📅 HRCalendar: Getting calendar statistics');
 
+    if (!supabase) {
+      console.warn('📅 HRCalendar: Supabase not available');
+      return {
+        total_events: 0,
+        pending_requests: 0,
+        upcoming_birthdays: 0,
+        upcoming_anniversaries: 0,
+        team_absences_today: 0,
+        vacation_requests_this_month: 0
+      };
+    }
+
     try {
       const today = new Date().toISOString().split('T')[0];
       const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
@@ -525,6 +547,11 @@ export const hrCalendarService = {
     message: string;
   }): Promise<void> {
     console.log('📅 HRCalendar: Creating notification');
+
+    if (!supabase) {
+      console.warn('📅 HRCalendar: Supabase not available, cannot create notification');
+      return;
+    }
 
     return supabaseRequest(() => supabase
       .from('calendar_notifications')
