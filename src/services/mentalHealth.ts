@@ -841,19 +841,27 @@ export const mentalHealthService = {
 
     const defaultQuestions: CheckinCustomQuestion[] = createOfflineDefaultSettings(userId).custom_questions;
 
-    await supabaseRequest(() => supabase
-      .from('checkin_settings')
-      .insert({
-        user_id: userId,
-        frequency: 'daily',
-        reminder_time: '09:00',
-        reminder_enabled: true,
-        custom_questions: defaultQuestions,
-        weekly_reminder_day: 1
-      }, {
-        onConflict: 'user_id',
-        ignoreDuplicates: true
-      }), 'createDefaultCheckinSettingsInsert');
+    try {
+      await supabaseRequest(() => supabase
+        .from('checkin_settings')
+        .insert({
+          user_id: userId,
+          frequency: 'daily',
+          reminder_time: '09:00',
+          reminder_enabled: true,
+          custom_questions: defaultQuestions,
+          weekly_reminder_day: 1
+        }, {
+          onConflict: 'user_id',
+          ignoreDuplicates: true
+        }), 'createDefaultCheckinSettingsInsert');
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Este registro já existe.') {
+        console.warn('🧠 MentalHealth: Default check-in settings already exist for user, reusing existing record.');
+      } else {
+        throw error;
+      }
+    }
 
     const result = await supabaseRequest(() => supabase
       .from('checkin_settings')

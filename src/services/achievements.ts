@@ -63,6 +63,8 @@ const isOfflineModeEnabled = () => {
 
 const isSupabaseAvailable = () => Boolean(supabase) && !isOfflineModeEnabled();
 
+let achievementsStatsRpcStatus: 'unknown' | 'available' | 'unavailable' = 'unknown';
+
 const offlineAchievementTemplates: AchievementTemplate[] = [
   {
     id: 'offline-growth-path',
@@ -340,6 +342,11 @@ export const achievementService = {
       return offlineStats[getOfflineProfileKey(profileId)];
     }
 
+    if (achievementsStatsRpcStatus === 'unavailable') {
+      console.log('🏆 Achievements: RPC unavailable, using cached fallback');
+      return await this.getUserStatsFallback(profileId);
+    }
+
     // Use a single RPC call to avoid RLS policy recursion
     try {
       const { data, error } = await supabase.rpc('get_user_achievement_stats', {
@@ -347,9 +354,18 @@ export const achievementService = {
       });
 
       if (error) {
-        console.warn('🏆 Achievements: RPC function not available, using fallback method:', error.message);
+        achievementsStatsRpcStatus = 'unavailable';
+
+        if (error.message?.includes('column "profile_id" does not exist')) {
+          console.warn('🏆 Achievements: RPC schema mismatch detected, falling back to client aggregation.');
+        } else {
+          console.warn('🏆 Achievements: RPC function not available, using fallback method:', error.message);
+        }
+
         return await this.getUserStatsFallback(profileId);
       }
+
+      achievementsStatsRpcStatus = 'available';
 
       return data || {
         completedPDIs: 0,
@@ -362,6 +378,7 @@ export const achievementService = {
         wellnessCheckins: 0
       };
     } catch (error) {
+      achievementsStatsRpcStatus = 'unavailable';
       console.warn('🏆 Achievements: Error calling RPC, using fallback method:', error);
       return await this.getUserStatsFallback(profileId);
     }
