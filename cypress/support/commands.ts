@@ -21,13 +21,13 @@ Cypress.Commands.add('login', (email: string, password: string) => {
 Cypress.Commands.add('createTestUser', () => {
   cy.visit('/login');
   cy.contains('Criar Conta').click();
-  
+
   cy.get('input[placeholder*="nome"]').type('Test User');
   cy.get('input[type="email"]').type(`test${Date.now()}@example.com`);
   cy.get('input[type="password"]').first().type('password123');
   cy.get('input[type="password"]').last().type('password123');
   cy.get('input[placeholder*="cargo"]').type('Desenvolvedor');
-  
+
   cy.get('button[type="submit"]').click();
   cy.contains('Conta criada com sucesso').should('be.visible');
 });
