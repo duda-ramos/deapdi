@@ -1,0 +1,16 @@
+[
+  {
+    "id": "pdi-001",
+    "title": "Plano de Carreira Avançado",
+    "status": "completed",
+    "created_at": "2024-01-12T10:00:00Z",
+    "profile_id": "employee-user-id",
+    "profile": {
+      "name": "Colaborador Teste",
+      "position": "Analista de Produto"
+    },
+    "mentor": {
+      "name": "Especialista RH"
+    }
+  }
+]

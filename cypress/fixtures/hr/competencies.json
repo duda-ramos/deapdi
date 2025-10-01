@@ -1,0 +1,32 @@
+[
+  {
+    "id": "comp-001",
+    "name": "Liderança Colaborativa",
+    "type": "soft_skill",
+    "stage": "Desenvolvimento",
+    "profile_id": "employee-user-id",
+    "self_rating": 2,
+    "manager_rating": 3,
+    "target_level": 5,
+    "profile": {
+      "name": "Colaborador Teste",
+      "position": "Analista de Produto",
+      "level": "Pleno"
+    }
+  },
+  {
+    "id": "comp-002",
+    "name": "Gestão de Projetos",
+    "type": "hard_skill",
+    "stage": "Avançado",
+    "profile_id": "manager-user-id",
+    "self_rating": 4,
+    "manager_rating": 4,
+    "target_level": 5,
+    "profile": {
+      "name": "Gestor Estratégico",
+      "position": "Head de Operações",
+      "level": "Sênior"
+    }
+  }
+]
