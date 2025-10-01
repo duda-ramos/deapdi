@@ -33,6 +33,9 @@ export const avatarService = {
   },
 
   async uploadAvatar(userId: string, file: File): Promise<AvatarUploadResult> {
+    try {
+      const fileName = `${userId}/${Date.now()}-${file.name}`;
+
       // Check if bucket exists and create helpful error message if not
       const { data: bucketList, error: bucketListError } = await supabase.storage.listBuckets();
       
