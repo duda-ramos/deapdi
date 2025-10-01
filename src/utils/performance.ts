@@ -104,17 +104,34 @@ export const performance = {
 
   // Monitor Core Web Vitals
   monitorWebVitals() {
-    if (import.meta.env.PROD && 'web-vitals' in window) {
-      import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+    if (!import.meta.env.PROD) {
+      return;
+    }
+
+    console.info('🚀 Performance: Initializing Web Vitals monitoring');
+
+    import('web-vitals')
+      .then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
         getCLS(this.sendToAnalytics);
         getFID(this.sendToAnalytics);
         getFCP(this.sendToAnalytics);
         getLCP(this.sendToAnalytics);
         getTTFB(this.sendToAnalytics);
-      }).catch(() => {
-        // Silently fail if web-vitals is not available
+
+        console.info('✅ Performance: Web Vitals monitoring started');
+      })
+      .catch((error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        console.error('⚠️ Performance: Failed to load web-vitals module', error);
+
+        if (window.gtag) {
+          window.gtag('event', 'web_vitals_import_failed', {
+            event_category: 'performance',
+            event_label: errorMessage
+          });
+        }
       });
-    }
   },
 
   sendToAnalytics(metric: any) {
