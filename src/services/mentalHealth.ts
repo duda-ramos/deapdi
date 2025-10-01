@@ -220,6 +220,103 @@ const normalizeCheckinSettings = (raw: any): CheckinSettings => ({
   updated_at: raw.updated_at ?? undefined
 });
 
+const isOfflineModeEnabled = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  try {
+    return window.localStorage.getItem('OFFLINE_MODE') === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const isSupabaseAvailable = () => Boolean(supabase) && !isOfflineModeEnabled();
+
+const createOfflineDefaultSettings = (userId: string): CheckinSettings => ({
+  user_id: userId,
+  frequency: 'daily',
+  reminder_time: '09:00',
+  reminder_enabled: true,
+  weekly_reminder_day: 1,
+  custom_questions: [
+    {
+      id: 'daily-reflection',
+      prompt: 'Qual foi o ponto alto do seu dia?',
+      frequency: 'daily',
+      active: true
+    }
+  ],
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
+});
+
+const offlineCheckinSettingsStore = new Map<string, CheckinSettings>();
+const offlineCheckinsStore = new Map<string, EmotionalCheckin[]>();
+const OFFLINE_DEMO_USER_ID = 'offline-demo-user';
+
+const generateOfflineId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `offline-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const seedOfflineCheckins = (userId: string) => {
+  const days = [
+    { mood: 7, stress: 4, energy: 6, sleep: 7 },
+    { mood: 6, stress: 5, energy: 5, sleep: 6 },
+    { mood: 8, stress: 3, energy: 7, sleep: 8 },
+    { mood: 5, stress: 6, energy: 4, sleep: 5 },
+    { mood: 7, stress: 4, energy: 6, sleep: 7 }
+  ];
+
+  const today = new Date();
+  const seeded: EmotionalCheckin[] = days.map((entry, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - index);
+    const dateString = date.toISOString().split('T')[0];
+
+    return {
+      id: generateOfflineId(),
+      employee_id: userId,
+      mood_rating: entry.mood,
+      stress_level: entry.stress,
+      energy_level: entry.energy,
+      sleep_quality: entry.sleep,
+      notes: index === 0 ? 'Mantendo uma boa rotina de autocuidado.' : null,
+      checkin_date: `${dateString}T09:00:00.000Z`,
+      created_at: `${dateString}T09:05:00.000Z`
+    };
+  });
+
+  offlineCheckinsStore.set(userId, seeded);
+};
+
+if (!offlineCheckinSettingsStore.has(OFFLINE_DEMO_USER_ID)) {
+  offlineCheckinSettingsStore.set(OFFLINE_DEMO_USER_ID, createOfflineDefaultSettings(OFFLINE_DEMO_USER_ID));
+}
+
+if (!offlineCheckinsStore.has(OFFLINE_DEMO_USER_ID)) {
+  seedOfflineCheckins(OFFLINE_DEMO_USER_ID);
+}
+
+const getOfflineMentalHealthStats = (): MentalHealthStats => {
+  const allCheckins = Array.from(offlineCheckinsStore.values()).flat();
+  const averageMood = allCheckins.length
+    ? allCheckins.reduce((sum, checkin) => sum + checkin.mood_rating, 0) / allCheckins.length
+    : 0;
+
+  return {
+    total_employees_participating: Math.max(offlineCheckinSettingsStore.size, 1),
+    average_mood_score: Number(averageMood.toFixed(1)),
+    sessions_this_month: 2,
+    high_risk_responses: Math.max(allCheckins.filter(checkin => checkin.stress_level >= 7).length, 0),
+    active_alerts: 1,
+    wellness_resources_accessed: Math.max(allCheckins.length, 3)
+  };
+};
+
 export const mentalHealthService = {
   // Sessions Management
   async getSessions(employeeId?: string, psychologistId?: string): Promise<PsychologySession[]> {
@@ -419,6 +516,18 @@ export const mentalHealthService = {
   async getEmotionalCheckins(employeeId: string, days = 30): Promise<EmotionalCheckin[]> {
     console.log('🧠 MentalHealth: Getting emotional checkins for employee:', employeeId);
 
+    if (!isSupabaseAvailable()) {
+      if (!offlineCheckinsStore.has(employeeId)) {
+        seedOfflineCheckins(employeeId);
+      }
+      const stored = offlineCheckinsStore.get(employeeId) || [];
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      return stored
+        .filter(checkin => new Date(checkin.checkin_date) >= startDate)
+        .sort((a, b) => new Date(b.checkin_date).getTime() - new Date(a.checkin_date).getTime());
+    }
+
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
@@ -439,7 +548,7 @@ export const mentalHealthService = {
         .eq('employee_id', employeeId)
         .gte('checkin_date', startDate.toISOString().split('T')[0])
         .order('checkin_date', { ascending: false }), 'getEmotionalCheckins');
-      
+
       // Map the database fields to the expected interface
       return data.map((item: any) => ({
         id: item.id,
@@ -461,6 +570,25 @@ export const mentalHealthService = {
   async createEmotionalCheckin(checkin: Omit<EmotionalCheckin, 'id' | 'created_at'>): Promise<EmotionalCheckin> {
     console.log('🧠 MentalHealth: Creating emotional checkin');
 
+    if (!isSupabaseAvailable()) {
+      const offlineExisting = offlineCheckinsStore.get(checkin.employee_id) || [];
+      const existingIndex = offlineExisting.findIndex(item => item.checkin_date === checkin.checkin_date);
+      const newCheckin: EmotionalCheckin = {
+        ...checkin,
+        id: existingIndex >= 0 ? offlineExisting[existingIndex].id : generateOfflineId(),
+        created_at: existingIndex >= 0 ? offlineExisting[existingIndex].created_at : new Date().toISOString()
+      };
+
+      if (existingIndex >= 0) {
+        offlineExisting[existingIndex] = newCheckin;
+        offlineCheckinsStore.set(checkin.employee_id, [...offlineExisting]);
+      } else {
+        offlineCheckinsStore.set(checkin.employee_id, [...offlineExisting, newCheckin]);
+      }
+
+      return newCheckin;
+    }
+
     return await supabaseRequest(() => supabase
       .from('emotional_checkins')
       .upsert({
@@ -478,6 +606,15 @@ export const mentalHealthService = {
 
   async getTodayCheckin(employeeId: string): Promise<EmotionalCheckin | null> {
     console.log('🧠 MentalHealth: Getting today checkin for employee:', employeeId);
+
+    if (!isSupabaseAvailable()) {
+      const today = new Date().toISOString().split('T')[0];
+      if (!offlineCheckinsStore.has(employeeId)) {
+        seedOfflineCheckins(employeeId);
+      }
+      const checkins = offlineCheckinsStore.get(employeeId) || [];
+      return checkins.find(checkin => checkin.checkin_date.startsWith(today)) || null;
+    }
 
     try {
       const { data, error } = await supabase
@@ -498,7 +635,7 @@ export const mentalHealthService = {
         .maybeSingle();
 
       if (error) throw error;
-      
+
       if (data) {
         return {
           id: data.id,
@@ -512,7 +649,7 @@ export const mentalHealthService = {
           created_at: data.created_at
         };
       }
-      
+
       return null;
     } catch (error) {
       console.error('🧠 MentalHealth: Error getting today checkin:', error);
@@ -672,6 +809,13 @@ export const mentalHealthService = {
   async getCheckinSettings(userId: string): Promise<CheckinSettings> {
     console.log('🧠 MentalHealth: Getting checkin settings for user:', userId);
 
+    if (!isSupabaseAvailable()) {
+      if (!offlineCheckinSettingsStore.has(userId)) {
+        offlineCheckinSettingsStore.set(userId, createOfflineDefaultSettings(userId));
+      }
+      return offlineCheckinSettingsStore.get(userId)!;
+    }
+
     try {
       const result = await supabaseRequest(() => supabase
         .from('checkin_settings')
@@ -689,14 +833,13 @@ export const mentalHealthService = {
   async createDefaultCheckinSettings(userId: string): Promise<CheckinSettings> {
     console.log('🧠 MentalHealth: Creating default checkin settings for user:', userId);
 
-    const defaultQuestions: CheckinCustomQuestion[] = [
-      {
-        id: 'daily-reflection',
-        prompt: 'Qual foi o ponto alto do seu dia?',
-        frequency: 'daily',
-        active: true
-      }
-    ];
+    if (!isSupabaseAvailable()) {
+      const settings = createOfflineDefaultSettings(userId);
+      offlineCheckinSettingsStore.set(userId, settings);
+      return settings;
+    }
+
+    const defaultQuestions: CheckinCustomQuestion[] = createOfflineDefaultSettings(userId).custom_questions;
 
     const result = await supabaseRequest(() => supabase
       .from('checkin_settings')
@@ -716,6 +859,18 @@ export const mentalHealthService = {
 
   async updateCheckinSettings(userId: string, settings: Partial<CheckinSettings>): Promise<CheckinSettings> {
     console.log('🧠 MentalHealth: Updating checkin settings for user:', userId);
+
+    if (!isSupabaseAvailable()) {
+      const current = offlineCheckinSettingsStore.get(userId) || createOfflineDefaultSettings(userId);
+      const updated: CheckinSettings = {
+        ...current,
+        ...settings,
+        custom_questions: settings.custom_questions ?? current.custom_questions,
+        updated_at: new Date().toISOString()
+      };
+      offlineCheckinSettingsStore.set(userId, updated);
+      return updated;
+    }
 
     const current = await this.getCheckinSettings(userId);
 
@@ -956,6 +1111,10 @@ export const mentalHealthService = {
     console.log('🧠 MentalHealth: Getting mental health statistics');
 
     try {
+      if (!isSupabaseAvailable()) {
+        return getOfflineMentalHealthStats();
+      }
+
       // Calculate stats manually since RPC function has column issues
       const [
         employeesResult,
@@ -994,17 +1153,8 @@ export const mentalHealthService = {
         wellness_resources_accessed: 0 // Not tracked in current schema
       };
     } catch (error) {
-      console.warn('🧠 MentalHealth: Error calculating stats, returning defaults:', error);
-      
-      // Return default stats if calculation fails
-      return {
-        total_employees_participating: 0,
-        average_mood_score: 0,
-        sessions_this_month: 0,
-        high_risk_responses: 0,
-        active_alerts: 0,
-        wellness_resources_accessed: 0
-      };
+      console.warn('🧠 MentalHealth: Error calculating stats, returning offline defaults:', error);
+      return getOfflineMentalHealthStats();
     }
   },
 

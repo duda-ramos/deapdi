@@ -50,9 +50,95 @@ export interface UserStats {
   wellnessCheckins: number;
 }
 
+const isOfflineModeEnabled = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  try {
+    return window.localStorage.getItem('OFFLINE_MODE') === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const isSupabaseAvailable = () => Boolean(supabase) && !isOfflineModeEnabled();
+
+const offlineAchievementTemplates: AchievementTemplate[] = [
+  {
+    id: 'offline-growth-path',
+    title: 'Jornada de Crescimento',
+    description: 'Complete 3 PDIs para avançar na sua carreira.',
+    icon: '🌱',
+    points: 150,
+    category: 'carreira',
+    trigger_type: 'pdi_completed',
+    trigger_condition: { count: 3 },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'offline-knowledge-seeker',
+    title: 'Buscador de Conhecimento',
+    description: 'Conclua 5 cursos na plataforma de aprendizagem.',
+    icon: '📚',
+    points: 200,
+    category: 'aprendizado',
+    trigger_type: 'course_completed',
+    trigger_condition: { count: 5 },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'offline-wellness-guardian',
+    title: 'Guardião do Bem-estar',
+    description: 'Registre 7 check-ins emocionais consecutivos.',
+    icon: '💙',
+    points: 120,
+    category: 'bem-estar',
+    trigger_type: 'wellness_checkin',
+    trigger_condition: { count: 7 },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
+type OfflineAchievement = Achievement & { template?: AchievementTemplate };
+
+const offlineUserAchievements: Record<string, OfflineAchievement[]> = {
+  default: [
+    {
+      id: 'offline-achievement-1',
+      profile_id: 'default',
+      template_id: 'offline-growth-path',
+      unlocked_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      template: offlineAchievementTemplates[0]
+    }
+  ]
+};
+
+const offlineStats: Record<string, UserStats> = {
+  default: {
+    completedPDIs: 2,
+    completedTasks: 8,
+    completedCourses: 3,
+    competenciesRated: 4,
+    mentorshipSessions: 1,
+    careerProgressions: 0,
+    actionGroupTasks: 2,
+    wellnessCheckins: 5
+  }
+};
+
+const getOfflineProfileKey = (profileId: string) => offlineStats[profileId] ? profileId : 'default';
+
 export const achievementService = {
   async getTemplates() {
     console.log('🏆 Achievements: Getting templates');
+    if (!isSupabaseAvailable()) {
+      return offlineAchievementTemplates;
+    }
     return supabaseRequest(() => supabase
       .from('achievement_templates')
       .select('*')
@@ -61,6 +147,14 @@ export const achievementService = {
 
   async getUserAchievements(profileId: string) {
     console.log('🏆 Achievements: Getting user achievements for:', profileId);
+
+    if (!isSupabaseAvailable()) {
+      const key = getOfflineProfileKey(profileId);
+      return (offlineUserAchievements[key] || []).map(achievement => ({
+        ...achievement,
+        profile_id: profileId
+      }));
+    }
 
     try {
       return await supabaseRequest(() => supabase
@@ -80,6 +174,15 @@ export const achievementService = {
   async getUserAchievementsWithTemplate(profileId: string) {
     console.log('🏆 Achievements: Getting user achievements with template for:', profileId);
 
+    if (!isSupabaseAvailable()) {
+      const key = getOfflineProfileKey(profileId);
+      return (offlineUserAchievements[key] || []).map(achievement => ({
+        ...achievement,
+        profile_id: profileId,
+        template: achievement.template || offlineAchievementTemplates.find(t => t.id === achievement.template_id)
+      }));
+    }
+
     return supabaseRequest(() => supabase
       .from('achievements')
       .select(`
@@ -92,6 +195,45 @@ export const achievementService = {
 
   async getAchievementProgress(profileId: string): Promise<AchievementProgress[]> {
     console.log('🏆 Achievements: Getting progress for profile:', profileId);
+
+    if (!isSupabaseAvailable()) {
+      const key = getOfflineProfileKey(profileId);
+      const stats = offlineStats[key];
+      const achievements = offlineUserAchievements[key] || [];
+
+      return offlineAchievementTemplates.map(template => {
+        const unlocked = achievements.some(a => a.template_id === template.id);
+        const maxProgress = template.trigger_condition.count || 1;
+        let progress = 0;
+
+        switch (template.trigger_type) {
+          case 'pdi_completed':
+            progress = Math.min(stats.completedPDIs, maxProgress);
+            break;
+          case 'course_completed':
+            progress = Math.min(stats.completedCourses, maxProgress);
+            break;
+          case 'wellness_checkin':
+            progress = Math.min(stats.wellnessCheckins, maxProgress);
+            break;
+          default:
+            progress = unlocked ? maxProgress : 0;
+        }
+
+        return {
+          templateId: template.id,
+          title: template.title,
+          description: template.description,
+          icon: template.icon,
+          points: template.points,
+          category: template.category,
+          unlocked,
+          progress,
+          maxProgress,
+          requirements: [template.description]
+        };
+      });
+    }
 
     try {
       const { data: templates, error: templatesError } = await supabase
@@ -194,18 +336,8 @@ export const achievementService = {
     console.log('🏆 Achievements: Getting user stats for profile:', profileId);
 
     // Check if Supabase is available
-    if (!supabase) {
-      console.warn('🏆 Achievements: Supabase not available, returning default stats');
-      return {
-        completedPDIs: 0,
-        completedTasks: 0,
-        completedCourses: 0,
-        competenciesRated: 0,
-        mentorshipSessions: 0,
-        careerProgressions: 0,
-        actionGroupTasks: 0,
-        wellnessCheckins: 0
-      };
+    if (!isSupabaseAvailable()) {
+      return offlineStats[getOfflineProfileKey(profileId)];
     }
 
     // Use a single RPC call to avoid RLS policy recursion
@@ -237,6 +369,10 @@ export const achievementService = {
 
   async getUserStatsFallback(profileId: string): Promise<UserStats> {
     console.log('🏆 Achievements: Using fallback method for user stats');
+
+    if (!isSupabaseAvailable()) {
+      return offlineStats[getOfflineProfileKey(profileId)];
+    }
 
     // Initialize all stats to 0
     const stats: UserStats = {
