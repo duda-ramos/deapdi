@@ -1,0 +1,17 @@
+[
+  {
+    "id": "alert-1",
+    "employee_id": "employee-2",
+    "alert_type": "form_score",
+    "severity": "alto",
+    "title": "Alerta de Estresse Elevado",
+    "description": "Pontuação acima do limite em formulário recente",
+    "created_at": "2024-05-09T09:30:00Z",
+    "employee": {
+      "id": "employee-2",
+      "name": "Maria Santos",
+      "avatar_url": null,
+      "position": "Designer"
+    }
+  }
+]
