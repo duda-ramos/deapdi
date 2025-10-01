@@ -6,6 +6,19 @@ declare global {
       login(email: string, password: string): Chainable<void>;
       createTestUser(): Chainable<void>;
       cleanupTestData(): Chainable<void>;
+      getManagerSession(): Chainable<{
+        supabaseUrl: string;
+        supabaseAnonKey: string;
+        session: {
+          access_token: string;
+          refresh_token: string;
+          user: {
+            id: string;
+            email: string;
+            user_metadata: Record<string, any>;
+          };
+        };
+      }>;
     }
   }
 }
@@ -37,4 +50,29 @@ Cypress.Commands.add('cleanupTestData', () => {
   // For now, we'll just clear local storage
   cy.clearLocalStorage();
   cy.clearCookies();
+});
+
+Cypress.Commands.add('getManagerSession', () => {
+  const supabaseUrl = 'https://test.supabase.co';
+  const supabaseAnonKey = 'test-anon-key';
+
+  const session = {
+    access_token: 'test-access-token',
+    refresh_token: 'test-refresh-token',
+    user: {
+      id: 'manager-1',
+      email: 'manager@example.com',
+      user_metadata: {
+        name: 'Gestora de Pessoas',
+        role: 'manager',
+        position: 'Gestor de Pessoas'
+      }
+    }
+  };
+
+  return cy.wrap({
+    supabaseUrl,
+    supabaseAnonKey,
+    session
+  });
 });
