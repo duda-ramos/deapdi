@@ -39,30 +39,40 @@ export const NotificationCenter: React.FC = () => {
   const maxReconnectAttempts = 5;
 
   useEffect(() => {
-    if (user) {
-      loadNotifications();
-      loadPreferences();
-      loadStats();
-      setupNotificationSubscription();
-      
-      // Request browser notification permission
-      notificationService.requestBrowserPermission();
+    if (!user) {
+      return () => {};
     }
+
+    loadNotifications();
+    loadPreferences();
+    loadStats();
+    const unsubscribe = setupNotificationSubscription();
+
+    // Request browser notification permission
+    notificationService.requestBrowserPermission();
+
+    return unsubscribe;
   }, [user, reconnectAttempts]);
 
-  const setupNotificationSubscription = () => {
-    if (!user) return;
-    
+  /**
+   * Configures the real-time notification subscription.
+   * Always returns a cleanup function (noop when setup fails) so the caller can safely unsubscribe.
+   */
+  const setupNotificationSubscription = (): (() => void) => {
+    if (!user) {
+      return () => {};
+    }
+
     // Check if Supabase is properly configured
     if (!supabase) {
       console.warn('🔔 NotificationCenter: Supabase not configured, skipping real-time subscription');
       setSubscriptionStatus('disconnected');
-      return;
+      return () => {};
     }
-    
+
     console.log('🔔 NotificationCenter: Setting up subscription, attempt:', reconnectAttempts + 1);
     setSubscriptionStatus('connecting');
-    
+
     try {
       const subscription = notificationService.subscribeToNotifications(
         user.id,
@@ -109,6 +119,8 @@ export const NotificationCenter: React.FC = () => {
     } catch (error) {
       console.error('🔔 NotificationCenter: Subscription setup failed:', error);
       setSubscriptionStatus('disconnected');
+      // Always provide a cleanup function so callers can safely unsubscribe even when setup fails
+      return () => {};
     }
   };
 
