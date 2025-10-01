@@ -170,7 +170,14 @@ const Profile: React.FC = () => {
                   }}
                   onUploadError={(error) => {
                     console.error('Avatar upload error:', error);
-                    alert(error);
+                    // Show user-friendly error message
+                    if (error.includes('bucket')) {
+                      alert('⚠️ Storage não configurado\n\nO administrador precisa configurar o bucket "avatars" no Supabase Dashboard para habilitar upload de fotos.');
+                    } else if (error.includes('credenciais')) {
+                      alert('⚠️ Configuração necessária\n\nO Supabase não está configurado corretamente. Verifique o arquivo .env');
+                    } else {
+                      alert(`Erro no upload: ${error}`);
+                    }
                   }}
                   size="xl"
                 />

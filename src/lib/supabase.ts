@@ -239,7 +239,10 @@ export const checkDatabaseHealth = async (timeoutMs: number = 8000) => {
     }
 
     // Check if JWT token is expired
-    if (supabaseAnonKey && isJWTExpired(supabaseAnonKey)) {
+    const currentUrl = import.meta.env.VITE_SUPABASE_URL;
+    const currentKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (currentKey && isJWTExpired(currentKey)) {
       console.error('🔴 Supabase ANON_KEY is expired');
       const result = {
         healthy: false,
@@ -269,13 +272,13 @@ export const checkDatabaseHealth = async (timeoutMs: number = 8000) => {
     // Comprehensive health check - simplified to single test
     const healthCheckPromise = (async () => {
       // Test REST API endpoint reachability
-      const restUrl = `${supabaseUrl}/rest/v1/`;
+      const restUrl = `${currentUrl}/rest/v1/`;
       try {
         const restResponse = await fetch(restUrl, {
           method: 'HEAD',
           headers: {
-            'apikey': supabaseAnonKey,
-            'Authorization': `Bearer ${supabaseAnonKey}`
+            'apikey': currentKey,
+            'Authorization': `Bearer ${currentKey}`
           },
           signal: abortController.signal
         });

@@ -33,6 +33,14 @@ export const avatarService = {
   },
 
   async uploadAvatar(userId: string, file: File): Promise<AvatarUploadResult> {
+    if (!supabase) {
+      throw new Error('Supabase não está configurado. Verifique suas credenciais no arquivo .env');
+    }
+
+    if (!supabase) {
+      throw new Error('Supabase não está configurado. Verifique suas credenciais.');
+    }
+
     const validation = this.validateFile(file);
     if (!validation.valid) {
       throw new Error(validation.error);
@@ -42,12 +50,45 @@ export const avatarService = {
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
 
     try {
+      // Check if bucket exists and create helpful error message if not
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.error('Error checking buckets:', bucketsError);
+        throw new Error('Não foi possível acessar o storage. Verifique se o Supabase está configurado corretamente.');
+      }
+
+      const avatarBucket = buckets?.find(bucket => bucket.name === BUCKET_NAME);
+      if (!avatarBucket) {
+        throw new Error(`O bucket '${BUCKET_NAME}' não existe no Supabase. Para resolver: 1) Acesse o Supabase Dashboard, 2) Vá em Storage, 3) Clique em "New Bucket", 4) Nome: "${BUCKET_NAME}", 5) Marque como público, 6) Configure as políticas RLS apropriadas.`);
+      }
+
+      // Check if bucket exists first
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.error('Error checking buckets:', bucketsError);
+        throw new Error('Não foi possível verificar o storage. Verifique a configuração do Supabase.');
+      }
+
+      const avatarBucket = buckets?.find(bucket => bucket.name === BUCKET_NAME);
+      if (!avatarBucket) {
+        throw new Error(`Bucket '${BUCKET_NAME}' não encontrado. Configure o storage no Supabase Dashboard: Storage → Create Bucket → Nome: '${BUCKET_NAME}' → Público: Sim`);
+      }
+
       const { data: existingFiles, error: listError } = await supabase.storage
         .from(BUCKET_NAME)
         .list(userId);
 
       if (listError) {
-        console.error('Error listing existing files:', listError);
+        // If it's just a "folder not found" error, that's fine - folder will be created
+        if (!listError.message?.includes('not found') && !listError.message?.includes('does not exist')) {
+          console.error('Error listing existing files:', listError);
+          throw new Error(`Erro ao listar arquivos existentes: ${listError.message}`);
+        }
+        if (!listError.message?.includes('not found')) {
+          console.error('Error listing existing files:', listError);
+        }
       }
 
       if (existingFiles && existingFiles.length > 0) {
@@ -67,17 +108,45 @@ export const avatarService = {
 
       if (error) {
         console.error('Upload error:', error);
-        throw new Error('Erro ao fazer upload do avatar');
+        
+        if (error.message?.includes('Bucket not found')) {
+          throw new Error(`Bucket '${BUCKET_NAME}' não encontrado. Para resolver: 1) Acesse o Supabase Dashboard, 2) Vá em Storage, 3) Clique em "New Bucket", 4) Nome: "${BUCKET_NAME}", 5) Marque como público.`);
+        }
+        
+        if (error.message?.includes('policy')) {
+          throw new Error('Permissões insuficientes para upload. Configure as políticas RLS do bucket no Supabase Dashboard.');
+        }
+        
+        if (error.message?.includes('size')) {
+          throw new Error('Arquivo muito grande. Reduza o tamanho da imagem e tente novamente.');
+        }
+        
+        throw new Error(`Erro no upload: ${error.message || 'Erro desconhecido'}`);
+        if (error.message?.includes('Bucket not found')) {
+          throw new Error(`Bucket '${BUCKET_NAME}' não encontrado. Configure o storage no Supabase Dashboard: Storage → Create Bucket → Nome: '${BUCKET_NAME}' → Público: Sim`);
+        }
+        
+        if (error.message?.includes('policy')) {
+          throw new Error('Permissões insuficientes. Configure as políticas RLS do bucket avatars no Supabase.');
+        }
+        
+        throw new Error(`Erro no upload: ${error.message}`);
       }
 
       const { data: { publicUrl } } = supabase.storage
         .from(BUCKET_NAME)
         .getPublicUrl(fileName);
 
-      await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
         .eq('id', userId);
+
+      if (updateError) {
+        console.error('Error updating profile with avatar URL:', updateError);
+        // Don't throw here - the file was uploaded successfully
+        console.warn('Avatar uploaded but profile update failed. URL:', publicUrl);
+      }
 
       return {
         url: publicUrl,
@@ -106,10 +175,16 @@ export const avatarService = {
         }
       }
 
-      await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: null })
         .eq('id', userId);
+
+      if (updateError) {
+        console.error('Error updating profile with avatar URL:', updateError);
+        // Still return success since file was uploaded
+        console.warn('Avatar uploaded successfully but profile update failed');
+      }
     } catch (error) {
       console.error('Avatar delete error:', error);
       throw new Error('Erro ao deletar avatar');
