@@ -115,18 +115,18 @@ export const NotificationCenter: React.FC = () => {
   const loadNotifications = async () => {
     if (!user) return;
     
-    // Check if Supabase is properly configured
-    if (!supabase) {
-      console.warn('🔔 NotificationCenter: Supabase not configured, skipping notifications');
-      // Show user-friendly error message
-      setNotifications([]);
-      setUnreadCount(0);
-      setLoading(false);
-      return;
-    }
-    
     try {
       setLoading(true);
+      
+      // Check if Supabase is properly configured
+      if (!supabase) {
+        console.warn('🔔 NotificationCenter: Supabase not configured, using empty state');
+        setNotifications([]);
+        setUnreadCount(0);
+        setLoading(false);
+        return;
+      }
+      
       const [allNotifications, unreadNotifications] = await Promise.all([
         notificationService.getNotifications(user.id),
         notificationService.getNotifications(user.id, true)
@@ -138,20 +138,10 @@ export const NotificationCenter: React.FC = () => {
     } catch (error) {
       console.error('Error loading notifications:', error);
       
-      // Handle Supabase connection issues
-      if (error instanceof Error && (
-        error.message.includes('Não foi possível conectar ao Supabase') ||
-        error.message.includes('Unable to connect to Supabase') ||
-        error.message.includes('Failed to fetch')
-      )) {
-        console.warn('🔔 NotificationCenter: Network error, setting empty state');
-        setNotifications([]);
-        setUnreadCount(0);
-      } else {
-        console.warn('🔔 NotificationCenter: Error loading notifications, setting empty state');
-        setNotifications([]);
-        setUnreadCount(0);
-      }
+      // Handle all connection errors gracefully
+      console.warn('🔔 NotificationCenter: Connection error, using empty state');
+      setNotifications([]);
+      setUnreadCount(0);
       setLoading(false);
     }
   };
@@ -171,29 +161,19 @@ export const NotificationCenter: React.FC = () => {
   const loadStats = async () => {
     if (!user) return;
     
-    // Check if Supabase is properly configured
-    if (!supabase) {
-      console.warn('🔔 NotificationCenter: Supabase not configured, skipping stats');
-      // Don't show error to user for stats - just fail silently
-      setStats(notificationService.getDefaultStats());
-      return;
-    }
-    
     try {
+      // Check if Supabase is properly configured
+      if (!supabase) {
+        console.warn('🔔 NotificationCenter: Supabase not configured, using default stats');
+        setStats(notificationService.getDefaultStats());
+        return;
+      }
+      
       const statsData = await notificationService.getStats(user.id);
       setStats(statsData);
     } catch (error) {
-      // Handle Supabase connection issues gracefully
-      if (error instanceof Error && (
-        error.message.includes('Não foi possível conectar ao Supabase') ||
-        error.message.includes('Unable to connect to Supabase') ||
-        error.message.includes('Failed to fetch')
-      )) {
-        console.warn('🔔 NotificationCenter: Network error loading stats, using defaults');
-      } else {
-        console.warn('🔔 NotificationCenter: Error loading stats, using defaults');
-      }
-      // Set default stats if loading fails
+      // Handle all connection errors gracefully
+      console.warn('🔔 NotificationCenter: Connection error loading stats, using defaults');
       setStats(notificationService.getDefaultStats());
     }
   };

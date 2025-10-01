@@ -33,29 +33,16 @@ export const avatarService = {
   },
 
   async uploadAvatar(userId: string, file: File): Promise<AvatarUploadResult> {
-    if (!supabase) {
-      throw new Error('Supabase não está configurado. Verifique suas credenciais no arquivo .env');
-    }
-
-    const validation = this.validateFile(file);
-    if (!validation.valid) {
-      throw new Error(validation.error);
-    }
-
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
-
-    try {
       // Check if bucket exists and create helpful error message if not
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      const { data: bucketList, error: bucketListError } = await supabase.storage.listBuckets();
       
-      if (bucketsError) {
-        console.error('Error checking buckets:', bucketsError);
+      if (bucketListError) {
+        console.error('Error checking buckets:', bucketListError);
         throw new Error('Não foi possível acessar o storage. Verifique se o Supabase está configurado corretamente.');
       }
 
-      const avatarBucket = buckets?.find(bucket => bucket.name === BUCKET_NAME);
-      if (!avatarBucket) {
+      const avatarBucketExists = bucketList?.find(bucket => bucket.name === BUCKET_NAME);
+      if (!avatarBucketExists) {
         throw new Error(`O bucket '${BUCKET_NAME}' não existe no Supabase. Para resolver: 1) Acesse o Supabase Dashboard, 2) Vá em Storage, 3) Clique em "New Bucket", 4) Nome: "${BUCKET_NAME}", 5) Marque como público, 6) Configure as políticas RLS apropriadas.`);
       }
 

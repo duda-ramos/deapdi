@@ -42,22 +42,27 @@ export const notificationService = {
   async getNotifications(profileId: string, unreadOnly = false): Promise<Notification[]> {
     console.log('🔔 Notifications: Getting notifications for profile:', profileId, 'unreadOnly:', unreadOnly);
 
-    // Check if Supabase is available
-    if (!supabase) {
-      console.warn('🔔 Notifications: Supabase not available, returning empty array');
+    try {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('🔔 Notifications: Supabase not available, returning empty array');
+        return [];
+      }
+
+      let query = supabase
+        .from('notifications')
+        .select('*')
+        .eq('profile_id', profileId);
+
+      if (unreadOnly) {
+        query = query.eq('read', false);
+      }
+
+      return await supabaseRequest(() => query.order('created_at', { ascending: false }), 'getNotifications');
+    } catch (error) {
+      console.warn('🔔 Notifications: Failed to fetch notifications, returning empty array:', error);
       return [];
     }
-
-    let query = supabase
-      .from('notifications')
-      .select('*')
-      .eq('profile_id', profileId);
-
-    if (unreadOnly) {
-      query = query.eq('read', false);
-    }
-
-    return supabaseRequest(() => query.order('created_at', { ascending: false }), 'getNotifications');
   },
 
   async markAsRead(id: string): Promise<Notification> {
@@ -260,6 +265,12 @@ export const notificationService = {
     console.log('🔔 Notifications: Getting stats for profile:', profileId);
     
     try {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('🔔 Notifications: Supabase not available, using default stats');
+        return this.getDefaultStats();
+      }
+      
       // Calculate stats from actual notifications
       const notifications = await this.getNotifications(profileId);
       const today = new Date().toISOString().split('T')[0];
@@ -285,7 +296,7 @@ export const notificationService = {
         most_common_type: mostCommonType
       };
     } catch (error) {
-      console.error('🔔 Notifications: Error getting stats:', error);
+      console.warn('🔔 Notifications: Error getting stats, using defaults:', error);
       return this.getDefaultStats();
     }
   },
