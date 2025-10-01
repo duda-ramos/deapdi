@@ -6,7 +6,7 @@ declare global {
       login(email: string, password: string): Chainable<void>;
       createTestUser(): Chainable<void>;
       cleanupTestData(): Chainable<void>;
-      setTestUser(role?: 'employee' | 'hr', overrides?: Record<string, any>): Chainable<void>;
+      setTestUser(role?: 'employee' | 'hr' | 'admin', overrides?: Record<string, any>): Chainable<void>;
     }
   }
 }
@@ -40,14 +40,30 @@ Cypress.Commands.add('cleanupTestData', () => {
   cy.clearCookies();
 });
 
-Cypress.Commands.add('setTestUser', (role: 'employee' | 'hr' = 'employee', overrides: Record<string, any> = {}) => {
+Cypress.Commands.add('setTestUser', (role: 'employee' | 'hr' | 'admin' = 'employee', overrides: Record<string, any> = {}) => {
   cy.window().then((win) => {
+    const baseEmail = role === 'admin'
+      ? 'admin@example.com'
+      : role === 'hr'
+        ? 'rh@example.com'
+        : 'colaborador@example.com';
+    const baseName = role === 'admin'
+      ? 'Administrador Talento'
+      : role === 'hr'
+        ? 'Especialista RH'
+        : 'Colaborador Teste';
+    const basePosition = role === 'admin'
+      ? 'Chief Talent Officer'
+      : role === 'hr'
+        ? 'Business Partner'
+        : 'Analista';
+
     const baseUser = {
-      id: role === 'hr' ? 'hr-user-id' : 'employee-user-id',
-      email: role === 'hr' ? 'rh@example.com' : 'colaborador@example.com',
-      name: role === 'hr' ? 'Especialista RH' : 'Colaborador Teste',
+      id: role === 'admin' ? 'admin-user-id' : role === 'hr' ? 'hr-user-id' : 'employee-user-id',
+      email: baseEmail,
+      name: baseName,
       role,
-      position: role === 'hr' ? 'Business Partner' : 'Analista',
+      position: basePosition,
       level: 'Pleno',
       mental_health_consent: role === 'employee',
       ...overrides

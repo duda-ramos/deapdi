@@ -1,0 +1,23 @@
+[
+  {
+    "id": "req-001",
+    "event_type": "ferias",
+    "requester_id": "employee-user-id",
+    "start_date": "2024-04-10",
+    "end_date": "2024-04-18",
+    "reason": "Viagem com a família",
+    "status": "pending",
+    "manager_approval": true,
+    "hr_approval": false,
+    "comments": null,
+    "days_requested": 6,
+    "created_at": "2024-02-18T12:00:00Z",
+    "updated_at": "2024-02-18T12:00:00Z",
+    "requester": {
+      "id": "employee-user-id",
+      "name": "Colaborador Teste",
+      "position": "Analista de Produto",
+      "team": { "name": "Produto" }
+    }
+  }
+]

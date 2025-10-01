@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hr-user-id",
+    "name": "Especialista RH",
+    "email": "rh@example.com",
+    "role": "hr",
+    "position": "Business Partner",
+    "level": "Sênior",
+    "points": 1200,
+    "status": "active",
+    "team": { "name": "Recursos Humanos" },
+    "avatar_url": "https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?w=150&h=150&fit=crop&crop=face"
+  },
+  {
+    "id": "employee-user-id",
+    "name": "Colaborador Teste",
+    "email": "colaborador@example.com",
+    "role": "employee",
+    "position": "Analista de Produto",
+    "level": "Pleno",
+    "points": 980,
+    "status": "active",
+    "team": { "name": "Produto" },
+    "avatar_url": "https://images.pexels.com/photos/2381069/pexels-photo-2381069.jpeg?w=150&h=150&fit=crop&crop=face"
+  },
+  {
+    "id": "manager-user-id",
+    "name": "Gestor Estratégico",
+    "email": "gestor@example.com",
+    "role": "manager",
+    "position": "Head de Operações",
+    "level": "Sênior",
+    "points": 1500,
+    "status": "inactive",
+    "team": { "name": "Operações" },
+    "avatar_url": "https://images.pexels.com/photos/2446734/pexels-photo-2446734.jpeg?w=150&h=150&fit=crop&crop=face"
+  }
+]
