@@ -6,6 +6,10 @@ declare global {
       login(email: string, password: string): Chainable<void>;
       createTestUser(): Chainable<void>;
       cleanupTestData(): Chainable<void>;
+      setTestUser(
+        role: 'employee' | 'hr' | 'admin',
+        overrides?: Record<string, unknown>,
+      ): Chainable<void>;
     }
   }
 }
@@ -38,3 +42,32 @@ Cypress.Commands.add('cleanupTestData', () => {
   cy.clearLocalStorage();
   cy.clearCookies();
 });
+
+Cypress.Commands.add(
+  'setTestUser',
+  (role: 'employee' | 'hr' | 'admin', overrides: Record<string, unknown> = {}) => {
+    cy.window().then((win) => {
+      const baseUser = {
+        id: 'user-hr-test-id',
+        email: 'colaborador@example.com',
+        name: 'Colaborador Teste',
+        role,
+        hr_area: role === 'hr' ? 'Especialista RH - Colaborador Teste' : null,
+        position: 'Analista',
+        level: 'Pleno',
+        mental_health_consent: role === 'employee',
+        ...overrides,
+      };
+
+      const tokenPayload = {
+        currentSession: {
+          access_token: 'mock-token',
+          user: baseUser,
+        },
+        user: baseUser,
+      };
+
+      win.localStorage.setItem('supabase.auth.token', JSON.stringify(tokenPayload));
+    });
+  },
+);
