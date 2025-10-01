@@ -55,50 +55,71 @@ const sidebarItems: SidebarItem[] = [
   { id: 'qa', label: 'Garantia de Qualidade', icon: <TestTube size={20} />, path: '/qa', roles: ['admin'] },
 ];
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onNavigate?: () => void;
+  isMobile?: boolean;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }) => {
   const { user } = useAuth();
   const location = useLocation();
 
-  console.log('📋 Sidebar: Rendering with user:', !!user, 'at path:', location.pathname);
-
-  const filteredItems = sidebarItems.filter(item => 
+  const filteredItems = sidebarItems.filter(item =>
     user && item.roles.includes(user.role)
   );
 
   return (
-    <div className="bg-white border-r border-gray-200 h-full w-64 p-6">
-      <div className="flex items-center space-x-3 mb-8">
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 w-10 h-10 rounded-lg flex items-center justify-center">
-          <Trophy className="text-white" size={24} />
+    <div className={`flex h-full min-h-0 w-full flex-col ${isMobile ? '' : 'px-4 pb-6'}`}>
+      <div className={`${isMobile ? 'px-1' : 'px-2'} mb-6 flex shrink-0 items-center gap-3 pt-6`}>
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-ink shadow-soft">
+          <Trophy className="text-ink" size={22} />
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">TalentFlow</h1>
-          <p className="text-xs text-gray-500">Desenvolvimento & Gamificação</p>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-ink">TalentFlow</p>
+          <p className="truncate text-xs text-muted">Desenvolvimento & Gamificação</p>
         </div>
       </div>
 
-      <nav className="space-y-1">
+      <nav className="flex-1 space-y-1 overflow-y-auto pr-1" aria-label="Principal">
         {filteredItems.map((item) => {
           const isActive = location.pathname === item.path;
-          
+
           return (
-            <Link key={item.id} to={item.path}>
+            <Link
+              key={item.id}
+              to={item.path}
+              className="block"
+              aria-current={isActive ? 'page' : undefined}
+              onClick={() => {
+                onNavigate?.();
+              }}
+            >
               <motion.div
                 whileHover={{ x: 4 }}
-                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-primary/15 text-ink shadow-inner'
+                    : 'text-muted hover:bg-slate-100'
                 }`}
               >
-                {item.icon}
-                <span className="font-medium">{item.label}</span>
+                <span className={`flex h-8 w-8 items-center justify-center rounded-md ${
+                  isActive ? 'bg-primary text-ink' : 'bg-slate-100 text-muted'
+                }`}
+                >
+                  {item.icon}
+                </span>
+                <span className="truncate">{item.label}</span>
               </motion.div>
             </Link>
           );
         })}
       </nav>
 
+      {!isMobile && (
+        <p className="mt-6 px-2 text-xs text-muted">
+          © {new Date().getFullYear()} TalentFlow. Todos os direitos reservados.
+        </p>
+      )}
     </div>
   );
 };

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'ghost';
@@ -16,38 +15,37 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
-  
+  const baseClasses = 'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 disabled:cursor-not-allowed disabled:opacity-60';
+
   const variants = {
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 shadow-lg hover:shadow-xl',
-    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-900 focus:ring-gray-500',
-    success: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500 shadow-lg hover:shadow-xl',
-    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 shadow-lg hover:shadow-xl',
-    ghost: 'bg-transparent hover:bg-gray-100 text-gray-700 focus:ring-gray-500'
+    primary: 'bg-primary text-ink hover:bg-primary-dark focus-visible:ring-primary-dark',
+    secondary: 'bg-slate-900 text-white hover:bg-slate-800 focus-visible:ring-slate-900 focus-visible:ring-offset-slate-100',
+    success: 'bg-emerald-500 text-white hover:bg-emerald-600 focus-visible:ring-emerald-500',
+    danger: 'bg-rose-500 text-white hover:bg-rose-600 focus-visible:ring-rose-500',
+    ghost: 'bg-transparent text-muted hover:bg-slate-100 focus-visible:ring-slate-300'
   };
 
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base'
+    sm: 'px-3 py-2 text-sm min-h-[2.5rem]',
+    md: 'px-4 py-2.5 text-sm min-h-[2.75rem]',
+    lg: 'px-5 py-3 text-base min-h-[3.25rem]'
   };
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+    <button
       className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={loading || props.disabled}
+      aria-busy={loading ? 'true' : undefined}
       {...props}
     >
       {loading ? (
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-          Carregando...
-        </div>
+        <span className="flex items-center gap-2">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-transparent border-t-current" aria-hidden />
+          <span className="text-sm font-medium">Carregando…</span>
+        </span>
       ) : (
         children
       )}
-    </motion.button>
+    </button>
   );
 };

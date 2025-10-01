@@ -144,65 +144,80 @@ const Dashboard: React.FC = () => {
   // Empty dashboard for regular users
   const dashboardStats = [
     {
-      icon: <TrendingUp className="text-blue-600" size={24} />,
+      icon: <TrendingUp size={24} />,
       title: 'Progresso na Carreira',
       value: '0%',
       change: 'Comece criando PDIs',
-      color: 'blue'
+      accentClass: 'bg-sky-100 text-sky-600',
     },
     {
-      icon: <Target className="text-green-600" size={24} />,
+      icon: <Target size={24} />,
       title: 'PDIs Ativos',
       value: '0',
       change: 'Crie seu primeiro PDI',
-      color: 'green'
+      accentClass: 'bg-emerald-100 text-emerald-600',
     },
     {
-      icon: <Trophy className="text-purple-600" size={24} />,
+      icon: <Trophy size={24} />,
       title: 'Pontos Totais',
       value: user?.points.toLocaleString() || '0',
       change: 'Ganhe pontos completando atividades',
-      color: 'purple'
+      accentClass: 'bg-primary/20 text-ink',
     },
     {
-      icon: <Award className="text-orange-600" size={24} />,
+      icon: <Award size={24} />,
       title: 'Conquistas',
       value: '0',
       change: 'Desbloqueie suas primeiras conquistas',
-      color: 'orange'
-    }
+      accentClass: 'bg-amber-100 text-amber-600',
+    },
   ];
 
   return (
     <div className="space-y-4 md:space-y-8">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-xl md:rounded-2xl p-4 md:p-8 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">
+      <div className="rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 p-5 text-white sm:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-4">
+            <h1 className="text-2xl font-semibold sm:text-3xl">
               Olá, {user?.name}! 🚀
             </h1>
-            <p className="text-blue-100 text-base md:text-lg">
+            <p className="text-sm text-slate-200 sm:text-base">
               Bem-vindo à sua jornada de desenvolvimento. Você está no nível <strong>{user?.level}</strong>
             </p>
-            <div className="mt-4">
-              <p className="text-sm text-blue-100">
-                Comece criando seu primeiro PDI para iniciar sua trilha de desenvolvimento
-              </p>
+            <p className="text-sm text-slate-300">
+              Comece criando seu primeiro PDI para iniciar sua trilha de desenvolvimento.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button size="sm" variant="primary" onClick={() => window.location.href = '/pdi'}>
+                Criar PDI
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10 hover:text-white focus-visible:ring-white focus-visible:ring-offset-slate-800"
+                onClick={() => window.location.href = '/learning'}
+              >
+                Explorar Trilhas
+              </Button>
             </div>
           </div>
-          <div className="hidden md:flex items-center">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
-              <Trophy size={48} className="mx-auto mb-2" />
-              <p className="text-2xl font-bold">{user?.points}</p>
-              <p className="text-sm text-blue-100">Pontos</p>
+          <div className="flex w-full flex-1 justify-end lg:w-auto">
+            <div className="flex w-full items-center justify-between gap-4 rounded-xl bg-white/10 p-4 text-left backdrop-blur sm:w-auto sm:flex-col sm:text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
+                <Trophy size={28} />
+              </div>
+              <div>
+                <p className="text-xl font-semibold">{user?.points}</p>
+                <p className="text-sm text-slate-200">Pontos acumulados</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {dashboardStats.map((stat) => (
           <motion.div
             key={stat.title}
@@ -210,23 +225,23 @@ const Dashboard: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: dashboardStats.indexOf(stat) * 0.1 }}
           >
-            <Card className="p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg bg-${stat.color}-50`}>
+            <Card className="h-full p-4 sm:p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.accentClass}`}>
                   {stat.icon}
-                </div>
+                </span>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
-                <p className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{stat.value}</p>
-                <p className="text-sm text-green-600">{stat.change}</p>
+              <div className="space-y-1">
+                <p className="text-sm text-muted">{stat.title}</p>
+                <p className="text-2xl font-semibold text-ink">{stat.value}</p>
+                <p className="text-sm text-emerald-600">{stat.change}</p>
               </div>
             </Card>
           </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         {/* Getting Started */}
         <Card className="lg:col-span-2 p-6">
           <h3 className="text-lg font-semibold mb-6">Comece Sua Jornada</h3>
