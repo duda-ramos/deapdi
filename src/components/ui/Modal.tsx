@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from './Button';
@@ -9,6 +9,8 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  ariaLabelledby?: string;
+  ariaDescribedby?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -16,7 +18,9 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
-  size = 'md'
+  size = 'md',
+  ariaLabelledby,
+  ariaDescribedby
 }) => {
   const sizes = {
     sm: 'max-w-md',
@@ -24,6 +28,37 @@ export const Modal: React.FC<ModalProps> = ({
     lg: 'max-w-2xl',
     xl: 'max-w-4xl'
   };
+
+  const modalRef = useRef<HTMLDivElement>(null);
+  const titleId = ariaLabelledby ?? useId();
+  const contentId = ariaDescribedby ?? useId();
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const previouslyFocusedElement = document.activeElement as HTMLElement | null;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    const focusTimer = window.setTimeout(() => {
+      modalRef.current?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocusedElement?.focus?.();
+    };
+  }, [isOpen, onClose]);
 
   return (
     <AnimatePresence>
@@ -42,19 +77,34 @@ export const Modal: React.FC<ModalProps> = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className={`relative bg-white rounded-xl shadow-xl ${sizes[size]} w-full`}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              aria-describedby={contentId}
+              tabIndex={-1}
+              ref={modalRef}
             >
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                <h3
+                  id={titleId}
+                  className="text-lg font-semibold text-gray-900"
+                >
+                  {title}
+                </h3>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600"
+                  aria-label="Fechar modal"
                 >
                   <X size={20} />
                 </Button>
               </div>
-              <div className="p-6">
+              <div
+                className="p-6"
+                id={contentId}
+              >
                 {children}
               </div>
             </motion.div>
