@@ -38,14 +38,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col lg:flex-row">
-        <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:flex-none lg:flex-col lg:border-r lg:border-slate-200 lg:bg-white">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col lg:h-dvh lg:flex-row lg:overflow-hidden">
+        <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-64 lg:flex-none lg:flex-col lg:border-r lg:border-slate-200 lg:bg-white lg:overflow-y-auto lg:pb-6 lg:pt-6">
           <Sidebar onNavigate={closeMobileNav} />
         </aside>
 
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex min-h-screen flex-1 flex-col lg:min-h-0">
           <Header onOpenMenu={() => setIsMobileNavOpen(true)} />
-          <main className="flex-1 overflow-x-hidden px-4 pb-12 pt-6 sm:px-6 lg:px-10">
+          <main className="flex-1 w-full max-w-full overflow-x-hidden px-4 pb-12 pt-6 sm:px-6 lg:min-h-0 lg:overflow-y-auto lg:px-10">
             {children}
           </main>
         </div>
@@ -59,7 +59,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             aria-label="Fechar menu"
             onClick={closeMobileNav}
           />
-          <div className="relative flex w-72 max-w-[85vw] flex-col bg-white shadow-soft">
+          <div className="relative flex h-dvh w-72 max-w-[85vw] flex-col bg-white shadow-soft">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <span className="text-sm font-semibold text-ink">Menu</span>
               <button

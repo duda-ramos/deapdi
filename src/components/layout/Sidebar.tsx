@@ -64,15 +64,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
   const { user } = useAuth();
   const location = useLocation();
 
-  console.log('📋 Sidebar: Rendering with user:', !!user, 'at path:', location.pathname);
-
   const filteredItems = sidebarItems.filter(item =>
     user && item.roles.includes(user.role)
   );
 
   return (
-    <div className={`flex h-full w-full flex-col ${isMobile ? '' : 'px-4 py-6'}`}>
-      <div className={`${isMobile ? 'px-1' : 'px-2'} mb-6 flex items-center gap-3`}>
+    <div className={`flex h-full min-h-0 w-full flex-col ${isMobile ? '' : 'px-4 pb-6'}`}>
+      <div className={`${isMobile ? 'px-1' : 'px-2'} mb-6 flex shrink-0 items-center gap-3 pt-6`}>
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-ink shadow-soft">
           <Trophy className="text-ink" size={22} />
         </div>
@@ -82,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1" aria-label="Principal">
+      <nav className="flex-1 space-y-1 overflow-y-auto pr-1" aria-label="Principal">
         {filteredItems.map((item) => {
           const isActive = location.pathname === item.path;
 

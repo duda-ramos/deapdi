@@ -8,7 +8,7 @@
   }
 
   body {
-    @apply bg-slate-50 text-ink antialiased;
+    @apply bg-slate-50 text-ink antialiased overflow-x-hidden;
   }
 
   h1,

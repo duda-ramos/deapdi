@@ -11,8 +11,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onOpenMenu }) => {
   const { user, signOut } = useAuth();
 
-  console.log('🎯 Header: Rendering with user:', !!user);
-
   return (
     <header className="bg-white/95 backdrop-blur border-b border-slate-200">
       <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
