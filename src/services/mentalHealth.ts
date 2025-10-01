@@ -816,18 +816,18 @@ export const mentalHealthService = {
       return offlineCheckinSettingsStore.get(userId)!;
     }
 
-    try {
-      const result = await supabaseRequest(() => supabase
-        .from('checkin_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .single(), 'getCheckinSettings');
+    const result = await supabaseRequest(() => supabase
+      .from('checkin_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle(), 'getCheckinSettings');
 
+    if (result) {
       return normalizeCheckinSettings(result);
-    } catch (error) {
-      // Create default settings if none exist
-      return await this.createDefaultCheckinSettings(userId);
     }
+
+    // Create default settings if none exist
+    return await this.createDefaultCheckinSettings(userId);
   },
 
   async createDefaultCheckinSettings(userId: string): Promise<CheckinSettings> {
@@ -841,7 +841,7 @@ export const mentalHealthService = {
 
     const defaultQuestions: CheckinCustomQuestion[] = createOfflineDefaultSettings(userId).custom_questions;
 
-    const result = await supabaseRequest(() => supabase
+    await supabaseRequest(() => supabase
       .from('checkin_settings')
       .insert({
         user_id: userId,
@@ -850,9 +850,20 @@ export const mentalHealthService = {
         reminder_enabled: true,
         custom_questions: defaultQuestions,
         weekly_reminder_day: 1
-      })
-      .select()
-      .single(), 'createDefaultCheckinSettings');
+      }, {
+        onConflict: 'user_id',
+        ignoreDuplicates: true
+      }), 'createDefaultCheckinSettingsInsert');
+
+    const result = await supabaseRequest(() => supabase
+      .from('checkin_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle(), 'createDefaultCheckinSettingsFetch');
+
+    if (!result) {
+      throw new Error('Não foi possível criar ou recuperar as configurações de check-in.');
+    }
 
     return normalizeCheckinSettings(result);
   },
