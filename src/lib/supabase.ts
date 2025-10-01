@@ -227,21 +227,49 @@ export const checkDatabaseHealth = async (timeoutMs: number = 8000) => {
   isHealthCheckRunning = true;
 
   try {
+    const resolvedConfig = resolveSupabaseConfig();
+    const currentUrl = resolvedConfig.url;
+    const currentKey = resolvedConfig.key;
+
     if (!supabase) {
-      const isPlaceholderCreds = isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey);
-      const errorMsg = isPlaceholderCreds
-        ? 'Please configure your Supabase credentials in the .env file. The current values are placeholders.'
-        : 'Supabase client not initialized';
+      let errorMsg = 'Supabase client not initialized';
+
+      if (resolvedConfig.offlineMode) {
+        errorMsg = 'Supabase offline mode is enabled. Disable offline mode and provide valid credentials to continue.';
+      } else if (!currentUrl || !currentKey) {
+        errorMsg = 'Supabase credentials are missing. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.';
+      } else if (isPlaceholder(currentUrl) || isPlaceholder(currentKey)) {
+        errorMsg = 'Please configure your Supabase credentials in the .env file. The current values are placeholders.';
+      }
+
       const result = { healthy: false, error: errorMsg, isExpiredToken: false };
       healthCheckCache = { result, timestamp: Date.now() };
       consecutiveFailures++;
       return result;
     }
 
-    // Check if JWT token is expired
-    const currentUrl = import.meta.env.VITE_SUPABASE_URL;
-    const currentKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
+    if (!currentUrl || !currentKey) {
+      const result = {
+        healthy: false,
+        error: 'Supabase credentials are missing. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+        isExpiredToken: false
+      };
+      healthCheckCache = { result, timestamp: Date.now() };
+      consecutiveFailures++;
+      return result;
+    }
+
+    if (isPlaceholder(currentUrl) || isPlaceholder(currentKey)) {
+      const result = {
+        healthy: false,
+        error: 'Please configure your Supabase credentials in the .env file. The current values are placeholders.',
+        isExpiredToken: false
+      };
+      healthCheckCache = { result, timestamp: Date.now() };
+      consecutiveFailures++;
+      return result;
+    }
+
     if (currentKey && isJWTExpired(currentKey)) {
       console.error('🔴 Supabase ANON_KEY is expired');
       const result = {
