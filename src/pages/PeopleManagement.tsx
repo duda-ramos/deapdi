@@ -1,35 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  UserCheck, 
-  UserX,
-  Users,
-  Building,
-  Crown,
-  BarChart3,
-  ArrowRightLeft,
-  Settings,
-  AlertTriangle,
-  CheckCircle,
-  Search,
-  Filter,
-  Download,
-  Upload,
-  MoreHorizontal,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  Award,
-  Target,
-  Heart,
-  Briefcase
-} from 'lucide-react';
+import { Plus, CreditCard as Edit, Trash2, Eye, UserCheck, UserX, Users, Building, Crown, BarChart3, ArrowRightLeft, Settings, AlertTriangle, CheckCircle, Search, Filter, Download, Upload, MoreHorizontal, User, Mail, Phone, MapPin, Calendar, Award, Target, Heart, Briefcase } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
 import { teamService } from '../services/teams';

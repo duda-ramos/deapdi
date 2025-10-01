@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Users, 
-  Crown, 
-  Building, 
-  User, 
-  ChevronDown, 
-  ChevronRight,
-  Settings,
-  Eye,
-  Edit
-} from 'lucide-react';
+import { Users, Crown, Building, User, ChevronDown, ChevronRight, Settings, Eye, CreditCard as Edit } from 'lucide-react';
 import { peopleManagementService } from '../../services/peopleManagement';
 import { Profile } from '../../types';
 import { Card } from '../ui/Card';
