@@ -1,29 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Heart, 
-  Calendar, 
-  CheckCircle, 
-  Clock, 
+import {
+  Heart,
+  Calendar,
   AlertTriangle,
-  Plus,
-  Brain,
   Activity,
-  FileText,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Smile,
-  Meh,
-  Frown,
-  Battery,
-  Moon,
-  Zap,
   BookOpen,
   Play,
-  Headphones,
-  Shield,
-  User
+  Headphones
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
@@ -31,11 +15,10 @@ import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { ErrorMessage } from '../utils/errorMessages';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
-import { ProgressBar } from '../components/ui/ProgressBar';
+import { CheckInWidget } from '../components/mental-health/CheckInWidget';
 
 const MentalHealth: React.FC = () => {
   const { user } = useAuth();
@@ -43,18 +26,7 @@ const MentalHealth: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [hasConsent, setHasConsent] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
-  const [showCheckinModal, setShowCheckinModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
-  const [todayCheckin, setTodayCheckin] = useState<any>(null);
-  const [recentCheckins, setRecentCheckins] = useState<any[]>([]);
-
-  const [checkinForm, setCheckinForm] = useState({
-    mood_rating: 5,
-    energy_level: 5,
-    stress_level: 5,
-    sleep_quality: 5,
-    notes: ''
-  });
 
   const [requestForm, setRequestForm] = useState({
     urgency: 'normal' as 'normal' | 'prioritaria' | 'emergencial',
@@ -98,9 +70,7 @@ const MentalHealth: React.FC = () => {
 
   const loadBasicData = async () => {
     try {
-      // Simplified data loading without complex service dependencies
-      setTodayCheckin(null);
-      setRecentCheckins([]);
+      setError('');
     } catch (error) {
       console.error('Error loading basic data:', error);
       setError('Erro ao carregar dados básicos');
@@ -125,40 +95,6 @@ const MentalHealth: React.FC = () => {
       }
     } catch (error) {
       console.error('Error recording consent:', error);
-    }
-  };
-
-  const handleCheckin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      // Simplified checkin creation
-      const { supabase } = await import('../lib/supabase');
-      if (supabase) {
-        await supabase.from('emotional_checkins').upsert({
-          employee_id: user.id,
-          mood_rating: checkinForm.mood_rating,
-          stress_level: checkinForm.stress_level,
-          energy_level: checkinForm.energy_level,
-          sleep_quality: checkinForm.sleep_quality,
-          notes: checkinForm.notes,
-          checkin_date: new Date().toISOString().split('T')[0]
-        });
-      }
-
-      setShowCheckinModal(false);
-      setCheckinForm({
-        mood_rating: 5,
-        energy_level: 5,
-        stress_level: 5,
-        sleep_quality: 5,
-        notes: ''
-      });
-
-      loadBasicData();
-    } catch (error) {
-      console.error('Error creating checkin:', error);
     }
   };
 
@@ -191,53 +127,6 @@ const MentalHealth: React.FC = () => {
       console.error('Error creating session request:', error);
     }
   };
-
-  const getMoodIcon = (score: number) => {
-    if (score >= 8) return <Smile className="text-green-500" size={24} />;
-    if (score >= 6) return <Meh className="text-yellow-500" size={24} />;
-    return <Frown className="text-red-500" size={24} />;
-  };
-
-  const getMoodColor = (score: number) => {
-    if (score >= 8) return 'text-green-600';
-    if (score >= 6) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const renderScaleInput = (
-    label: string,
-    value: number,
-    onChange: (value: number) => void,
-    icon: React.ReactNode,
-    lowLabel: string,
-    highLabel: string
-  ) => (
-    <div className="space-y-3">
-      <div className="flex items-center space-x-2">
-        {icon}
-        <label className="text-sm font-medium text-gray-700">{label}</label>
-      </div>
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-500 w-16">{lowLabel}</span>
-          <input
-            type="range"
-            min="1"
-            max="10"
-            value={value}
-            onChange={(e) => onChange(parseInt(e.target.value))}
-            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          />
-          <span className="text-xs text-gray-500 w-16 text-right">{highLabel}</span>
-        </div>
-        <div className="text-center">
-          <span className={`text-lg font-bold ${getMoodColor(value)}`}>
-            {value}/10
-          </span>
-        </div>
-      </div>
-    </div>
-  );
 
   if (!hasConsent) {
     return (
@@ -339,12 +228,6 @@ const MentalHealth: React.FC = () => {
           <p className="text-gray-600 mt-1">Cuide da sua saúde mental e bem-estar</p>
         </div>
         <div className="flex items-center space-x-3">
-          {!todayCheckin && (
-            <Button onClick={() => setShowCheckinModal(true)}>
-              <Activity size={16} className="mr-2" />
-              Check-in Diário
-            </Button>
-          )}
           <Button onClick={() => setShowRequestModal(true)} variant="secondary">
             <Calendar size={16} className="mr-2" />
             Solicitar Sessão
@@ -352,71 +235,7 @@ const MentalHealth: React.FC = () => {
         </div>
       </div>
 
-      {/* Today's Status */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center">
-          <Brain className="mr-2" size={20} />
-          Como você está hoje?
-        </h3>
-        
-        {todayCheckin ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="flex justify-center mb-2">
-                {getMoodIcon(todayCheckin.mood_rating)}
-              </div>
-              <div className={`text-2xl font-bold ${getMoodColor(todayCheckin.mood_rating)}`}>
-                {todayCheckin.mood_rating}/10
-              </div>
-              <div className="text-sm text-gray-600">Humor</div>
-            </div>
-            
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="flex justify-center mb-2">
-                <Battery className="text-green-500" size={24} />
-              </div>
-              <div className="text-2xl font-bold text-green-600">
-                {todayCheckin.energy_level}/10
-              </div>
-              <div className="text-sm text-gray-600">Energia</div>
-            </div>
-            
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <div className="flex justify-center mb-2">
-                <Zap className="text-orange-500" size={24} />
-              </div>
-              <div className="text-2xl font-bold text-orange-600">
-                {todayCheckin.stress_level}/10
-              </div>
-              <div className="text-sm text-gray-600">Estresse</div>
-            </div>
-            
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="flex justify-center mb-2">
-                <Moon className="text-purple-500" size={24} />
-              </div>
-              <div className="text-2xl font-bold text-purple-600">
-                {todayCheckin.sleep_quality}/10
-              </div>
-              <div className="text-sm text-gray-600">Sono</div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Activity size={48} className="mx-auto mb-4 text-gray-300" />
-            <h4 className="text-lg font-medium text-gray-900 mb-2">
-              Seu bem-estar é nossa prioridade
-            </h4>
-            <p className="text-gray-600 mb-4">
-              Faça seu primeiro check-in emocional para começar a acompanhar seu bem-estar
-            </p>
-            <Button onClick={() => setShowCheckinModal(true)}>
-              <Activity size={16} className="mr-2" />
-              Fazer Primeiro Check-in
-            </Button>
-          </div>
-        )}
-      </Card>
+      {user && <CheckInWidget employeeId={user.id} />}
 
       {/* Wellness Resources */}
       <Card className="p-6">
@@ -474,93 +293,6 @@ const MentalHealth: React.FC = () => {
           ))}
         </div>
       </Card>
-
-      {/* Daily Check-in Modal */}
-      <Modal
-        isOpen={showCheckinModal}
-        onClose={() => setShowCheckinModal(false)}
-        title="Check-in Emocional Diário"
-        size="lg"
-      >
-        <form onSubmit={handleCheckin} className="space-y-6">
-          <div className="text-center mb-6">
-            <Activity className="mx-auto mb-2 text-blue-500" size={32} />
-            <p className="text-gray-600">
-              Reserve um momento para avaliar como você está se sentindo hoje
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            {renderScaleInput(
-              'Como está seu humor hoje?',
-              checkinForm.mood_rating,
-              (value) => setCheckinForm({ ...checkinForm, mood_rating: value }),
-              getMoodIcon(checkinForm.mood_rating),
-              'Muito baixo',
-              'Excelente'
-            )}
-
-            {renderScaleInput(
-              'Qual seu nível de energia?',
-              checkinForm.energy_level,
-              (value) => setCheckinForm({ ...checkinForm, energy_level: value }),
-              <Battery className="text-green-500" size={20} />,
-              'Sem energia',
-              'Muito energizado'
-            )}
-
-            {renderScaleInput(
-              'Como está seu nível de estresse?',
-              checkinForm.stress_level,
-              (value) => setCheckinForm({ ...checkinForm, stress_level: value }),
-              <Zap className="text-orange-500" size={20} />,
-              'Muito relaxado',
-              'Muito estressado'
-            )}
-
-            {renderScaleInput(
-              'Como foi a qualidade do seu sono?',
-              checkinForm.sleep_quality,
-              (value) => setCheckinForm({ ...checkinForm, sleep_quality: value }),
-              <Moon className="text-purple-500" size={20} />,
-              'Muito ruim',
-              'Excelente'
-            )}
-          </div>
-
-          <Textarea
-            label="Observações (Opcional)"
-            value={checkinForm.notes}
-            onChange={(e) => setCheckinForm({ ...checkinForm, notes: e.target.value })}
-            placeholder="Compartilhe como foi seu dia, desafios ou conquistas..."
-            rows={3}
-          />
-
-          <div className="bg-green-50 rounded-lg p-4">
-            <h4 className="font-medium text-green-900 mb-2">💚 Lembre-se:</h4>
-            <ul className="text-sm text-green-800 space-y-1">
-              <li>• Não existem respostas certas ou erradas</li>
-              <li>• Seja honesto consigo mesmo</li>
-              <li>• Estes dados ajudam você a se conhecer melhor</li>
-              <li>• Apenas você e psicólogos autorizados têm acesso</li>
-            </ul>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowCheckinModal(false)}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit">
-              <CheckCircle size={16} className="mr-2" />
-              Salvar Check-in
-            </Button>
-          </div>
-        </form>
-      </Modal>
 
       {/* Session Request Modal */}
       <Modal

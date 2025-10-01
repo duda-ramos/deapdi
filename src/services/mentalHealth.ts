@@ -133,22 +133,30 @@ export interface WellnessResource {
 }
 
 export interface ResourceFavorite {
-  id: string;
   user_id: string;
   resource_id: string;
   created_at: string;
+  resource?: WellnessResource;
+}
+
+export interface CheckinCustomQuestion {
+  id: string;
+  prompt: string;
+  frequency?: 'daily' | 'weekly' | 'monthly';
+  audience?: string[];
+  active?: boolean;
+  last_asked_at?: string | null;
 }
 
 export interface CheckinSettings {
-  id: string;
   user_id: string;
   frequency: 'daily' | 'weekly' | 'custom';
-  reminder_time: string;
-  reminder_enabled: boolean;
-  custom_questions: any[];
-  team_questions: any[];
-  created_at: string;
-  updated_at: string;
+  reminder_time: string | null;
+  reminder_enabled?: boolean;
+  weekly_reminder_day?: number | null;
+  custom_questions: CheckinCustomQuestion[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface FormTemplate {
@@ -191,6 +199,26 @@ export interface MentalHealthStats {
   active_alerts: number;
   wellness_resources_accessed: number;
 }
+
+const normalizeCheckinSettings = (raw: any): CheckinSettings => ({
+  user_id: raw.user_id,
+  frequency: (raw.frequency ?? 'daily') as CheckinSettings['frequency'],
+  reminder_time: raw.reminder_time ?? null,
+  reminder_enabled: raw.reminder_enabled ?? true,
+  weekly_reminder_day: raw.weekly_reminder_day ?? null,
+  custom_questions: Array.isArray(raw.custom_questions)
+    ? raw.custom_questions.map((question: any, index: number) => ({
+        id: question?.id ?? `question-${index}`,
+        prompt: question?.prompt ?? question?.text ?? '',
+        frequency: question?.frequency,
+        audience: question?.audience,
+        active: question?.active ?? true,
+        last_asked_at: question?.last_asked_at ?? null
+      }))
+    : [],
+  created_at: raw.created_at ?? undefined,
+  updated_at: raw.updated_at ?? undefined
+});
 
 export const mentalHealthService = {
   // Sessions Management
@@ -650,7 +678,8 @@ export const mentalHealthService = {
         .select('*')
         .eq('user_id', userId)
         .single(), 'getCheckinSettings');
-      return result;
+
+      return normalizeCheckinSettings(result);
     } catch (error) {
       // Create default settings if none exist
       return await this.createDefaultCheckinSettings(userId);
@@ -660,32 +689,53 @@ export const mentalHealthService = {
   async createDefaultCheckinSettings(userId: string): Promise<CheckinSettings> {
     console.log('🧠 MentalHealth: Creating default checkin settings for user:', userId);
 
-    return supabaseRequest(() => supabase
+    const defaultQuestions: CheckinCustomQuestion[] = [
+      {
+        id: 'daily-reflection',
+        prompt: 'Qual foi o ponto alto do seu dia?',
+        frequency: 'daily',
+        active: true
+      }
+    ];
+
+    const result = await supabaseRequest(() => supabase
       .from('checkin_settings')
       .insert({
         user_id: userId,
         frequency: 'daily',
-        reminder_time: '09:00:00',
+        reminder_time: '09:00',
         reminder_enabled: true,
-        custom_questions: [],
-        team_questions: []
+        custom_questions: defaultQuestions,
+        weekly_reminder_day: 1
       })
       .select()
       .single(), 'createDefaultCheckinSettings');
+
+    return normalizeCheckinSettings(result);
   },
 
   async updateCheckinSettings(userId: string, settings: Partial<CheckinSettings>): Promise<CheckinSettings> {
     console.log('🧠 MentalHealth: Updating checkin settings for user:', userId);
 
-    return supabaseRequest(() => supabase
+    const current = await this.getCheckinSettings(userId);
+
+    const payload = {
+      user_id: userId,
+      frequency: settings.frequency ?? current.frequency,
+      reminder_time: settings.reminder_time ?? current.reminder_time,
+      reminder_enabled: settings.reminder_enabled ?? current.reminder_enabled,
+      weekly_reminder_day: settings.weekly_reminder_day ?? current.weekly_reminder_day,
+      custom_questions: settings.custom_questions ?? current.custom_questions,
+      updated_at: new Date().toISOString()
+    };
+
+    const result = await supabaseRequest(() => supabase
       .from('checkin_settings')
-      .upsert({
-        user_id: userId,
-        ...settings,
-        updated_at: new Date().toISOString()
-      })
+      .upsert(payload)
       .select()
       .single(), 'updateCheckinSettings');
+
+    return normalizeCheckinSettings(result);
   },
 
   // Form Templates (Dynamic Forms)
