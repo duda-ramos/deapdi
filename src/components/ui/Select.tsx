@@ -20,17 +20,22 @@ export const Select: React.FC<SelectProps> = ({
   className = '',
   ...props
 }) => {
+  const fieldId = props.id || props.name;
+  const errorId = fieldId ? `${fieldId}-error` : undefined;
+
   return (
     <div className="space-y-1">
       {label && (
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-ink">
           {label}
         </label>
       )}
       <select
-        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-          error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+        className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem] ${
+          error ? 'border-rose-500 focus-visible:border-rose-500 focus-visible:ring-rose-400/60' : ''
         } ${className}`}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={error ? errorId : undefined}
         {...props}
       >
         {placeholder && (
@@ -43,7 +48,9 @@ export const Select: React.FC<SelectProps> = ({
         ))}
       </select>
       {error && (
-        <p className="text-sm text-red-600">{error}</p>
+        <p id={errorId} className="text-xs text-rose-600">
+          {error}
+        </p>
       )}
     </div>
   );

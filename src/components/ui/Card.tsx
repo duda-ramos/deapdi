@@ -16,8 +16,8 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <motion.div
-      whileHover={hover ? { scale: 1.02, y: -2 } : undefined}
-      className={`bg-white rounded-xl shadow-sm border border-gray-100 ${hover ? 'cursor-pointer' : ''} ${className}`}
+      whileHover={hover ? { y: -3 } : undefined}
+      className={`rounded-xl border border-slate-100 bg-white shadow-sm transition-transform duration-150 ${hover ? 'cursor-pointer' : ''} ${className}`}
       onClick={onClick}
     >
       {children}
