@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
   Users, 
@@ -10,7 +11,11 @@ import {
   Star,
   Award,
   Heart,
-  BarChart3
+  BarChart3,
+  FileText,
+  ClipboardList,
+  CheckSquare,
+  Brain
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/Card';
@@ -22,6 +27,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [isFirstTime, setIsFirstTime] = useState(false);
 
@@ -278,6 +284,68 @@ const Dashboard: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Mental Health Quick Access */}
+      {user?.mental_health_consent && (
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-6 flex items-center">
+            <Brain className="mr-2 text-pink-500" size={20} />
+            Bem-estar Psicológico
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                title: 'Registro Psicológico',
+                description: 'Acompanhe seu progresso',
+                icon: <FileText className="text-blue-500" size={24} />,
+                path: '/mental-health/record',
+                color: 'blue'
+              },
+              {
+                title: 'Análises',
+                description: 'Visualize insights',
+                icon: <BarChart3 className="text-green-500" size={24} />,
+                path: '/mental-health/analytics',
+                color: 'green'
+              },
+              {
+                title: 'Formulários',
+                description: 'Avaliações personalizadas',
+                icon: <ClipboardList className="text-purple-500" size={24} />,
+                path: '/mental-health/forms',
+                color: 'purple'
+              },
+              {
+                title: 'Tarefas',
+                description: 'Atividades terapêuticas',
+                icon: <CheckSquare className="text-orange-500" size={24} />,
+                path: '/mental-health/tasks',
+                color: 'orange'
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                onClick={() => navigate(feature.path)}
+                className={`p-4 rounded-lg border-2 border-transparent hover:border-${feature.color}-200 cursor-pointer transition-all duration-200 hover:shadow-md bg-gradient-to-br from-${feature.color}-50 to-white`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`p-2 rounded-lg bg-${feature.color}-100`}>
+                    {feature.icon}
+                  </div>
+                  <Badge variant="default" size="sm">
+                    Acessar
+                  </Badge>
+                </div>
+                <h4 className="font-semibold text-gray-900 mb-2">{feature.title}</h4>
+                <p className="text-sm text-gray-600">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
         {/* Empty Upcoming Tasks */}
