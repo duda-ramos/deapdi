@@ -203,8 +203,20 @@ const PsychologicalRecord: React.FC = () => {
 
   const handleExportPDF = async () => {
     if (recordData) {
-      exportRecordToPDF(recordData, user?.name || 'Funcionário');
-      setShowExportModal(false);
+      try {
+        await exportMentalHealthRecord({
+          employeeName: user?.name || 'Funcionário',
+          checkins: recordData.checkins,
+          sessions: recordData.sessions,
+          alerts: recordData.alerts,
+          responses: recordData.responses,
+          activities: recordData.activities,
+          timeline: recordData.timeline
+        });
+        setShowExportModal(false);
+      } catch (error) {
+        console.error('Error exporting PDF:', error);
+      }
     }
   };
 
@@ -248,16 +260,18 @@ const PsychologicalRecord: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <FileText className="mr-3 text-blue-500" size={28} />
-            Prontuário Psicológico
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+            <FileText className="mr-2 sm:mr-3 text-blue-500" size={24} />
+            <span className="hidden sm:inline">Prontuário Psicológico</span>
+            <span className="sm:hidden">Prontuário</span>
           </h1>
-          <p className="text-gray-600 mt-1">Seu registro digital de bem-estar e acompanhamento</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Seu registro digital de bem-estar e acompanhamento</p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           <Button variant="secondary" onClick={() => setShowExportModal(true)} className="w-full sm:w-auto">
             <Download size={16} className="mr-2" />
-            Exportar PDF
+            <span className="hidden sm:inline">Exportar PDF</span>
+            <span className="sm:hidden">PDF</span>
           </Button>
         </div>
       </div>
@@ -359,7 +373,7 @@ const PsychologicalRecord: React.FC = () => {
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Select
             label="Período"
             value={selectedPeriod}
@@ -407,8 +421,8 @@ const PsychologicalRecord: React.FC = () => {
                   <div className="flex items-start space-x-3">
                     {getEventIcon(event.type)}
                     <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h4 className="font-medium text-gray-900">{event.title}</h4>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-1">
+                        <h4 className="font-medium text-gray-900 text-sm sm:text-base">{event.title}</h4>
                         {event.severity && getSeverityBadge(event.severity)}
                       </div>
                       <p className="text-sm text-gray-600 mb-2">
@@ -417,17 +431,17 @@ const PsychologicalRecord: React.FC = () => {
                       
                       {/* Event-specific content */}
                       {event.type === 'checkin' && (
-                        <div className="flex items-center space-x-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs sm:text-sm">
                           <span className="flex items-center space-x-1">
-                            <Heart size={14} className="text-green-500" />
+                            <Heart size={12} className="text-green-500" />
                             <span>Humor: {event.data.mood_rating}/10</span>
                           </span>
                           <span className="flex items-center space-x-1">
-                            <Activity size={14} className="text-blue-500" />
+                            <Activity size={12} className="text-blue-500" />
                             <span>Energia: {event.data.energy_level}/10</span>
                           </span>
                           <span className="flex items-center space-x-1">
-                            <AlertTriangle size={14} className="text-orange-500" />
+                            <AlertTriangle size={12} className="text-orange-500" />
                             <span>Estresse: {event.data.stress_level}/10</span>
                           </span>
                         </div>

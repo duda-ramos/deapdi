@@ -32,6 +32,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
+import { exportCheckinHistory } from '../../utils/pdfExport';
 
 interface CheckInWidgetProps {
   employeeId: string;
@@ -360,6 +361,18 @@ export const CheckInWidget: React.FC<CheckInWidgetProps> = ({
     }
   };
 
+  const handleExportHistory = async () => {
+    try {
+      await exportCheckinHistory({
+        employeeName: 'Funcionário', // You might want to get this from props or context
+        checkins: history,
+        period: selectedPeriod
+      });
+    } catch (error) {
+      console.error('Error exporting check-in history:', error);
+    }
+  };
+
   const renderSlider = (field: SliderField) => (
     <div key={field.key} className="space-y-2">
       <div className="flex items-center justify-between">
@@ -612,13 +625,23 @@ export const CheckInWidget: React.FC<CheckInWidgetProps> = ({
               <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-medium text-gray-900">Evolução dos Últimos {selectedPeriod === '7d' ? '7' : selectedPeriod === '30d' ? '30' : '90'} Dias</h4>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowTrends(!showTrends)}
-                  >
-                    {showTrends ? 'Ocultar' : 'Mostrar'} Detalhes
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowTrends(!showTrends)}
+                    >
+                      {showTrends ? 'Ocultar' : 'Mostrar'} Detalhes
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleExportHistory}
+                    >
+                      <Download size={14} className="mr-1" />
+                      Exportar PDF
+                    </Button>
+                  </div>
                 </div>
                 <div className="h-64">
                   <RechartsResponsiveContainer width="100%" height="100%">

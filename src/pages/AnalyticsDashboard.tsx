@@ -28,8 +28,8 @@ import { ErrorMessage } from '../utils/errorMessages';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Select } from '../components/ui/Select';
+import { exportAnalyticsReport } from '../utils/pdfExport';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import { exportAnalyticsToPDF } from '../utils/pdfExport';
 
 interface AnalyticsData {
   total_employees_participating: number;
@@ -141,12 +141,10 @@ const AnalyticsDashboard: React.FC = () => {
 
   const handleExportPDF = async () => {
     if (analyticsData) {
-      exportAnalyticsToPDF(analyticsData, {
-        start: periodFilter === '7d' ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR') :
-              periodFilter === '30d' ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR') :
-              periodFilter === '90d' ? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR') :
-              new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
-        end: new Date().toLocaleDateString('pt-BR')
+      await exportAnalyticsReport({
+        period: `${periodFilter} - ${departmentFilter}`,
+        metrics: analyticsData,
+        charts: []
       });
       setShowExportModal(false);
     }
