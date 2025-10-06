@@ -1,5 +1,32 @@
 import React, { useCallback, useMemo } from 'react';
 
+// Performance monitoring utility
+export const performance = {
+  now: () => {
+    return window.performance ? window.performance.now() : Date.now();
+  },
+  mark: (name: string) => {
+    if (window.performance && window.performance.mark) {
+      window.performance.mark(name);
+    }
+  },
+  measure: (name: string, startMark: string, endMark: string) => {
+    if (window.performance && window.performance.measure) {
+      window.performance.measure(name, startMark, endMark);
+    }
+  },
+  clearMarks: () => {
+    if (window.performance && window.performance.clearMarks) {
+      window.performance.clearMarks();
+    }
+  },
+  clearMeasures: () => {
+    if (window.performance && window.performance.clearMeasures) {
+      window.performance.clearMeasures();
+    }
+  }
+};
+
 // Debounce hook for search inputs
 export const useDebounce = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = React.useState(value);
@@ -149,7 +176,7 @@ export const useMemoizedCallback = <T extends (...args: any[]) => any>(
 // Batch state updates hook
 export const useBatchedState = <T>(initialState: T) => {
   const [state, setState] = React.useState(initialState);
-  const batchRef = React.useRef<T[]>([]);
+  const batchRef = React.useRef<(Partial<T> | ((prev: T) => T))[]>([]);
   const timeoutRef = React.useRef<NodeJS.Timeout>();
 
   const batchedSetState = useCallback((updates: Partial<T> | ((prev: T) => T)) => {
@@ -160,8 +187,12 @@ export const useBatchedState = <T>(initialState: T) => {
     }
     
     timeoutRef.current = setTimeout(() => {
-      const finalState = batchRef.current.reduce((acc, update) => {
-        return typeof update === 'function' ? update(acc) : { ...acc, ...update };
+      const finalState = batchRef.current.reduce<T>((acc, update) => {
+        if (typeof update === 'function') {
+          return (update as (prev: T) => T)(acc);
+        } else {
+          return { ...acc, ...update };
+        }
       }, state);
       
       setState(finalState);
