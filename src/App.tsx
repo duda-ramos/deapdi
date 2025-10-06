@@ -390,4 +390,39 @@ function App() {
   );
 }
 
-export default App;
+export default App;  LazyPsychologicalRecord,
+  LazyAnalyticsDashboard,
+  LazyFormBuilder,
+  LazyTaskManager
+      <Route
+        path="/mental-health/record"
+        element={
+          <ProtectedRoute>
+            <LazyPsychologicalRecord />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mental-health/analytics"
+        element={
+          <ProtectedRoute>
+            <LazyAnalyticsDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mental-health/forms"
+        element={
+          <ProtectedRoute>
+            <LazyFormBuilder />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mental-health/tasks"
+        element={
+          <ProtectedRoute>
+            <LazyTaskManager />
+          </ProtectedRoute>
+        }
+      />

@@ -1,200 +1,319 @@
-/**
- * Performance monitoring utilities
- */
+import React, { useCallback, useMemo } from 'react';
 
-// Performance thresholds
-const PERFORMANCE_THRESHOLDS = {
-  SLOW_RENDER: 100, // ms
-  SLOW_API: 3000, // ms
-  MEMORY_WARNING: 50 * 1024 * 1024, // 50MB
-  BUNDLE_WARNING: 1000 * 1024 // 1MB
-};
-export const performance = {
-  // Measure component render time
-  measureRender(componentName: string, renderFn: () => void) {
-    if (import.meta.env.DEV) {
-      const start = Date.now();
-      renderFn();
-      const end = Date.now();
-      const duration = end - start;
-      
-      if (duration > PERFORMANCE_THRESHOLDS.SLOW_RENDER) {
-        console.warn(`🐌 Performance: Slow render detected - ${componentName} took ${duration}ms`);
-      } else {
-        console.log(`🚀 Performance: ${componentName} rendered in ${duration}ms`);
-      }
-    } else {
-      renderFn();
-    }
-  },
+// Debounce hook for search inputs
+export const useDebounce = (value: any, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = React.useState(value);
 
-  // Measure API call time
-  async measureApiCall<T>(
-    operation: string,
-    apiCall: () => Promise<T>
-  ): Promise<T> {
-    const start = Date.now();
-    
-    try {
-      const result = await apiCall();
-      const end = Date.now();
-      const duration = end - start;
-      
-      if (import.meta.env.DEV) {
-        if (duration > PERFORMANCE_THRESHOLDS.SLOW_API) {
-          console.warn(`🐌 Performance: Slow API call - ${operation} took ${duration}ms`);
-        } else {
-          console.log(`🚀 Performance: ${operation} completed in ${duration}ms`);
-        }
-      }
-      
-      // Track slow operations in production
-      if (import.meta.env.PROD && duration > PERFORMANCE_THRESHOLDS.SLOW_API) {
-        // Send to monitoring service
-        if (window.gtag) {
-          window.gtag('event', 'slow_api_call', {
-            event_category: 'performance',
-            event_label: operation,
-            value: duration
-          });
-        }
-      }
-      
-      return result;
-    } catch (error) {
-      const end = Date.now();
-      const duration = end - start;
-      console.error(`❌ Performance: ${operation} failed after ${duration}ms`, error);
-      
-      // Track failed operations in production
-      if (import.meta.env.PROD && window.gtag) {
-        window.gtag('event', 'api_call_failed', {
-          event_category: 'error',
-          event_label: operation,
-          value: duration
-        });
-      }
-      
-      throw error;
-    }
-  },
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
 
-  // Debounce function for search inputs
-  debounce<T extends (...args: any[]) => any>(
-    func: T,
-    wait: number
-  ): (...args: Parameters<T>) => void {
-    let timeout: NodeJS.Timeout;
-    
-    return (...args: Parameters<T>) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
+    return () => {
+      clearTimeout(handler);
     };
-  },
+  }, [value, delay]);
 
-  // Lazy load images
-  lazyLoadImage(src: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(src);
-      img.onerror = reject;
-      img.src = src;
-    });
-  },
-
-  // Monitor Core Web Vitals
-  monitorWebVitals() {
-    if (!import.meta.env.PROD) {
-      return;
-    }
-
-    console.info('🚀 Performance: Initializing Web Vitals monitoring');
-
-    import('web-vitals')
-      .then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-        getCLS(this.sendToAnalytics);
-        getFID(this.sendToAnalytics);
-        getFCP(this.sendToAnalytics);
-        getLCP(this.sendToAnalytics);
-        getTTFB(this.sendToAnalytics);
-
-        console.info('✅ Performance: Web Vitals monitoring started');
-      })
-      .catch((error: unknown) => {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-
-        console.error('⚠️ Performance: Failed to load web-vitals module', error);
-
-        if (window.gtag) {
-          window.gtag('event', 'web_vitals_import_failed', {
-            event_category: 'performance',
-            event_label: errorMessage
-          });
-        }
-      });
-  },
-
-  sendToAnalytics(metric: any) {
-    if (window.gtag) {
-      window.gtag('event', metric.name, {
-        event_category: 'Web Vitals',
-        value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
-        event_label: metric.id,
-        non_interaction: true,
-      });
-    }
-  }
+  return debouncedValue;
 };
 
-/**
- * Memory usage monitoring
- */
-let memoryMonitorInterval: NodeJS.Timeout | null = null;
-let isMemoryMonitorRunning = false;
+// Memoized search function
+export const useMemoizedSearch = <T>(
+  items: T[],
+  searchTerm: string,
+  searchFields: (keyof T)[]
+) => {
+  return useMemo(() => {
+    if (!searchTerm.trim()) return items;
 
-export const memoryMonitor = {
-  logMemoryUsage(context: string) {
-    if (import.meta.env.DEV && 'memory' in performance) {
-      const memory = (performance as any).memory;
-      const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
-      const totalMB = Math.round(memory.totalJSHeapSize / 1024 / 1024);
-      const limitMB = Math.round(memory.jsHeapSizeLimit / 1024 / 1024);
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    return items.filter(item =>
+      searchFields.some(field => {
+        const value = item[field];
+        return typeof value === 'string' && value.toLowerCase().includes(lowerSearchTerm);
+      })
+    );
+  }, [items, searchTerm, searchFields]);
+};
 
-      console.log(`💾 Memory (${context}):`, {
-        used: `${usedMB}MB`,
-        total: `${totalMB}MB`,
-        limit: `${limitMB}MB`
+// Memoized filter function
+export const useMemoizedFilter = <T>(
+  items: T[],
+  filters: Record<string, any>
+) => {
+  return useMemo(() => {
+    return items.filter(item => {
+      return Object.entries(filters).every(([key, value]) => {
+        if (value === 'all' || value === null || value === undefined) return true;
+        return item[key as keyof T] === value;
       });
+    });
+  }, [items, filters]);
+};
 
-      // Warn about high memory usage
-      if (memory.usedJSHeapSize > PERFORMANCE_THRESHOLDS.MEMORY_WARNING) {
-        console.warn(`🚨 Memory: High memory usage detected - ${usedMB}MB used`);
+// Memoized sort function
+export const useMemoizedSort = <T>(
+  items: T[],
+  sortKey: keyof T,
+  sortDirection: 'asc' | 'desc' = 'asc'
+) => {
+  return useMemo(() => {
+    return [...items].sort((a, b) => {
+      const aValue = a[sortKey];
+      const bValue = b[sortKey];
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [items, sortKey, sortDirection]);
+};
+
+// Virtual scrolling hook for large lists
+export const useVirtualScrolling = (
+  items: any[],
+  itemHeight: number,
+  containerHeight: number
+) => {
+  const [scrollTop, setScrollTop] = React.useState(0);
+
+  const visibleItems = useMemo(() => {
+    const startIndex = Math.floor(scrollTop / itemHeight);
+    const endIndex = Math.min(
+      startIndex + Math.ceil(containerHeight / itemHeight) + 1,
+      items.length
+    );
+
+    return items.slice(startIndex, endIndex).map((item, index) => ({
+      ...item,
+      index: startIndex + index
+    }));
+  }, [items, scrollTop, itemHeight, containerHeight]);
+
+  const totalHeight = items.length * itemHeight;
+  const offsetY = scrollTop;
+
+  return {
+    visibleItems,
+    totalHeight,
+    offsetY,
+    setScrollTop
+  };
+};
+
+// Image lazy loading hook
+export const useLazyImage = (src: string, placeholder?: string) => {
+  const [imageSrc, setImageSrc] = React.useState(placeholder || '');
+  const [isLoaded, setIsLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      setImageSrc(src);
+      setIsLoaded(true);
+    };
+    img.src = src;
+  }, [src]);
+
+  return { imageSrc, isLoaded };
+};
+
+// Performance monitoring hook
+export const usePerformanceMonitor = (componentName: string) => {
+  const renderCount = React.useRef(0);
+  const startTime = React.useRef(performance.now());
+
+  React.useEffect(() => {
+    renderCount.current += 1;
+    const endTime = performance.now();
+    const renderTime = endTime - startTime.current;
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`${componentName} render #${renderCount.current}: ${renderTime.toFixed(2)}ms`);
+    }
+    
+    startTime.current = performance.now();
+  });
+
+  return { renderCount: renderCount.current };
+};
+
+// Memoized callback hook
+export const useMemoizedCallback = <T extends (...args: any[]) => any>(
+  callback: T,
+  deps: React.DependencyList
+): T => {
+  return useCallback(callback, deps);
+};
+
+// Batch state updates hook
+export const useBatchedState = <T>(initialState: T) => {
+  const [state, setState] = React.useState(initialState);
+  const batchRef = React.useRef<T[]>([]);
+  const timeoutRef = React.useRef<NodeJS.Timeout>();
+
+  const batchedSetState = useCallback((updates: Partial<T> | ((prev: T) => T)) => {
+    batchRef.current.push(updates);
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      const finalState = batchRef.current.reduce((acc, update) => {
+        return typeof update === 'function' ? update(acc) : { ...acc, ...update };
+      }, state);
+      
+      setState(finalState);
+      batchRef.current = [];
+    }, 0);
+  }, [state]);
+
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
-    }
-  },
+    };
+  }, []);
 
-  startMemoryMonitoring() {
-    // Prevent multiple monitoring instances
-    if (isMemoryMonitorRunning) {
-      console.warn('💾 Memory monitor already running');
-      return;
+  return [state, batchedSetState] as const;
+};
+
+// Memory usage monitoring
+export const useMemoryMonitor = () => {
+  const [memoryInfo, setMemoryInfo] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    const updateMemoryInfo = () => {
+      if ('memory' in performance) {
+        setMemoryInfo((performance as any).memory);
+      }
+    };
+
+    updateMemoryInfo();
+    const interval = setInterval(updateMemoryInfo, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return memoryInfo;
+};
+
+// Component visibility hook for intersection observer
+export const useIntersectionObserver = (
+  ref: React.RefObject<HTMLElement>,
+  options?: IntersectionObserverInit
+) => {
+  const [isIntersecting, setIsIntersecting] = React.useState(false);
+
+  React.useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsIntersecting(entry.isIntersecting);
+      },
+      options
+    );
+
+    observer.observe(element);
+
+    return () => {
+      observer.unobserve(element);
+    };
+  }, [ref, options]);
+
+  return isIntersecting;
+};
+
+// Data pagination hook
+export const usePagination = <T>(
+  items: T[],
+  itemsPerPage: number = 10
+) => {
+  const [currentPage, setCurrentPage] = React.useState(1);
+
+  const totalPages = Math.ceil(items.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedItems = items.slice(startIndex, endIndex);
+
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  }, [totalPages]);
+
+  const nextPage = useCallback(() => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  }, [totalPages]);
+
+  const prevPage = useCallback(() => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  }, []);
+
+  return {
+    currentPage,
+    totalPages,
+    paginatedItems,
+    goToPage,
+    nextPage,
+    prevPage,
+    hasNextPage: currentPage < totalPages,
+    hasPrevPage: currentPage > 1
+  };
+};
+
+// Cache management hook
+export const useCache = <T>(key: string, fetcher: () => Promise<T>, ttl: number = 300000) => {
+  const [data, setData] = React.useState<T | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<Error | null>(null);
+  const cacheRef = React.useRef<Map<string, { data: T; timestamp: number }>>(new Map());
+
+  const getCachedData = useCallback(() => {
+    const cached = cacheRef.current.get(key);
+    if (cached && Date.now() - cached.timestamp < ttl) {
+      return cached.data;
+    }
+    return null;
+  }, [key, ttl]);
+
+  const fetchData = useCallback(async () => {
+    const cached = getCachedData();
+    if (cached) {
+      setData(cached);
+      return cached;
     }
 
-    if (import.meta.env.DEV) {
-      isMemoryMonitorRunning = true;
-      memoryMonitorInterval = setInterval(() => {
-        this.logMemoryUsage('periodic-check');
-      }, 30000); // Check every 30 seconds
-      console.log('💾 Memory monitoring started');
-    }
-  },
+    setLoading(true);
+    setError(null);
 
-  stopMemoryMonitoring() {
-    if (memoryMonitorInterval) {
-      clearInterval(memoryMonitorInterval);
-      memoryMonitorInterval = null;
-      isMemoryMonitorRunning = false;
-      console.log('💾 Memory monitoring stopped');
+    try {
+      const result = await fetcher();
+      cacheRef.current.set(key, { data: result, timestamp: Date.now() });
+      setData(result);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Unknown error');
+      setError(error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
-  }
+  }, [key, fetcher, getCachedData]);
+
+  const clearCache = useCallback(() => {
+    cacheRef.current.delete(key);
+    setData(null);
+  }, [key]);
+
+  return {
+    data,
+    loading,
+    error,
+    fetchData,
+    clearCache,
+    getCachedData
+  };
 };
