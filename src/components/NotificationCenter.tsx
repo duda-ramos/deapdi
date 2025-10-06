@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bell, 
@@ -20,6 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { notificationService, NotificationPreferences, NotificationStats } from '../services/notifications';
 import type { Notification } from '../types';
 import { supabase } from '../lib/supabase';
+import { memoryMonitor } from '../utils/memoryMonitor';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Modal } from './ui/Modal';
@@ -37,11 +38,80 @@ export const NotificationCenter: React.FC = () => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const maxReconnectAttempts = 5;
+  const subscriptionRef = useRef<any>(null);
+
+  // Memoize functions to prevent unnecessary re-renders
+  const loadNotifications = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      
+      // Check if Supabase is properly configured
+      if (!supabase) {
+        console.warn('🔔 NotificationCenter: Supabase not configured, using empty state');
+        setNotifications([]);
+        setUnreadCount(0);
+        setLoading(false);
+        return;
+      }
+      
+      const [allNotifications, unreadNotifications] = await Promise.all([
+        notificationService.getNotifications(user.id),
+        notificationService.getNotifications(user.id, true)
+      ]);
+      
+      setNotifications(allNotifications || []);
+      setUnreadCount(unreadNotifications?.length || 0);
+      memoryMonitor.logMemoryUsage('NotificationCenter', 'Notifications loaded');
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const loadPreferences = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const prefs = await notificationService.getPreferences(user.id);
+      setPreferences(prefs);
+      memoryMonitor.logMemoryUsage('NotificationCenter', 'Preferences loaded');
+    } catch (error) {
+      console.warn('Error loading preferences, using defaults:', error);
+      setPreferences(notificationService.getDefaultPreferences(user.id));
+    }
+  }, [user]);
+
+  const loadStats = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      // Check if Supabase is properly configured
+      if (!supabase) {
+        console.warn('🔔 NotificationCenter: Supabase not configured, using default stats');
+        setStats(notificationService.getDefaultStats());
+        return;
+      }
+      
+      const statsData = await notificationService.getStats(user.id);
+      setStats(statsData);
+      memoryMonitor.logMemoryUsage('NotificationCenter', 'Stats loaded');
+    } catch (error) {
+      // Handle all connection errors gracefully
+      console.warn('🔔 NotificationCenter: Connection error loading stats, using defaults');
+      setStats(notificationService.getDefaultStats());
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
       return () => {};
     }
+
+    // Log memory usage on component mount
+    memoryMonitor.logMemoryUsage('NotificationCenter', 'Component mounted');
 
     loadNotifications();
     loadPreferences();
@@ -51,8 +121,19 @@ export const NotificationCenter: React.FC = () => {
     // Request browser notification permission
     notificationService.requestBrowserPermission();
 
-    return unsubscribe;
-  }, [user, reconnectAttempts]);
+    return () => {
+      // Clean up subscription
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+        memoryMonitor.logMemoryUsage('NotificationCenter', 'Subscription cleaned up');
+      }
+      
+      // Call the unsubscribe function
+      unsubscribe();
+      memoryMonitor.logMemoryUsage('NotificationCenter', 'Component unmounted - cleanup complete');
+    };
+  }, [user, loadNotifications, loadPreferences, loadStats, reconnectAttempts]);
 
   /**
    * Configures the real-time notification subscription.
@@ -74,7 +155,7 @@ export const NotificationCenter: React.FC = () => {
     setSubscriptionStatus('connecting');
 
     try {
-      const subscription = notificationService.subscribeToNotifications(
+      subscriptionRef.current = notificationService.subscribeToNotifications(
         user.id,
         (newNotification) => {
           console.log('🔔 NotificationCenter: New notification received:', newNotification);
@@ -82,6 +163,7 @@ export const NotificationCenter: React.FC = () => {
           setUnreadCount(prev => prev + 1);
           setSubscriptionStatus('connected');
           setReconnectAttempts(0);
+          memoryMonitor.logMemoryUsage('NotificationCenter', 'New notification received');
           
           // Show browser notification
           notificationService.showBrowserNotification(
@@ -112,8 +194,9 @@ export const NotificationCenter: React.FC = () => {
 
       return () => {
         console.log('🔔 NotificationCenter: Cleaning up subscription');
-        if (subscription) {
-          subscription.unsubscribe();
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe();
+          subscriptionRef.current = null;
         }
       };
     } catch (error) {
@@ -124,71 +207,7 @@ export const NotificationCenter: React.FC = () => {
     }
   };
 
-  const loadNotifications = async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      
-      // Check if Supabase is properly configured
-      if (!supabase) {
-        console.warn('🔔 NotificationCenter: Supabase not configured, using empty state');
-        setNotifications([]);
-        setUnreadCount(0);
-        setLoading(false);
-        return;
-      }
-      
-      const [allNotifications, unreadNotifications] = await Promise.all([
-        notificationService.getNotifications(user.id),
-        notificationService.getNotifications(user.id, true)
-      ]);
-      
-      setNotifications(allNotifications || []);
-      setUnreadCount(unreadNotifications?.length || 0);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-      
-      // Handle all connection errors gracefully
-      console.warn('🔔 NotificationCenter: Connection error, using empty state');
-      setNotifications([]);
-      setUnreadCount(0);
-      setLoading(false);
-    }
-  };
 
-  const loadPreferences = async () => {
-    if (!user) return;
-    
-    try {
-      const prefs = await notificationService.getPreferences(user.id);
-      setPreferences(prefs);
-    } catch (error) {
-      console.warn('Error loading preferences, using defaults:', error);
-      setPreferences(notificationService.getDefaultPreferences(user.id));
-    }
-  };
-
-  const loadStats = async () => {
-    if (!user) return;
-    
-    try {
-      // Check if Supabase is properly configured
-      if (!supabase) {
-        console.warn('🔔 NotificationCenter: Supabase not configured, using default stats');
-        setStats(notificationService.getDefaultStats());
-        return;
-      }
-      
-      const statsData = await notificationService.getStats(user.id);
-      setStats(statsData);
-    } catch (error) {
-      // Handle all connection errors gracefully
-      console.warn('🔔 NotificationCenter: Connection error loading stats, using defaults');
-      setStats(notificationService.getDefaultStats());
-    }
-  };
 
   const handleMarkAsRead = async (id: string) => {
     try {

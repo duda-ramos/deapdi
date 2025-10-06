@@ -6,7 +6,16 @@ export default {
     '^@/(.*)$': '<rootDir>/src/$1'
   },
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react-jsx',
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        module: 'esnext',
+        target: 'es2020',
+        moduleResolution: 'bundler'
+      }
+    }],
     '^.+\\.(js|jsx)$': 'babel-jest'
   },
   testMatch: [
