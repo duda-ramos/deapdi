@@ -28,6 +28,10 @@ import {
   LazyUserManagement,
   LazyCareerTrackManagement,
   LazyCertificates,
+  LazyPsychologicalRecord,
+  LazyAnalyticsDashboard,
+  LazyFormBuilder,
+  LazyTaskManager,
   LazyMentalHealth,
   LazyMentalHealthAdmin,
   LazyTeamManagement,
@@ -182,8 +186,32 @@ const AppRoutes: React.FC = () => {
   return (
     <ErrorBoundary>
       <Routes>
-      <Route 
-        path="/login" 
+        <Route 
+          path="/mental-health/record"
+          element={
+            <ProtectedRoute>
+              <LazyPsychologicalRecord />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mental-health/analytics"
+          element={
+            <ProtectedRoute>
+              <LazyAnalyticsDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mental-health/forms"
+          element={
+            <ProtectedRoute>
+              <LazyFormBuilder />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/login" 
         element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
       />
       <Route 
@@ -368,40 +396,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </ErrorBoundary>
-  );
-};
-
-function App() {
-  return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <Router>
-          <AchievementProvider>
-            <AchievementWrapper>
-              <AppRoutes />
-            </AchievementWrapper>
-          </AchievementProvider>
-        </Router>
-      </AuthProvider>
-    </ErrorBoundary>
-  );
-}
-
-export default App;  LazyPsychologicalRecord,
-  LazyAnalyticsDashboard,
-  LazyFormBuilder,
-  LazyTaskManager
-      <Route
-        path="/mental-health/record"
-        element={
-          <ProtectedRoute>
-            <LazyPsychologicalRecord />
-          </ProtectedRoute>
-        }
-      />
       <Route
         path="/mental-health/analytics"
         element={
@@ -426,3 +420,26 @@ export default App;  LazyPsychologicalRecord,
           </ProtectedRoute>
         }
       />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </ErrorBoundary>
+  );
+};
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <AchievementProvider>
+            <AchievementWrapper>
+              <AppRoutes />
+            </AchievementWrapper>
+          </AchievementProvider>
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;
