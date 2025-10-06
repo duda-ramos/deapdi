@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import App from './App.tsx';
 import './index.css';
-import { performance, memoryMonitor } from './utils/performance';
+import { performance } from './utils/performance';
+import { memoryMonitor } from './utils/memoryMonitor';
 
 // Initialize Sentry for error monitoring
 if (import.meta.env.VITE_SENTRY_DSN && import.meta.env.PROD) {
@@ -119,5 +120,9 @@ createRoot(document.getElementById('root')!).render(
 // Initialize performance monitoring
 if (import.meta.env.PROD) {
   performance.monitorWebVitals();
+}
+
+// Initialize memory monitoring in development
+if (import.meta.env.DEV) {
   memoryMonitor.startMemoryMonitoring();
 }

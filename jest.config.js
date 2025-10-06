@@ -12,7 +12,8 @@ export default {
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,
         module: 'esnext',
-        target: 'es2020'
+        target: 'es2020',
+        moduleResolution: 'bundler'
       }
     }],
     '^.+\\.(js|jsx)$': 'babel-jest'

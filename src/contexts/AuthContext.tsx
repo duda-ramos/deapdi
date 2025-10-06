@@ -3,6 +3,7 @@ import { User as SupabaseUser, type SupabaseClient } from '@supabase/supabase-js
 import { ProfileWithRelations } from '../types';
 import { getSupabaseClient } from '../lib/supabase';
 import { Database } from '../types/database';
+import { memoryMonitor } from '../utils/memoryMonitor';
 
 type AuthSubscription = ReturnType<SupabaseClient<Database>['auth']['onAuthStateChange']>['data']['subscription'];
 import { authService } from '../services/auth';
@@ -36,9 +37,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const profileCacheRef = React.useRef<Map<string, { profile: ProfileWithRelations; timestamp: number }>>(new Map());
   const authSubscriptionRef = React.useRef<AuthSubscription | null>(null);
   const PROFILE_CACHE_TTL = 30000; // 30 seconds
+  const PROFILE_CACHE_MAX_SIZE = 50; // Maximum number of profiles to cache
   const AUTH_TIMEOUT = 5000; // 5 seconds - reduced from 8 seconds for faster feedback
   const retryAttemptsRef = React.useRef(0);
   const MAX_RETRY_ATTEMPTS = 3;
+
+  /**
+   * Clean up expired cache entries
+   */
+  const cleanupExpiredCache = () => {
+    const now = Date.now();
+    const cache = profileCacheRef.current;
+    
+    for (const [key, value] of cache.entries()) {
+      if (now - value.timestamp > PROFILE_CACHE_TTL) {
+        cache.delete(key);
+        memoryMonitor.logMemoryUsage('AuthContext', `Cleaned expired cache entry: ${key}`);
+      }
+    }
+  };
+
+  /**
+   * Enforce cache size limit
+   */
+  const enforceCacheSizeLimit = () => {
+    const cache = profileCacheRef.current;
+    
+    if (cache.size > PROFILE_CACHE_MAX_SIZE) {
+      // Remove oldest entries (by timestamp)
+      const entries = Array.from(cache.entries());
+      entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+      
+      const toRemove = entries.slice(0, cache.size - PROFILE_CACHE_MAX_SIZE);
+      toRemove.forEach(([key]) => {
+        cache.delete(key);
+      });
+      
+      memoryMonitor.logMemoryUsage('AuthContext', `Enforced cache size limit, removed ${toRemove.length} entries`);
+    }
+  };
+
+  /**
+   * Clear all cache entries
+   */
+  const clearProfileCache = () => {
+    const cacheSize = profileCacheRef.current.size;
+    profileCacheRef.current.clear();
+    memoryMonitor.logMemoryUsage('AuthContext', `Cleared profile cache (${cacheSize} entries)`);
+  };
 
   /**
    * Create or update profile for authenticated user
@@ -47,16 +93,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authUser: SupabaseUser,
     client: SupabaseClient<Database>
   ): Promise<ProfileWithRelations | null> => {
+    // Clean up expired cache entries first
+    cleanupExpiredCache();
+    
     // Check cache first
     const cached = profileCacheRef.current.get(authUser.id);
     if (cached) {
       const age = Date.now() - cached.timestamp;
       if (age < PROFILE_CACHE_TTL) {
         console.log('✅ Profile found in cache:', authUser.email);
+        memoryMonitor.logMemoryUsage('AuthContext', `Profile cache hit: ${authUser.email}`);
         return cached.profile;
       } else {
         // Expired cache entry
         profileCacheRef.current.delete(authUser.id);
+        memoryMonitor.logMemoryUsage('AuthContext', `Removed expired cache entry: ${authUser.email}`);
       }
     }
 
@@ -75,6 +126,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           profile: existingProfile,
           timestamp: Date.now()
         });
+        // Enforce cache size limit
+        enforceCacheSizeLimit();
+        memoryMonitor.logMemoryUsage('AuthContext', `Cached profile: ${authUser.email}`);
         return existingProfile;
       }
 
@@ -141,11 +195,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
     let authTimeout: NodeJS.Timeout | null = null;
+    let cacheCleanupInterval: NodeJS.Timeout | null = null;
+
+    // Log memory usage on component mount
+    memoryMonitor.logMemoryUsage('AuthContext', 'Component mounted');
 
     const cleanupSubscription = () => {
       if (authSubscriptionRef.current) {
         authSubscriptionRef.current.unsubscribe();
         authSubscriptionRef.current = null;
+        memoryMonitor.logMemoryUsage('AuthContext', 'Auth subscription cleaned up');
       }
     };
 
@@ -153,6 +212,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (authTimeout) {
         clearTimeout(authTimeout);
         authTimeout = null;
+      }
+    };
+
+    const clearCacheCleanupInterval = () => {
+      if (cacheCleanupInterval) {
+        clearInterval(cacheCleanupInterval);
+        cacheCleanupInterval = null;
       }
     };
 
@@ -287,6 +353,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
+    // Set up periodic cache cleanup
+    cacheCleanupInterval = setInterval(() => {
+      cleanupExpiredCache();
+      memoryMonitor.logMemoryUsage('AuthContext', 'Periodic cache cleanup');
+    }, PROFILE_CACHE_TTL / 2); // Clean up every 15 seconds
+
     const handleConfigChange = () => {
       if (!isMounted) {
         return;
@@ -311,15 +383,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       isMounted = false;
       clearTimeoutIfNeeded();
+      clearCacheCleanupInterval();
       cleanupSubscription();
+      clearProfileCache();
+      
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
+      
       if (typeof window !== 'undefined') {
         window.removeEventListener('supabase-config-changed', handleConfigChange as EventListener);
       }
+      
       initializingRef.current = false;
+      memoryMonitor.logMemoryUsage('AuthContext', 'Component unmounted - cleanup complete');
     };
   }, []);
 
@@ -367,6 +445,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await authService.signOut();
     setUser(null);
     setSupabaseUser(null);
+    clearProfileCache();
+    memoryMonitor.logMemoryUsage('AuthContext', 'User signed out - cache cleared');
   };
 
   const refreshUser = async () => {
