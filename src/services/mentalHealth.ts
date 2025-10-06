@@ -65,6 +65,7 @@ export interface FormResponse {
   employee_id: string;
   responses: any;
   score?: number;
+  risk_level?: 'baixo' | 'medio' | 'alto' | 'critico';
   interpretation?: string;
   status?: string;
   reviewed_by?: string;
@@ -1321,8 +1322,8 @@ export const mentalHealthService = {
     if (score >= 60) return 'alto';
     if (score >= 40) return 'medio';
     return 'baixo';
-  }
-};
+  },
+
   // Enhanced Wellness Resources with view tracking
   async getWellnessResourcesWithStats(category?: string): Promise<WellnessResource[]> {
     console.log('🧠 MentalHealth: Getting wellness resources with stats, category:', category);
