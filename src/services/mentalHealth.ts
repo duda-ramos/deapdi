@@ -1321,8 +1321,8 @@ export const mentalHealthService = {
     if (score >= 60) return 'alto';
     if (score >= 40) return 'medio';
     return 'baixo';
-  }
-};
+  },
+
   // Enhanced Wellness Resources with view tracking
   async getWellnessResourcesWithStats(category?: string): Promise<WellnessResource[]> {
     console.log('🧠 MentalHealth: Getting wellness resources with stats, category:', category);
