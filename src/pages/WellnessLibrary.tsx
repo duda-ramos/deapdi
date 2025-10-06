@@ -34,6 +34,8 @@ const WellnessLibrary: React.FC = () => {
     resource_type: 'article' as WellnessResource['resource_type'],
     category: 'general',
     content_url: '',
+    content_text: '',
+    thumbnail_url: '',
     tags: [] as string[]
   });
 
@@ -77,7 +79,7 @@ const WellnessLibrary: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      const data = await mentalHealthService.getWellnessResources();
+      const data = await mentalHealthService.getWellnessResourcesWithStats();
       setResources(data || []);
     } catch (error) {
       console.error('Error loading wellness resources:', error);
@@ -129,11 +131,11 @@ const WellnessLibrary: React.FC = () => {
     setShowResourceModal(true);
     
     if (user) {
-      await mentalHealthService.viewResource(resource.id, user.id);
+      await mentalHealthService.recordResourceView(resource.id, user.id);
       // Update view count locally
       setResources(prev => prev.map(r => 
         r.id === resource.id 
-          ? { ...r, view_count: r.view_count + 1 }
+          ? { ...r, view_count: (r.view_count || 0) + 1 }
           : r
       ));
     }
@@ -160,28 +162,62 @@ const WellnessLibrary: React.FC = () => {
     if (!user) return;
 
     try {
-      await mentalHealthService.createWellnessResource({
-        title: resourceForm.title,
-        description: resourceForm.description,
-        resource_type: resourceForm.resource_type,
-        category: resourceForm.category,
-        content_url: resourceForm.content_url,
-        tags: resourceForm.tags,
-        active: true
-      });
+      if (selectedResource) {
+        // Update existing resource
+        await mentalHealthService.updateWellnessResource(selectedResource.id, {
+          title: resourceForm.title,
+          description: resourceForm.description,
+          resource_type: resourceForm.resource_type,
+          category: resourceForm.category,
+          content_url: resourceForm.content_url,
+          content_text: resourceForm.content_text,
+          thumbnail_url: resourceForm.thumbnail_url,
+          tags: resourceForm.tags
+        });
+      } else {
+        // Create new resource
+        await mentalHealthService.createWellnessResource({
+          title: resourceForm.title,
+          description: resourceForm.description,
+          resource_type: resourceForm.resource_type,
+          category: resourceForm.category,
+          content_url: resourceForm.content_url,
+          content_text: resourceForm.content_text,
+          thumbnail_url: resourceForm.thumbnail_url,
+          tags: resourceForm.tags,
+          active: true,
+          created_by: user.id
+        });
+      }
 
       setShowCreateModal(false);
+      setSelectedResource(null);
       setResourceForm({
         title: '',
         description: '',
         resource_type: 'article',
         category: 'general',
         content_url: '',
+        content_text: '',
+        thumbnail_url: '',
         tags: []
       });
       loadResources();
     } catch (error) {
-      console.error('Error creating resource:', error);
+      console.error('Error saving resource:', error);
+    }
+  };
+
+  const handleDeleteResource = async (resourceId: string) => {
+    if (!user || user.role !== 'hr') return;
+    
+    if (window.confirm('Tem certeza que deseja excluir este recurso?')) {
+      try {
+        await mentalHealthService.deleteWellnessResource(resourceId);
+        loadResources();
+      } catch (error) {
+        console.error('Error deleting resource:', error);
+      }
     }
   };
 
@@ -199,6 +235,19 @@ const WellnessLibrary: React.FC = () => {
       ...prev,
       tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
+  };
+
+  const handleDeleteResource = async (resourceId: string) => {
+    if (!user || user.role !== 'hr') return;
+    
+    if (window.confirm('Tem certeza que deseja excluir este recurso?')) {
+      try {
+        await mentalHealthService.deleteWellnessResource(resourceId);
+        loadResources();
+      } catch (error) {
+        console.error('Error deleting resource:', error);
+      }
+    }
   };
 
   const getContentIcon = (type: string) => {
@@ -324,6 +373,56 @@ const WellnessLibrary: React.FC = () => {
         </Card>
       </div>
 
+      {/* Additional Stats for HR */}
+      {user?.role === 'hr' && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="p-4">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-red-500 mr-3" />
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {resources.reduce((sum, r) => sum + (r.view_count || 0), 0)}
+                </div>
+                <div className="text-sm text-gray-600">Total de Visualizações</div>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-indigo-500 mr-3" />
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {resources.filter(r => r.resource_type === 'video').length}
+                </div>
+                <div className="text-sm text-gray-600">Vídeos</div>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-pink-500 mr-3" />
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {resources.filter(r => r.resource_type === 'audio').length}
+                </div>
+                <div className="text-sm text-gray-600">Áudios</div>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-yellow-500 mr-3" />
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {Math.round(resources.reduce((sum, r) => sum + (r.view_count || 0), 0) / Math.max(resources.length, 1))}
+                </div>
+                <div className="text-sm text-gray-600">Média de Visualizações</div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Filters */}
       <Card className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -436,28 +535,42 @@ const WellnessLibrary: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <Eye size={14} />
-                      <span>{resource.view_count} visualizações</span>
+                      <span>{resource.view_count || 0} visualizações</span>
                     </div>
                     <div className="flex space-x-2">
                       {user?.role === 'hr' && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setSelectedResource(resource);
-                            setResourceForm({
-                              title: resource.title,
-                              description: resource.description,
-                              resource_type: resource.resource_type,
-                              category: resource.category,
-                              content_url: resource.content_url || '',
-                              tags: resource.tags
-                            });
-                            setShowCreateModal(true);
-                          }}
-                        >
-                          <Edit size={14} />
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setSelectedResource(resource);
+                              setResourceForm({
+                                title: resource.title,
+                                description: resource.description,
+                                resource_type: resource.resource_type,
+                                category: resource.category,
+                                content_url: resource.content_url || '',
+                                content_text: resource.content_text || '',
+                                thumbnail_url: resource.thumbnail_url || '',
+                                tags: resource.tags
+                              });
+                              setShowCreateModal(true);
+                            }}
+                            title="Editar recurso"
+                          >
+                            <Edit size={14} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteResource(resource.id)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Excluir recurso"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </>
                       )}
                       <Button
                         size="sm"
@@ -605,6 +718,27 @@ const WellnessLibrary: React.FC = () => {
               placeholder="https://exemplo.com/video"
             />
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="URL da Miniatura (Opcional)"
+              value={resourceForm.thumbnail_url}
+              onChange={(e) => setResourceForm({ ...resourceForm, thumbnail_url: e.target.value })}
+              placeholder="https://exemplo.com/thumbnail.jpg"
+            />
+            <div className="flex items-center space-x-2">
+              <Upload size={16} className="text-gray-400" />
+              <span className="text-sm text-gray-600">Upload de arquivo em breve</span>
+            </div>
+          </div>
+
+          <Textarea
+            label="Conteúdo Texto (Opcional)"
+            value={resourceForm.content_text}
+            onChange={(e) => setResourceForm({ ...resourceForm, content_text: e.target.value })}
+            placeholder="Digite o conteúdo completo do recurso aqui..."
+            rows={6}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

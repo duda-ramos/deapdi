@@ -27,6 +27,7 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Select } from '../components/ui/Select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { exportMentalHealthRecord } from '../utils/pdfExport';
 
 interface TimelineEvent {
   id: string;
@@ -201,9 +202,10 @@ const PsychologicalRecord: React.FC = () => {
   };
 
   const handleExportPDF = async () => {
-    // TODO: Implement PDF export functionality
-    console.log('Exporting to PDF...');
-    setShowExportModal(false);
+    if (recordData) {
+      exportRecordToPDF(recordData, user?.name || 'Funcionário');
+      setShowExportModal(false);
+    }
   };
 
   if (loading) {
@@ -244,7 +246,7 @@ const PsychologicalRecord: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center">
             <FileText className="mr-3 text-blue-500" size={28} />
@@ -253,7 +255,7 @@ const PsychologicalRecord: React.FC = () => {
           <p className="text-gray-600 mt-1">Seu registro digital de bem-estar e acompanhamento</p>
         </div>
         <div className="flex items-center space-x-3">
-          <Button variant="secondary" onClick={() => setShowExportModal(true)}>
+          <Button variant="secondary" onClick={() => setShowExportModal(true)} className="w-full sm:w-auto">
             <Download size={16} className="mr-2" />
             Exportar PDF
           </Button>
