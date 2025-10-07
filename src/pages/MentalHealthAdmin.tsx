@@ -358,41 +358,69 @@ const MentalHealthAdmin: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick Access to Mental Health Features */}
+      {/* Portal do Psicólogo - Funcionalidades Completas */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center">
           <Brain className="mr-2 text-blue-500" size={20} />
-          Ferramentas de Gestão
+          Portal do Psicólogo - Ferramentas Completas
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
-              title: 'Registros Psicológicos',
-              description: 'Visualizar e gerenciar registros dos colaboradores',
-              icon: <FileText className="text-blue-500" size={24} />,
-              path: '/mental-health/record',
+              title: 'Check-ins Emocionais',
+              description: 'Acompanhar check-ins individuais dos colaboradores',
+              icon: <Heart className="text-pink-500" size={24} />,
+              path: '/mental-health/checkins',
+              color: 'pink'
+            },
+            {
+              title: 'Gestão de Sessões',
+              description: 'Agendar e gerenciar sessões psicológicas',
+              icon: <Calendar className="text-blue-500" size={24} />,
+              path: '/mental-health/sessions',
               color: 'blue'
             },
             {
-              title: 'Dashboard de Análises',
-              description: 'Relatórios e métricas de saúde mental',
-              icon: <BarChart3 className="text-green-500" size={24} />,
-              path: '/mental-health/analytics',
+              title: 'Sistema de Alertas',
+              description: 'Monitorar alertas de saúde mental em tempo real',
+              icon: <AlertTriangle className="text-red-500" size={24} />,
+              path: '/mental-health/alerts',
+              color: 'red'
+            },
+            {
+              title: 'Prontuários Digitais',
+              description: 'Registros completos e confidenciais',
+              icon: <FileText className="text-green-500" size={24} />,
+              path: '/mental-health/record',
               color: 'green'
             },
             {
-              title: 'Construtor de Formulários',
-              description: 'Criar e gerenciar avaliações personalizadas',
-              icon: <ClipboardList className="text-purple-500" size={24} />,
-              path: '/mental-health/forms',
+              title: 'Biblioteca Terapêutica',
+              description: 'Recursos e materiais de apoio',
+              icon: <BookOpen className="text-purple-500" size={24} />,
+              path: '/mental-health/library',
               color: 'purple'
             },
             {
-              title: 'Gerenciador de Tarefas',
-              description: 'Atribuir e acompanhar atividades terapêuticas',
+              title: 'Formulários Psicológicos',
+              description: 'Avaliações e questionários especializados',
+              icon: <ClipboardList className="text-indigo-500" size={24} />,
+              path: '/mental-health/forms',
+              color: 'indigo'
+            },
+            {
+              title: 'Tarefas Terapêuticas',
+              description: 'Atribuir e acompanhar atividades',
               icon: <CheckSquare className="text-orange-500" size={24} />,
               path: '/mental-health/tasks',
               color: 'orange'
+            },
+            {
+              title: 'Relatórios Identificados',
+              description: 'Relatórios com dados individuais',
+              icon: <BarChart3 className="text-teal-500" size={24} />,
+              path: '/mental-health/analytics',
+              color: 'teal'
             }
           ].map((feature, index) => (
             <motion.div
