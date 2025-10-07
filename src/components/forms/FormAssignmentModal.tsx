@@ -90,11 +90,10 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
     if (!user) return;
 
     try {
-      const permission = await FormAssignmentService.checkAssignmentPermission(
+      // Use basic permission check for initial modal access
+      const permission = FormAssignmentService.checkBasicAssignmentPermission(
         user.role,
-        formType,
-        [], // Empty array for initial check
-        user.id
+        formType
       );
       setPermission(permission);
     } catch (error) {
@@ -134,6 +133,19 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
     try {
       setLoading(true);
       setError('');
+
+      // Validate permissions with selected users before creating assignment
+      const permissionCheck = await FormAssignmentService.checkAssignmentPermission(
+        user.role,
+        formType,
+        selectedUsers,
+        user.id
+      );
+
+      if (!permissionCheck.canAssign) {
+        setError(permissionCheck.reason || 'Você não tem permissão para atribuir este formulário para os usuários selecionados');
+        return;
+      }
 
       // Log de auditoria
       await FormAssignmentService.logDataAccess(

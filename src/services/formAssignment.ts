@@ -25,6 +25,57 @@ export interface AssignmentPermission {
 
 export class FormAssignmentService {
   /**
+   * Verifica se um usuário tem permissão básica para acessar a interface de atribuição
+   */
+  static checkBasicAssignmentPermission(
+    userRole: UserRole,
+    formType: 'performance' | 'mental_health'
+  ): AssignmentPermission {
+    // CRITICAL SECURITY: Para formulários de saúde mental - APENAS RH
+    if (formType === 'mental_health') {
+      if (userRole !== 'hr') {
+        return {
+          canAssign: false,
+          canViewResults: false,
+          allowedUsers: [],
+          reason: 'Apenas usuários do RH podem atribuir formulários de saúde mental'
+        };
+      }
+      
+      return {
+        canAssign: true,
+        canViewResults: true,
+        allowedUsers: []
+      };
+    }
+
+    // Para formulários de performance
+    if (formType === 'performance') {
+      if (userRole === 'admin' || userRole === 'manager') {
+        return {
+          canAssign: true,
+          canViewResults: true,
+          allowedUsers: []
+        };
+      }
+
+      return {
+        canAssign: false,
+        canViewResults: false,
+        allowedUsers: [],
+        reason: 'Apenas administradores e gestores podem atribuir formulários de performance'
+      };
+    }
+
+    return {
+      canAssign: false,
+      canViewResults: false,
+      allowedUsers: [],
+      reason: 'Tipo de formulário não reconhecido'
+    };
+  }
+
+  /**
    * Verifica se um usuário pode atribuir formulários de um tipo específico
    */
   static async checkAssignmentPermission(
@@ -71,6 +122,17 @@ export class FormAssignmentService {
             .eq('manager_id', currentUserId);
 
           const managerTeamIds = teamMembers?.map(m => m.id) || [];
+          
+          // FIX: If no target users specified yet, allow access to UI for selection
+          if (targetUserIds.length === 0) {
+            return {
+              canAssign: true,
+              canViewResults: true,
+              allowedUsers: managerTeamIds,
+              reason: 'Selecione membros da sua equipe para atribuir o formulário'
+            };
+          }
+
           const validTargets = targetUserIds.filter(id => managerTeamIds.includes(id));
 
           return {

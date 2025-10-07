@@ -120,6 +120,50 @@ describe('FormAssignmentService Security Tests', () => {
     });
   });
 
+  describe('checkBasicAssignmentPermission', () => {
+    it('should deny admin permission for mental health assignments', () => {
+      const result = FormAssignmentService.checkBasicAssignmentPermission(
+        'admin',
+        'mental_health'
+      );
+
+      expect(result.canAssign).toBe(false);
+      expect(result.canViewResults).toBe(false);
+      expect(result.reason).toBe('Apenas usuários do RH podem atribuir formulários de saúde mental');
+    });
+
+    it('should allow admin permission for performance assignments', () => {
+      const result = FormAssignmentService.checkBasicAssignmentPermission(
+        'admin',
+        'performance'
+      );
+
+      expect(result.canAssign).toBe(true);
+      expect(result.canViewResults).toBe(true);
+    });
+
+    it('should allow manager permission for performance assignments', () => {
+      const result = FormAssignmentService.checkBasicAssignmentPermission(
+        'manager',
+        'performance'
+      );
+
+      expect(result.canAssign).toBe(true);
+      expect(result.canViewResults).toBe(true);
+    });
+
+    it('should deny manager permission for mental health assignments', () => {
+      const result = FormAssignmentService.checkBasicAssignmentPermission(
+        'manager',
+        'mental_health'
+      );
+
+      expect(result.canAssign).toBe(false);
+      expect(result.canViewResults).toBe(false);
+      expect(result.reason).toBe('Apenas usuários do RH podem atribuir formulários de saúde mental');
+    });
+  });
+
   describe('checkAssignmentPermission', () => {
     it('should deny admin permission for mental health assignments', async () => {
       const result = await FormAssignmentService.checkAssignmentPermission(
@@ -144,6 +188,19 @@ describe('FormAssignmentService Security Tests', () => {
 
       expect(result.canAssign).toBe(true);
       expect(result.canViewResults).toBe(true);
+    });
+
+    it('should allow manager permission for empty target list (UI access)', async () => {
+      const result = await FormAssignmentService.checkAssignmentPermission(
+        'manager',
+        'performance',
+        [], // Empty array should allow UI access
+        'manager-user-id'
+      );
+
+      expect(result.canAssign).toBe(true);
+      expect(result.canViewResults).toBe(true);
+      expect(result.reason).toBe('Selecione membros da sua equipe para atribuir o formulário');
     });
 
     it('should deny manager permission for mental health assignments', async () => {
