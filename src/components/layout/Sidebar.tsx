@@ -73,7 +73,7 @@ const sidebarItems: SidebarItem[] = [
     label: 'Gestão', 
     icon: <Settings size={20} />, 
     path: '/management', 
-    roles: ['admin', 'hr'],
+    roles: ['admin', 'hr', 'manager'],
     subItems: [
       { id: 'people-management', label: 'Gestão de Pessoas', icon: <Users size={16} />, path: '/people', roles: ['admin', 'hr'] },
       { id: 'teams-management', label: 'Gestão de Times', icon: <Building size={16} />, path: '/teams', roles: ['admin', 'hr'] },
