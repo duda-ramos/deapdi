@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home, 
   User, 
@@ -18,7 +18,11 @@ import {
   UserCog,
   FileText,
   Building,
-  TestTube
+  TestTube,
+  ClipboardList,
+  CheckSquare,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../types';
@@ -29,6 +33,7 @@ interface SidebarItem {
   icon: React.ReactNode;
   path: string;
   roles: UserRole[];
+  subItems?: SidebarItem[];
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -42,7 +47,19 @@ const sidebarItems: SidebarItem[] = [
   { id: 'learning', label: 'Aprendizado', icon: <BookOpen size={20} />, path: '/learning', roles: ['admin', 'hr', 'manager', 'employee'] },
   { id: 'certificates', label: 'Certificados', icon: <Award size={20} />, path: '/certificates', roles: ['admin', 'hr', 'manager', 'employee'] },
   { id: 'mentorship', label: 'Mentoria', icon: <Users size={20} />, path: '/mentorship', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { id: 'mental-health', label: 'Bem-estar', icon: <Brain size={20} />, path: '/mental-health', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { 
+    id: 'mental-health', 
+    label: 'Bem-estar', 
+    icon: <Brain size={20} />, 
+    path: '/mental-health', 
+    roles: ['admin', 'hr', 'manager', 'employee'],
+    subItems: [
+      { id: 'mental-health-record', label: 'Registro Psicológico', icon: <FileText size={16} />, path: '/mental-health/record', roles: ['admin', 'hr', 'manager', 'employee'] },
+      { id: 'mental-health-analytics', label: 'Análises', icon: <BarChart3 size={16} />, path: '/mental-health/analytics', roles: ['admin', 'hr', 'manager', 'employee'] },
+      { id: 'mental-health-forms', label: 'Formulários', icon: <ClipboardList size={16} />, path: '/mental-health/forms', roles: ['admin', 'hr', 'manager', 'employee'] },
+      { id: 'mental-health-tasks', label: 'Tarefas', icon: <CheckSquare size={16} />, path: '/mental-health/tasks', roles: ['admin', 'hr', 'manager', 'employee'] }
+    ]
+  },
   { id: 'people', label: 'Gestão de Pessoas', icon: <Users size={20} />, path: '/people', roles: ['admin', 'manager'] },
   { id: 'teams', label: 'Gestão de Times', icon: <Building size={20} />, path: '/teams', roles: ['admin'] },
   { id: 'reports', label: 'Relatórios', icon: <FileText size={20} />, path: '/reports', roles: ['admin', 'hr', 'manager'] },
@@ -63,10 +80,27 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }) => {
   const { user } = useAuth();
   const location = useLocation();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const filteredItems = sidebarItems.filter(item =>
     user && item.roles.includes(user.role)
   );
+
+  const isItemActive = (item: SidebarItem) => {
+    if (location.pathname === item.path) return true;
+    if (item.subItems) {
+      return item.subItems.some(subItem => location.pathname === subItem.path);
+    }
+    return false;
+  };
+
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItems(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
 
   return (
     <div className={`flex h-full min-h-0 w-full flex-col ${isMobile ? '' : 'px-4 pb-6'}`}>
@@ -82,35 +116,104 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
 
       <nav className="flex-1 space-y-1 overflow-y-auto pr-1" aria-label="Principal">
         {filteredItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = isItemActive(item);
+          const isExpanded = expandedItems.includes(item.id);
+          const hasSubItems = item.subItems && item.subItems.length > 0;
 
           return (
-            <Link
-              key={item.id}
-              to={item.path}
-              className="block"
-              aria-current={isActive ? 'page' : undefined}
-              onClick={() => {
-                onNavigate?.();
-              }}
-            >
-              <motion.div
-                whileHover={{ x: 4 }}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary/15 text-ink shadow-inner'
-                    : 'text-muted hover:bg-slate-100'
-                }`}
-              >
-                <span className={`flex h-8 w-8 items-center justify-center rounded-md ${
-                  isActive ? 'bg-primary text-ink' : 'bg-slate-100 text-muted'
-                }`}
+            <div key={item.id}>
+              {hasSubItems ? (
+                <div
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                    isActive
+                      ? 'bg-primary/15 text-ink shadow-inner'
+                      : 'text-muted hover:bg-slate-100'
+                  }`}
+                  onClick={() => toggleExpanded(item.id)}
                 >
-                  {item.icon}
-                </span>
-                <span className="truncate">{item.label}</span>
-              </motion.div>
-            </Link>
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-md ${
+                    isActive ? 'bg-primary text-ink' : 'bg-slate-100 text-muted'
+                  }`}
+                  >
+                    {item.icon}
+                  </span>
+                  <span className="truncate flex-1">{item.label}</span>
+                  <motion.div
+                    animate={{ rotate: isExpanded ? 90 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronRight size={16} />
+                  </motion.div>
+                </div>
+              ) : (
+                <Link
+                  to={item.path}
+                  className="block"
+                  onClick={() => onNavigate?.()}
+                >
+                  <motion.div
+                    whileHover={{ x: 4 }}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-primary/15 text-ink shadow-inner'
+                        : 'text-muted hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-md ${
+                      isActive ? 'bg-primary text-ink' : 'bg-slate-100 text-muted'
+                    }`}
+                    >
+                      {item.icon}
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </motion.div>
+                </Link>
+              )}
+
+              {/* Sub-items */}
+              <AnimatePresence>
+                {hasSubItems && isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="ml-6 mt-1 space-y-1">
+                      {item.subItems!.map((subItem) => {
+                        const isSubActive = location.pathname === subItem.path;
+                        return (
+                          <Link
+                            key={subItem.id}
+                            to={subItem.path}
+                            className="block"
+                            onClick={() => onNavigate?.()}
+                          >
+                            <motion.div
+                              whileHover={{ x: 4 }}
+                              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                                isSubActive
+                                  ? 'bg-primary/10 text-ink'
+                                  : 'text-muted hover:bg-slate-50'
+                              }`}
+                            >
+                              <span className={`flex h-6 w-6 items-center justify-center rounded-md ${
+                                isSubActive ? 'bg-primary/20 text-ink' : 'bg-slate-100 text-muted'
+                              }`}
+                              >
+                                {subItem.icon}
+                              </span>
+                              <span className="truncate">{subItem.label}</span>
+                            </motion.div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           );
         })}
       </nav>

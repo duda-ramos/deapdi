@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Brain, 
   Users, 
@@ -17,7 +18,10 @@ import {
   Activity,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  ClipboardList,
+  CheckSquare,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -42,6 +46,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const MentalHealthAdmin: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // Define time slots for scheduling
   const timeSlots = [
@@ -352,6 +357,64 @@ const MentalHealthAdmin: React.FC = () => {
           </Badge>
         </div>
       </div>
+
+      {/* Quick Access to Mental Health Features */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center">
+          <Brain className="mr-2 text-blue-500" size={20} />
+          Ferramentas de Gestão
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            {
+              title: 'Registros Psicológicos',
+              description: 'Visualizar e gerenciar registros dos colaboradores',
+              icon: <FileText className="text-blue-500" size={24} />,
+              path: '/mental-health/record',
+              color: 'blue'
+            },
+            {
+              title: 'Dashboard de Análises',
+              description: 'Relatórios e métricas de saúde mental',
+              icon: <BarChart3 className="text-green-500" size={24} />,
+              path: '/mental-health/analytics',
+              color: 'green'
+            },
+            {
+              title: 'Construtor de Formulários',
+              description: 'Criar e gerenciar avaliações personalizadas',
+              icon: <ClipboardList className="text-purple-500" size={24} />,
+              path: '/mental-health/forms',
+              color: 'purple'
+            },
+            {
+              title: 'Gerenciador de Tarefas',
+              description: 'Atribuir e acompanhar atividades terapêuticas',
+              icon: <CheckSquare className="text-orange-500" size={24} />,
+              path: '/mental-health/tasks',
+              color: 'orange'
+            }
+          ].map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              onClick={() => navigate(feature.path)}
+              className={`p-4 rounded-lg border-2 border-transparent hover:border-${feature.color}-200 cursor-pointer transition-all duration-200 hover:shadow-md bg-gradient-to-br from-${feature.color}-50 to-white group`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`p-2 rounded-lg bg-${feature.color}-100 group-hover:bg-${feature.color}-200 transition-colors`}>
+                  {feature.icon}
+                </div>
+                <ArrowRight className={`text-${feature.color}-500 group-hover:translate-x-1 transition-transform`} size={16} />
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">{feature.title}</h4>
+              <p className="text-sm text-gray-600">{feature.description}</p>
+            </motion.div>
+          ))}
+        </div>
+      </Card>
 
       {/* Tab Navigation */}
       <Card className="p-4">
