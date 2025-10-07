@@ -52,22 +52,39 @@ const sidebarItems: SidebarItem[] = [
     label: 'Bem-estar', 
     icon: <Brain size={20} />, 
     path: '/mental-health', 
-    roles: ['admin', 'hr', 'manager', 'employee'],
+    roles: ['admin', 'manager', 'employee'],
     subItems: [
-      { id: 'mental-health-record', label: 'Registro Psicológico', icon: <FileText size={16} />, path: '/mental-health/record', roles: ['admin', 'hr', 'manager', 'employee'] },
-      { id: 'mental-health-analytics', label: 'Análises', icon: <BarChart3 size={16} />, path: '/mental-health/analytics', roles: ['admin', 'hr', 'manager', 'employee'] },
-      { id: 'mental-health-forms', label: 'Formulários', icon: <ClipboardList size={16} />, path: '/mental-health/forms', roles: ['admin', 'hr', 'manager', 'employee'] },
-      { id: 'mental-health-tasks', label: 'Tarefas', icon: <CheckSquare size={16} />, path: '/mental-health/tasks', roles: ['admin', 'hr', 'manager', 'employee'] }
+      { id: 'mental-health-record', label: 'Registro Psicológico', icon: <FileText size={16} />, path: '/mental-health/record', roles: ['admin', 'manager', 'employee'] },
+      { id: 'mental-health-analytics', label: 'Análises', icon: <BarChart3 size={16} />, path: '/mental-health/analytics', roles: ['admin', 'manager', 'employee'] },
+      { id: 'mental-health-forms', label: 'Formulários', icon: <ClipboardList size={16} />, path: '/mental-health/forms', roles: ['admin', 'manager', 'employee'] },
+      { id: 'mental-health-tasks', label: 'Tarefas', icon: <CheckSquare size={16} />, path: '/mental-health/tasks', roles: ['admin', 'manager', 'employee'] }
     ]
   },
-  { id: 'people', label: 'Gestão de Pessoas', icon: <Users size={20} />, path: '/people', roles: ['admin', 'manager'] },
-  { id: 'teams', label: 'Gestão de Times', icon: <Building size={20} />, path: '/teams', roles: ['admin'] },
+  { 
+    id: 'wellness-admin', 
+    label: 'Bem-estar', 
+    icon: <Brain size={20} />, 
+    path: '/wellness-admin', 
+    roles: ['admin']
+  },
+  { 
+    id: 'management', 
+    label: 'Gestão', 
+    icon: <Settings size={20} />, 
+    path: '/management', 
+    roles: ['admin', 'hr'],
+    subItems: [
+      { id: 'people-management', label: 'Gestão de Pessoas', icon: <Users size={16} />, path: '/people', roles: ['admin', 'hr'] },
+      { id: 'teams-management', label: 'Gestão de Times', icon: <Building size={16} />, path: '/teams', roles: ['admin', 'hr'] },
+      { id: 'career-management', label: 'Gestão de Trilhas', icon: <TrendingUp size={16} />, path: '/career-management', roles: ['admin', 'hr'] },
+      { id: 'evaluations-management', label: 'Gestão de Avaliações', icon: <ClipboardList size={16} />, path: '/evaluations', roles: ['admin', 'hr'] }
+    ]
+  },
+  { id: 'mental-health-admin', label: 'Portal do Psicólogo', icon: <Brain size={20} />, path: '/mental-health/admin', roles: ['hr'] },
   { id: 'reports', label: 'Relatórios', icon: <FileText size={20} />, path: '/reports', roles: ['admin', 'hr', 'manager'] },
   { id: 'users', label: 'Criar Usuários', icon: <UserCog size={20} />, path: '/users', roles: ['admin', 'hr'] },
   { id: 'hr', label: 'Área de RH', icon: <Heart size={20} />, path: '/hr', roles: ['admin', 'hr'] },
   { id: 'hr-calendar', label: 'Calendário', icon: <Calendar size={20} />, path: '/hr-calendar', roles: ['admin', 'hr'] },
-  { id: 'mental-health-admin', label: 'Portal do Psicólogo', icon: <Brain size={20} />, path: '/mental-health/admin', roles: ['hr'] },
-  { id: 'career-management', label: 'Gerenciar Trilhas', icon: <TrendingUp size={20} />, path: '/career-management', roles: ['admin'] },
   { id: 'admin', label: 'Administração', icon: <Settings size={20} />, path: '/admin', roles: ['admin'] },
   { id: 'qa', label: 'Garantia de Qualidade', icon: <TestTube size={20} />, path: '/qa', roles: ['admin'] },
 ];

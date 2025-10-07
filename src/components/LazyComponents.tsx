@@ -18,6 +18,8 @@ export const LazyCareerTrackManagement = lazy(() => import('../pages/CareerTrack
 export const LazyCertificates = lazy(() => import('../pages/Certificates'));
 export const LazyMentalHealth = lazy(() => import('../pages/MentalHealth'));
 export const LazyMentalHealthAdmin = lazy(() => import('../pages/MentalHealthAdmin'));
+export const LazyWellnessAdmin = lazy(() => import('../pages/WellnessAdmin'));
+export const LazyEvaluationsManagement = lazy(() => import('../pages/EvaluationsManagement'));
 
 // HR Calendar
 export const LazyHRCalendar = lazy(() => import('../pages/HRCalendar'));

@@ -34,6 +34,8 @@ import {
   LazyTaskManager,
   LazyMentalHealth,
   LazyMentalHealthAdmin,
+  LazyWellnessAdmin,
+  LazyEvaluationsManagement,
   LazyTeamManagement,
   LazyPeopleManagement,
   LazyQualityAssurance,
@@ -385,6 +387,22 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <LazyMentalHealthAdmin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/wellness-admin"
+        element={
+          <ProtectedRoute>
+            <LazyWellnessAdmin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/evaluations"
+        element={
+          <ProtectedRoute>
+            <LazyEvaluationsManagement />
           </ProtectedRoute>
         }
       />
