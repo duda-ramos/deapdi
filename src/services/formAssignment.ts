@@ -33,7 +33,7 @@ export class FormAssignmentService {
     targetUserIds: string[],
     currentUserId: string
   ): Promise<AssignmentPermission> {
-    // Para formulários de saúde mental - APENAS RH
+    // CRITICAL SECURITY: Para formulários de saúde mental - APENAS RH
     if (formType === 'mental_health') {
       if (userRole !== 'hr') {
         return {
@@ -54,7 +54,7 @@ export class FormAssignmentService {
     // Para formulários de performance
     if (formType === 'performance') {
       if (userRole === 'admin') {
-        // Admin pode atribuir para qualquer usuário
+        // Admin pode atribuir para qualquer usuário (performance only)
         return {
           canAssign: true,
           canViewResults: true,
@@ -63,7 +63,7 @@ export class FormAssignmentService {
       }
 
       if (userRole === 'manager') {
-        // Gestor pode atribuir apenas para sua equipe direta
+        // Gestor pode atribuir apenas para sua equipe direta (performance only)
         try {
           const { data: teamMembers } = await supabase
             .from('profiles')
@@ -120,6 +120,23 @@ export class FormAssignmentService {
     dueDate?: string
   ): Promise<{ success: boolean; assignment?: FormAssignment; error?: string }> {
     try {
+      // CRITICAL SECURITY: Validate that only HR can create mental health assignments
+      if (formType === 'mental_health') {
+        // Get user role to validate permissions
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', assignedBy)
+          .single();
+
+        if (!userProfile || userProfile.role !== 'hr') {
+          return {
+            success: false,
+            error: 'Apenas usuários do RH podem criar atribuições de saúde mental'
+          };
+        }
+      }
+
       const { data, error } = await supabase
         .from('form_assignments')
         .insert({
@@ -174,23 +191,35 @@ export class FormAssignmentService {
           assigned_to_profiles:profiles!assigned_to(name)
         `);
 
-      // Filtros baseados no tipo de usuário e formulário
-      if (formType) {
-        query = query.eq('form_type', formType);
-      }
-
+      // CRITICAL SECURITY FIX: Prevent admins from accessing mental health data
       if (userRole === 'admin') {
-        // Admin vê todas as atribuições
-        query = query;
+        // Admin can ONLY see performance forms, NEVER mental health data
+        query = query.eq('form_type', 'performance');
+        
+        // If specific formType is requested and it's mental_health, return empty
+        if (formType === 'mental_health') {
+          return {
+            success: true,
+            assignments: [],
+            error: 'Administradores não podem acessar dados de saúde mental'
+          };
+        }
       } else if (userRole === 'hr') {
         // RH vê todas as atribuições de saúde mental e as que criou
         query = query.or(`form_type.eq.mental_health,assigned_by.eq.${userId}`);
       } else if (userRole === 'manager') {
-        // Gestor vê apenas as que criou e as atribuídas para ele
+        // Gestor vê apenas as que criou e as atribuídas para ele (performance only)
         query = query.or(`assigned_by.eq.${userId},assigned_to.cs.{${userId}}`);
+        // CRITICAL: Managers can NEVER see mental health data
+        query = query.eq('form_type', 'performance');
       } else {
         // Colaborador vê apenas as atribuídas para ele
         query = query.contains('assigned_to', [userId]);
+      }
+
+      // Additional security: If formType is specified, apply it
+      if (formType) {
+        query = query.eq('form_type', formType);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -223,13 +252,21 @@ export class FormAssignmentService {
     formType: 'performance' | 'mental_health'
   ): Promise<{ success: boolean; users?: any[]; error?: string }> {
     try {
+      // CRITICAL SECURITY: Prevent admins from accessing mental health assignment capabilities
+      if (formType === 'mental_health' && userRole !== 'hr') {
+        return {
+          success: false,
+          error: 'Apenas usuários do RH podem atribuir formulários de saúde mental'
+        };
+      }
+
       let query = supabase
         .from('profiles')
         .select('id, name, email, position, team_id, manager_id')
         .eq('status', 'active');
 
       if (formType === 'mental_health') {
-        // Para saúde mental, RH pode atribuir para qualquer usuário ativo
+        // Para saúde mental, APENAS RH pode atribuir para qualquer usuário ativo
         if (userRole !== 'hr') {
           return {
             success: false,
@@ -238,10 +275,10 @@ export class FormAssignmentService {
         }
       } else if (formType === 'performance') {
         if (userRole === 'admin') {
-          // Admin pode atribuir para qualquer usuário
+          // Admin pode atribuir para qualquer usuário (performance only)
           query = query;
         } else if (userRole === 'manager') {
-          // Gestor pode atribuir apenas para sua equipe direta
+          // Gestor pode atribuir apenas para sua equipe direta (performance only)
           query = query.eq('manager_id', currentUserId);
         } else {
           return {
