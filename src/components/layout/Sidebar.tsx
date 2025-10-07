@@ -22,7 +22,8 @@ import {
   ClipboardList,
   CheckSquare,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../types';
@@ -77,7 +78,8 @@ const sidebarItems: SidebarItem[] = [
       { id: 'people-management', label: 'Gestão de Pessoas', icon: <Users size={16} />, path: '/people', roles: ['admin', 'hr'] },
       { id: 'teams-management', label: 'Gestão de Times', icon: <Building size={16} />, path: '/teams', roles: ['admin', 'hr'] },
       { id: 'career-management', label: 'Gestão de Trilhas', icon: <TrendingUp size={16} />, path: '/career-management', roles: ['admin', 'hr'] },
-      { id: 'evaluations-management', label: 'Gestão de Avaliações', icon: <ClipboardList size={16} />, path: '/evaluations', roles: ['admin', 'hr'] }
+      { id: 'evaluations-management', label: 'Gestão de Avaliações', icon: <ClipboardList size={16} />, path: '/evaluations', roles: ['admin', 'hr'] },
+      { id: 'manager-feedback', label: 'Feedback do Gestor', icon: <MessageSquare size={16} />, path: '/manager-feedback', roles: ['manager'] }
     ]
   },
   { id: 'mental-health-admin', label: 'Portal do Psicólogo', icon: <Brain size={20} />, path: '/mental-health/admin', roles: ['hr'] },

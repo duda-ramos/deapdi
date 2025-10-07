@@ -36,6 +36,7 @@ import {
   LazyMentalHealthAdmin,
   LazyWellnessAdmin,
   LazyEvaluationsManagement,
+  LazyManagerFeedbackForm,
   LazyTeamManagement,
   LazyPeopleManagement,
   LazyQualityAssurance,
@@ -403,6 +404,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <LazyEvaluationsManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-feedback"
+        element={
+          <ProtectedRoute>
+            <LazyManagerFeedbackForm />
           </ProtectedRoute>
         }
       />

@@ -25,6 +25,7 @@ import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Table } from '../components/ui/Table';
+import FormAssignmentModal from '../components/forms/FormAssignmentModal';
 
 interface EvaluationForm {
   id: string;
@@ -60,6 +61,8 @@ const EvaluationsManagement: React.FC = () => {
   const [showResponseModal, setShowResponseModal] = useState(false);
   const [selectedForm, setSelectedForm] = useState<EvaluationForm | null>(null);
   const [selectedResponse, setSelectedResponse] = useState<EvaluationResponse | null>(null);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [formToAssign, setFormToAssign] = useState<EvaluationForm | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -224,6 +227,16 @@ const EvaluationsManagement: React.FC = () => {
     ));
   };
 
+  const handleAssignForm = (form: EvaluationForm) => {
+    setFormToAssign(form);
+    setShowAssignmentModal(true);
+  };
+
+  const handleAssignmentSuccess = () => {
+    // Reload data or show success message
+    loadData();
+  };
+
   const formColumns = [
     {
       key: 'title',
@@ -280,10 +293,19 @@ const EvaluationsManagement: React.FC = () => {
           <Button
             size="sm"
             variant="ghost"
+            onClick={() => handleAssignForm(row)}
+            title="Atribuir formulário"
+          >
+            <Users size={14} />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={() => {
               setSelectedForm(row);
               setShowResponseModal(true);
             }}
+            title="Ver respostas"
           >
             <Eye size={14} />
           </Button>
@@ -291,6 +313,7 @@ const EvaluationsManagement: React.FC = () => {
             size="sm"
             variant="ghost"
             onClick={() => handleToggleFormStatus(row.id)}
+            title={row.status === 'active' ? 'Fechar formulário' : 'Ativar formulário'}
           >
             {row.status === 'active' ? 'Fechar' : 'Ativar'}
           </Button>
@@ -670,6 +693,21 @@ const EvaluationsManagement: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* Form Assignment Modal */}
+      {formToAssign && (
+        <FormAssignmentModal
+          isOpen={showAssignmentModal}
+          onClose={() => {
+            setShowAssignmentModal(false);
+            setFormToAssign(null);
+          }}
+          formId={formToAssign.id}
+          formTitle={formToAssign.title}
+          formType="performance"
+          onSuccess={handleAssignmentSuccess}
+        />
+      )}
     </div>
   );
 };
