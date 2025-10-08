@@ -123,28 +123,47 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
           return (
             <div key={item.id}>
               {hasSubItems ? (
-                <div
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                <motion.div
+                  whileHover={{ x: 4 }}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-primary/15 text-ink shadow-inner'
                       : 'text-muted hover:bg-slate-100'
                   }`}
-                  onClick={() => toggleExpanded(item.id)}
                 >
-                  <span className={`flex h-8 w-8 items-center justify-center rounded-md ${
-                    isActive ? 'bg-primary text-ink' : 'bg-slate-100 text-muted'
-                  }`}
+                  <Link
+                    to={item.path}
+                    className="flex flex-1 items-center gap-3 text-current no-underline"
+                    onClick={() => onNavigate?.()}
                   >
-                    {item.icon}
-                  </span>
-                  <span className="truncate flex-1">{item.label}</span>
-                  <motion.div
-                    animate={{ rotate: isExpanded ? 90 : 0 }}
-                    transition={{ duration: 0.2 }}
+                    <span
+                      className={`flex h-8 w-8 items-center justify-center rounded-md ${
+                        isActive ? 'bg-primary text-ink' : 'bg-slate-100 text-muted'
+                      }`}
+                    >
+                      {item.icon}
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      toggleExpanded(item.id);
+                    }}
+                    aria-label={isExpanded ? 'Recolher subitens' : 'Expandir subitens'}
+                    aria-expanded={isExpanded}
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-current hover:bg-slate-200 focus:outline-none"
                   >
-                    <ChevronRight size={16} />
-                  </motion.div>
-                </div>
+                    <motion.div
+                      animate={{ rotate: isExpanded ? 90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronRight size={16} />
+                    </motion.div>
+                  </button>
+                </motion.div>
               ) : (
                 <Link
                   to={item.path}
