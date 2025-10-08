@@ -1,41 +1,90 @@
-# deapdi
+# TalentFlow - Sistema de Gestão de Talentos
 
-## Componente `Modal`
+## 🚀 Início Rápido
 
-O componente `Modal` agora oferece uma experiência de acessibilidade aprimorada, mantendo a API visual existente.
+O sistema agora possui **configuração automática do Supabase**! Não é mais necessário configurar manualmente as credenciais.
 
-### Uso básico
+### Instalação
 
-```tsx
-import { Modal } from '@/components/ui/Modal';
+```bash
+# Clone o repositório
+git clone [seu-repositorio]
+cd talentflow
 
-<Modal
-  isOpen={isOpen}
-  onClose={handleClose}
-  title="Detalhes"
-  ariaLabelledby="modal-detalhes-titulo"
-  ariaDescribedby="modal-detalhes-conteudo"
->
-  <p>
-    Conteúdo do modal com informações adicionais.
-  </p>
-</Modal>;
+# Instale as dependências
+npm install
+
+# Inicie o servidor (configuração automática!)
+npm run dev
 ```
 
-### Acessibilidade
+O arquivo `.env` já está configurado com credenciais padrão. O sistema irá:
+- ✅ Detectar automaticamente as variáveis de ambiente
+- ✅ Validar a conexão com o Supabase
+- ✅ Migrar configurações antigas (se existirem)
+- ✅ Exibir instruções claras em caso de erro
 
-- A janela modal recebe automaticamente `role="dialog"` e `aria-modal="true"`.
-- Foco inicial é direcionado para o contêiner do modal quando aberto e retorna ao elemento previamente focado ao fechar.
-- A tecla `Esc` fecha o modal, facilitando a navegação pelo teclado.
-- As novas props opcionais `ariaLabelledby` e `ariaDescribedby` permitem conectar o título e o conteúdo do modal aos atributos ARIA correspondentes (o corpo do modal recebe automaticamente o `id` informado em `ariaDescribedby`).
+### Configuração Personalizada (Opcional)
 
-### Testes com leitores de tela
+Para usar seu próprio projeto Supabase, atualize o arquivo `.env`:
 
-1. **NVDA (Windows)**
-   - Abra o modal e confirme que o leitor anuncia o título e a descrição configurados.
-   - Verifique se o foco inicial é aplicado ao modal e se a tecla `Esc` encerra o diálogo.
-2. **VoiceOver (macOS)**
-   - Abra o modal utilizando o VoiceOver e confirme a leitura do título e do conteúdo descritivo.
-   - Assegure-se de que a navegação por teclado e o fechamento com `Esc` funcionam corretamente.
+```env
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anonima
+```
 
-Registre qualquer ajuste adicional necessário após os testes para manter a acessibilidade alinhada com NVDA e VoiceOver.
+Para mais detalhes sobre a configuração automática, veja [SETUP_AUTOMATICO.md](./SETUP_AUTOMATICO.md).
+
+## 📋 Recursos Principais
+
+- **Gestão de Competências**: Avaliação e desenvolvimento de habilidades
+- **PDI (Plano de Desenvolvimento Individual)**: Planejamento de carreira personalizado
+- **Trilhas de Carreira**: Progressão profissional estruturada
+- **Saúde Mental**: Acompanhamento psicológico integrado
+- **Mentoria**: Sistema de mentoria e coaching
+- **Relatórios e Analytics**: Dashboards com insights em tempo real
+
+## 🛠️ Tecnologias Utilizadas
+
+- **Frontend**: React 18 + TypeScript + Vite
+- **UI/UX**: Tailwind CSS + Framer Motion
+- **Backend**: Supabase (PostgreSQL + Auth + Realtime)
+- **Testes**: Jest + Cypress + React Testing Library
+- **Deploy**: Otimizado para Vercel/Netlify
+
+## 📱 Responsividade
+
+O sistema é totalmente responsivo e otimizado para:
+- 📱 Mobile (a partir de 320px)
+- 💻 Tablet (768px+)
+- 🖥️ Desktop (1024px+)
+
+## 🔒 Segurança
+
+- Autenticação via Supabase Auth
+- RLS (Row Level Security) em todas as tabelas
+- Validação de dados em múltiplas camadas
+- Proteção contra XSS e CSRF
+
+## 📚 Documentação Adicional
+
+- [Guia de Configuração Automática](./SETUP_AUTOMATICO.md)
+- [Guia de Deployment](./DEPLOYMENT_GUIDE.md)
+- [Checklist de Produção](./PRODUCTION_CHECKLIST.md)
+- [Documentação de Segurança RLS](./RLS_SECURITY_DOCUMENTATION.md)
+
+## 🤝 Contribuindo
+
+1. Fork o projeto
+2. Crie sua Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a Branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob licença proprietária. Todos os direitos reservados.
+
+---
+
+**Desenvolvido com ❤️ pela equipe TalentFlow**

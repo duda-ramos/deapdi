@@ -7,8 +7,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AchievementProvider } from './contexts/AchievementContext';
 import { AchievementToast } from './components/AchievementToast';
 import { useAchievements } from './contexts/AchievementContext';
-import { SetupCheck } from './components/SetupCheck';
-import { checkDatabaseHealth } from './lib/supabase';
+import { ConfigurationError } from './components/ConfigurationError';
+import { autoConfigureSupabase, type ConfigurationStatus } from './utils/supabaseAutoConfig';
 import { Login } from './components/Login';
 import { Onboarding } from './components/Onboarding';
 import { Layout } from './components/layout/Layout';
@@ -58,11 +58,28 @@ const AchievementWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
 };
 
 const useSupabaseSetup = () => {
-  const [setupComplete, setSetupComplete] = React.useState(false);
+  const [configStatus, setConfigStatus] = React.useState<ConfigurationStatus | null>(null);
   const [checking, setChecking] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [isExpiredToken, setIsExpiredToken] = React.useState(false);
   const hasRunRef = React.useRef(false);
+
+  const checkSetup = React.useCallback(async () => {
+    setChecking(true);
+    try {
+      const status = await autoConfigureSupabase();
+      setConfigStatus(status);
+    } catch (error) {
+      console.error('🔴 Auto-configuration failed:', error);
+      setConfigStatus({
+        isConfigured: false,
+        isValid: false,
+        error: error instanceof Error ? error.message : 'Erro desconhecido na configuração',
+        source: 'env',
+        needsMigration: false
+      });
+    } finally {
+      setChecking(false);
+    }
+  }, []);
 
   React.useEffect(() => {
     // Prevent duplicate execution
@@ -73,70 +90,40 @@ const useSupabaseSetup = () => {
 
     hasRunRef.current = true;
 
-    const checkSetup = async () => {
-      const hasUrl = !!import.meta.env.VITE_SUPABASE_URL;
-      const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const offlineMode = localStorage.getItem('OFFLINE_MODE') === 'true';
-      const skipHealthCheck = import.meta.env.VITE_SKIP_HEALTH_CHECK === 'true';
+    // Check for offline mode
+    const offlineMode = localStorage.getItem('OFFLINE_MODE') === 'true';
+    const skipHealthCheck = import.meta.env.VITE_SKIP_HEALTH_CHECK === 'true';
 
-      if (skipHealthCheck && import.meta.env.DEV) {
-        console.log('🔧 Setup: Health check skipped (dev mode)');
-        setSetupComplete(true);
-        setChecking(false);
-        return;
-      }
-
-      if (offlineMode) {
-        console.log('🔧 Setup: Offline mode enabled');
-        setSetupComplete(true);
-        setChecking(false);
-        return;
-      }
-
-      if (!hasUrl || !hasKey) {
-        console.log('🔧 Setup: Missing credentials');
-        setSetupComplete(false);
-        setChecking(false);
-        setError('Missing Supabase credentials');
-        return;
-      }
-
-      // Check if Supabase connection is actually working
-      try {
-        console.log('🔧 Setup: Checking health...');
-        const healthCheck = await checkDatabaseHealth();
-        const isSetup = healthCheck.healthy;
-
-        if (import.meta.env.DEV) {
-          console.log('🔧 Setup Check:', {
-            hasUrl,
-            hasKey,
-            offlineMode,
-            healthy: healthCheck.healthy,
-            error: healthCheck.error,
-            isExpiredToken: healthCheck.isExpiredToken,
-            isSetup
-          });
-        }
-
-        setSetupComplete(isSetup);
-        setError(healthCheck.error || null);
-        setIsExpiredToken(healthCheck.isExpiredToken || false);
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.log('🔧 Setup Check Failed:', error);
-        }
-        setSetupComplete(false);
-        setError(error instanceof Error ? error.message : 'Unknown error occurred');
-      }
-
+    if (skipHealthCheck && import.meta.env.DEV) {
+      console.log('🔧 Setup: Health check skipped (dev mode)');
+      setConfigStatus({
+        isConfigured: true,
+        isValid: true,
+        error: null,
+        source: 'env',
+        needsMigration: false
+      });
       setChecking(false);
-    };
+      return;
+    }
+
+    if (offlineMode) {
+      console.log('🔧 Setup: Offline mode enabled');
+      setConfigStatus({
+        isConfigured: true,
+        isValid: true,
+        error: null,
+        source: 'env',
+        needsMigration: false
+      });
+      setChecking(false);
+      return;
+    }
 
     checkSetup();
-  }, []);
+  }, [checkSetup]);
 
-  return { setupComplete, checking, error, isExpiredToken, setSetupComplete };
+  return { configStatus, checking, retry: checkSetup };
 };
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -168,17 +155,16 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
-  const { setupComplete, checking, error, isExpiredToken, setSetupComplete } = useSupabaseSetup();
+  const { configStatus, checking, retry } = useSupabaseSetup();
 
   if (checking) {
     return <LoadingScreen message="Verificando configuração..." />;
   }
 
-  if (!setupComplete) {
-    return <SetupCheck
-      onSetupComplete={() => setSetupComplete(true)}
-      initialError={error}
-      isExpiredToken={isExpiredToken}
+  if (!configStatus || (!configStatus.isConfigured || !configStatus.isValid)) {
+    return <ConfigurationError
+      error={configStatus?.error || 'Configuração do Supabase não encontrada'}
+      onRetry={retry}
     />;
   }
 
