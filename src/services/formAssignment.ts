@@ -257,13 +257,11 @@ export class FormAssignmentService {
       if (userRole === 'admin') {
         // Admin can ONLY see performance forms, NEVER mental health data
         query = query.eq('form_type', 'performance');
-        
-        // If specific formType is requested and it's mental_health, return empty
+
         if (formType === 'mental_health') {
           return {
             success: true,
-            assignments: [],
-            error: 'Administradores não podem acessar dados de saúde mental'
+            assignments: []
           };
         }
       } else if (userRole === 'hr') {
@@ -279,8 +277,15 @@ export class FormAssignmentService {
         query = query.contains('assigned_to', [userId]);
       }
 
-      // Additional security: If formType is specified, apply it
+      // Additional security: If formType is specified, apply it with role validation
       if (formType) {
+        if (formType === 'mental_health' && userRole !== 'hr') {
+          return {
+            success: true,
+            assignments: []
+          };
+        }
+
         query = query.eq('form_type', formType);
       }
 

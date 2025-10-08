@@ -105,10 +105,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
     user && item.roles.includes(user.role)
   );
 
+  const getVisibleSubItems = (item: SidebarItem) => {
+    if (!item.subItems) return [];
+    if (!user) return item.subItems;
+    return item.subItems.filter(subItem => subItem.roles.includes(user.role));
+  };
+
   const isItemActive = (item: SidebarItem) => {
     if (location.pathname === item.path) return true;
     if (item.subItems) {
-      return item.subItems.some(subItem => location.pathname === subItem.path);
+      const visibleSubItems = getVisibleSubItems(item);
+      return visibleSubItems.some(subItem => location.pathname === subItem.path);
     }
     return false;
   };
@@ -137,7 +144,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
         {filteredItems.map((item) => {
           const isActive = isItemActive(item);
           const isExpanded = expandedItems.includes(item.id);
-          const hasSubItems = item.subItems && item.subItems.length > 0;
+          const visibleSubItems = getVisibleSubItems(item);
+          const hasSubItems = visibleSubItems.length > 0;
 
           return (
             <div key={item.id}>
@@ -200,7 +208,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
                     className="overflow-hidden"
                   >
                     <div className="ml-6 mt-1 space-y-1">
-                      {item.subItems!.map((subItem) => {
+                      {visibleSubItems.map((subItem) => {
                         const isSubActive = location.pathname === subItem.path;
                         return (
                           <Link

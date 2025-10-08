@@ -1,22 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Users, 
-  UserCheck, 
-  UserPlus, 
+import {
+  Users,
+  UserCheck,
+  UserPlus,
   AlertTriangle,
   Shield,
-  Eye,
-  EyeOff,
-  Calendar,
   Clock
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { FormAssignmentService, FormAssignment } from '../../services/formAssignment';
+import {
+  FormAssignmentService,
+  AssignmentPermission
+} from '../../services/formAssignment';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
 import { Badge } from '../ui/Badge';
 import { Checkbox } from '../ui/Checkbox';
 
@@ -53,7 +52,9 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [assignmentType, setAssignmentType] = useState<'individual' | 'multiple' | 'all'>('individual');
   const [dueDate, setDueDate] = useState('');
-  const [permission, setPermission] = useState<any>(null);
+  const [basicPermission, setBasicPermission] = useState<AssignmentPermission | null>(null);
+  const [assignmentPermission, setAssignmentPermission] = useState<AssignmentPermission | null>(null);
+  const [checkingAssignmentPermission, setCheckingAssignmentPermission] = useState(false);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -61,6 +62,14 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
       checkPermissions();
     }
   }, [isOpen, user, formType]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setAssignmentPermission(null);
+      setCheckingAssignmentPermission(false);
+      setBasicPermission(null);
+    }
+  }, [isOpen]);
 
   const loadAssignableUsers = async () => {
     if (!user) return;
@@ -95,11 +104,58 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
         user.role,
         formType
       );
-      setPermission(permission);
+      setBasicPermission(permission);
     } catch (error) {
       console.error('Error checking permissions:', error);
     }
   };
+
+  useEffect(() => {
+    if (!user || !isOpen) return;
+    if (!basicPermission || !basicPermission.canAssign) return;
+
+    if (selectedUsers.length === 0) {
+      setAssignmentPermission(null);
+      setCheckingAssignmentPermission(false);
+      return;
+    }
+
+    let isSubscribed = true;
+    setAssignmentPermission(null);
+    setCheckingAssignmentPermission(true);
+
+    FormAssignmentService.checkAssignmentPermission(
+      user.role,
+      formType,
+      selectedUsers,
+      user.id
+    )
+      .then(result => {
+        if (isSubscribed) {
+          setAssignmentPermission(result);
+        }
+      })
+      .catch(error => {
+        console.error('Error validating assignment permissions:', error);
+        if (isSubscribed) {
+          setAssignmentPermission({
+            canAssign: false,
+            canViewResults: false,
+            allowedUsers: [],
+            reason: 'Não foi possível validar as permissões para os usuários selecionados'
+          });
+        }
+      })
+      .finally(() => {
+        if (isSubscribed) {
+          setCheckingAssignmentPermission(false);
+        }
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [user?.id, user?.role, isOpen, basicPermission, selectedUsers, formType]);
 
   const handleUserSelection = (userId: string, checked: boolean) => {
     if (checked) {
@@ -135,15 +191,20 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
       setError('');
 
       // Validate permissions with selected users before creating assignment
-      const permissionCheck = await FormAssignmentService.checkAssignmentPermission(
-        user.role,
-        formType,
-        selectedUsers,
-        user.id
-      );
+      const permissionCheck = assignmentPermission?.allowedUsers?.length === selectedUsers.length
+        ? assignmentPermission
+        : await FormAssignmentService.checkAssignmentPermission(
+            user.role,
+            formType,
+            selectedUsers,
+            user.id
+          );
 
-      if (!permissionCheck.canAssign) {
-        setError(permissionCheck.reason || 'Você não tem permissão para atribuir este formulário para os usuários selecionados');
+      if (!permissionCheck?.canAssign) {
+        setError(
+          permissionCheck?.reason ||
+            'Você não tem permissão para atribuir este formulário para os usuários selecionados'
+        );
         return;
       }
 
@@ -184,6 +245,8 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
     setAssignmentType('individual');
     setDueDate('');
     setError('');
+    setAssignmentPermission(null);
+    setCheckingAssignmentPermission(false);
   };
 
   const handleClose = () => {
@@ -191,11 +254,11 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
     onClose();
   };
 
-  if (!permission) {
+  if (!basicPermission) {
     return null;
   }
 
-  if (!permission.canAssign) {
+  if (!basicPermission.canAssign) {
     return (
       <Modal isOpen={isOpen} onClose={handleClose} title="Acesso Negado" size="md">
         <div className="text-center py-8">
@@ -204,7 +267,7 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
             Permissão Insuficiente
           </h3>
           <p className="text-gray-600 mb-4">
-            {permission.reason || 'Você não tem permissão para atribuir este tipo de formulário.'}
+            {basicPermission.reason || 'Você não tem permissão para atribuir este tipo de formulário.'}
           </p>
           <Button onClick={handleClose}>
             Fechar
@@ -333,6 +396,25 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
                 </label>
               ))}
             </div>
+
+            {checkingAssignmentPermission && selectedUsers.length > 0 && (
+              <div className="mt-3 flex items-center text-sm text-gray-500">
+                <Clock className="mr-2 h-4 w-4 animate-spin" />
+                Verificando permissões para os usuários selecionados...
+              </div>
+            )}
+
+            {assignmentPermission && !assignmentPermission.canAssign && selectedUsers.length > 0 && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <div className="flex items-start space-x-2">
+                  <AlertTriangle className="mt-0.5" size={16} />
+                  <span>
+                    {assignmentPermission.reason ||
+                      'Você não tem permissão para atribuir este formulário para os usuários selecionados.'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -382,7 +464,12 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
           </Button>
           <Button
             type="submit"
-            disabled={loading || selectedUsers.length === 0}
+            disabled={
+              loading ||
+              selectedUsers.length === 0 ||
+              checkingAssignmentPermission ||
+              (assignmentPermission && !assignmentPermission.canAssign)
+            }
           >
             {loading ? (
               <>
