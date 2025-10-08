@@ -38,5 +38,5 @@ export const LazyActionGroupService = lazy(() => import('../services/actionGroup
 // Advanced Mental Health Features
 export const LazyPsychologicalRecord = lazy(() => import('../pages/PsychologicalRecord'));
 export const LazyAnalyticsDashboard = lazy(() => import('../pages/AnalyticsDashboard'));
-export const LazyFormBuilder = lazy(() => import('../components/mental-health/FormBuilder'));
-export const LazyTaskManager = lazy(() => import('../components/mental-health/TaskManager'));
+export const LazyFormBuilder = lazy(() => import('./mental-health/FormBuilder'));
+export const LazyTaskManager = lazy(() => import('./mental-health/TaskManager'));
