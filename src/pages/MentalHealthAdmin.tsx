@@ -22,7 +22,7 @@ import {
   ClipboardList,
   CheckSquare,
   ArrowRight,
-  BookOpen,
+  BookOpen as BookOpenIcon,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -398,7 +398,7 @@ const MentalHealthAdmin: React.FC = () => {
             {
               title: 'Biblioteca Terapêutica',
               description: 'Recursos e materiais de apoio',
-              icon: <BookOpen className="text-purple-500" size={24} />,
+              icon: <BookOpenIcon className="text-purple-500" size={24} />,
               path: '/mental-health/library',
               color: 'purple'
             },
