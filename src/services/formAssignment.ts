@@ -1,6 +1,9 @@
 import { supabase } from '../lib/supabase';
 import { UserRole } from '../types';
 
+const ADMIN_MENTAL_HEALTH_ACCESS_ERROR = 'Administradores não podem acessar dados de saúde mental';
+const HR_ONLY_MENTAL_HEALTH_ACCESS_ERROR = 'Apenas usuários do RH podem acessar dados de saúde mental';
+
 export interface FormAssignment {
   id: string;
   form_id: string;
@@ -257,13 +260,12 @@ export class FormAssignmentService {
       if (userRole === 'admin') {
         // Admin can ONLY see performance forms, NEVER mental health data
         query = query.eq('form_type', 'performance');
-        
-        // If specific formType is requested and it's mental_health, return empty
+
         if (formType === 'mental_health') {
           return {
             success: true,
             assignments: [],
-            error: 'Administradores não podem acessar dados de saúde mental'
+            error: ADMIN_MENTAL_HEALTH_ACCESS_ERROR
           };
         }
       } else if (userRole === 'hr') {
@@ -279,8 +281,16 @@ export class FormAssignmentService {
         query = query.contains('assigned_to', [userId]);
       }
 
-      // Additional security: If formType is specified, apply it
+      // Additional security: If formType is specified, apply it with role validation
       if (formType) {
+        if (formType === 'mental_health' && userRole !== 'hr') {
+          return {
+            success: true,
+            assignments: [],
+            error: HR_ONLY_MENTAL_HEALTH_ACCESS_ERROR
+          };
+        }
+
         query = query.eq('form_type', formType);
       }
 
@@ -414,7 +424,7 @@ export class FormAssignmentService {
     if (formType === 'mental_health' && userRole !== 'hr') {
       return {
         valid: false,
-        reason: 'Apenas usuários do RH podem acessar dados de saúde mental'
+        reason: HR_ONLY_MENTAL_HEALTH_ACCESS_ERROR
       };
     }
 
