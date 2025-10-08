@@ -28,6 +28,8 @@
     "test:e2e:open": "cypress open",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "test:watch": "jest --watch",
+    "config:migrate": "node scripts/migrate-config.js",
+    "setup": "npm install && npm run config:migrate",
     "test:coverage": "jest --coverage",
     "postbuild": "echo 'Build completed successfully. Ready for deploy.'",
     "prebuild": "npm run type-check"
