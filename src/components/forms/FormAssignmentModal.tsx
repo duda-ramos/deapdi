@@ -121,21 +121,23 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
     }
 
     let isSubscribed = true;
-    setAssignmentPermission(null);
-    setCheckingAssignmentPermission(true);
 
-    FormAssignmentService.checkAssignmentPermission(
-      user.role,
-      formType,
-      selectedUsers,
-      user.id
-    )
-      .then(result => {
+    const validateAssignmentPermissions = async () => {
+      setAssignmentPermission(null);
+      setCheckingAssignmentPermission(true);
+
+      try {
+        const result = await FormAssignmentService.checkAssignmentPermission(
+          user.role,
+          formType,
+          selectedUsers,
+          user.id
+        );
+
         if (isSubscribed) {
           setAssignmentPermission(result);
         }
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Error validating assignment permissions:', error);
         if (isSubscribed) {
           setAssignmentPermission({
@@ -145,17 +147,19 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
             reason: 'Não foi possível validar as permissões para os usuários selecionados'
           });
         }
-      })
-      .finally(() => {
+      } finally {
         if (isSubscribed) {
           setCheckingAssignmentPermission(false);
         }
-      });
+      }
+    };
+
+    validateAssignmentPermissions();
 
     return () => {
       isSubscribed = false;
     };
-  }, [user?.id, user?.role, isOpen, basicPermission, selectedUsers, formType]);
+  }, [user, isOpen, basicPermission, selectedUsers, formType]);
 
   const handleUserSelection = (userId: string, checked: boolean) => {
     if (checked) {
