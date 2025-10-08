@@ -1,6 +1,9 @@
 import { supabase } from '../lib/supabase';
 import { UserRole } from '../types';
 
+const ADMIN_MENTAL_HEALTH_ACCESS_ERROR = 'Administradores não podem acessar dados de saúde mental';
+const HR_ONLY_MENTAL_HEALTH_ACCESS_ERROR = 'Apenas usuários do RH podem acessar dados de saúde mental';
+
 export interface FormAssignment {
   id: string;
   form_id: string;
@@ -262,7 +265,7 @@ export class FormAssignmentService {
           return {
             success: true,
             assignments: [],
-            error: 'Administradores não podem acessar dados de saúde mental'
+            error: ADMIN_MENTAL_HEALTH_ACCESS_ERROR
           };
         }
       } else if (userRole === 'hr') {
@@ -284,7 +287,7 @@ export class FormAssignmentService {
           return {
             success: true,
             assignments: [],
-            error: 'Apenas usuários do RH podem acessar dados de saúde mental'
+            error: HR_ONLY_MENTAL_HEALTH_ACCESS_ERROR
           };
         }
 
@@ -421,7 +424,7 @@ export class FormAssignmentService {
     if (formType === 'mental_health' && userRole !== 'hr') {
       return {
         valid: false,
-        reason: 'Apenas usuários do RH podem acessar dados de saúde mental'
+        reason: HR_ONLY_MENTAL_HEALTH_ACCESS_ERROR
       };
     }
 
