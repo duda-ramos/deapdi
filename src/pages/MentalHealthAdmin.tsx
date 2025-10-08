@@ -22,7 +22,7 @@ import {
   ClipboardList,
   CheckSquare,
   ArrowRight,
-  BookOpen
+  BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
