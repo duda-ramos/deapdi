@@ -261,7 +261,8 @@ export class FormAssignmentService {
         if (formType === 'mental_health') {
           return {
             success: true,
-            assignments: []
+            assignments: [],
+            error: 'Administradores não podem acessar dados de saúde mental'
           };
         }
       } else if (userRole === 'hr') {
@@ -282,7 +283,8 @@ export class FormAssignmentService {
         if (formType === 'mental_health' && userRole !== 'hr') {
           return {
             success: true,
-            assignments: []
+            assignments: [],
+            error: 'Apenas usuários do RH podem acessar dados de saúde mental'
           };
         }
 
