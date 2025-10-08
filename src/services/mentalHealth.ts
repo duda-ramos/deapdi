@@ -65,6 +65,7 @@ export interface FormResponse {
   employee_id: string;
   responses: any;
   score?: number;
+  risk_level?: 'baixo' | 'medio' | 'alto' | 'critico';
   interpretation?: string;
   status?: string;
   reviewed_by?: string;
