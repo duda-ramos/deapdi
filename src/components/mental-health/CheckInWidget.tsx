@@ -130,6 +130,7 @@ export const CheckInWidget: React.FC<CheckInWidgetProps> = ({
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showTrends, setShowTrends] = useState(false);
+  const [showHRConfig, setShowHRConfig] = useState(false);
   const [notes, setNotes] = useState('');
   const [questionAnswer, setQuestionAnswer] = useState('');
   const [scores, setScores] = useState({
