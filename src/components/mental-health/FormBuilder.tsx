@@ -15,7 +15,7 @@ import {
   Move,
   GripVertical
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { mentalHealthService, FormTemplate, FormQuestion } from '../../services/mentalHealth';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
