@@ -307,7 +307,8 @@ export class FacilitiesPDFReport {
     this.doc.roundedRect(x, y, width, height, 2, 2, 'F');
     
     // Faixa decorativa superior
-    this.doc.setFillColor(this.hexToRgb(color).map(c => Math.max(0, c - 30)) as any);
+    const [stripeR, stripeG, stripeB] = this.adjustColorBrightness(color, -30);
+    this.doc.setFillColor(stripeR, stripeG, stripeB);
     this.doc.roundedRect(x, y, width, 4, 2, 2, 'F');
     
     // Ícone
@@ -632,6 +633,12 @@ export class FacilitiesPDFReport {
           parseInt(result[3], 16)
         ]
       : [0, 0, 0];
+  }
+
+  private adjustColorBrightness(hex: string, delta: number): [number, number, number] {
+    const [r, g, b] = this.hexToRgb(hex);
+    const clamp = (value: number) => Math.max(0, Math.min(255, value + delta));
+    return [clamp(r), clamp(g), clamp(b)];
   }
 }
 
