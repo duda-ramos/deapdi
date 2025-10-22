@@ -64,12 +64,7 @@ const Competencies: React.FC = () => {
       }
 
       setEditingMode('view');
-      
-      // Check for new achievements after competency updates
-      setTimeout(() => {
-        checkAchievements();
-      }, 1000);
-      
+
       // Check for career progression after competency updates
       setTimeout(async () => {
         try {

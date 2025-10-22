@@ -115,12 +115,7 @@ const PDI: React.FC = () => {
           await databaseService.updateProfile(user.id, {
             points: user.points + pdi.points
           });
-          
-          // Check for new achievements
-          setTimeout(() => {
-            checkAchievements();
-          }, 1000);
-          
+
           // Check for career progression after PDI completion
           if (newStatus === 'validated') {
             setTimeout(async () => {
