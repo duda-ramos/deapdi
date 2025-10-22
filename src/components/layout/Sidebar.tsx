@@ -80,7 +80,6 @@ const sidebarItems: SidebarItem[] = [
     ]
   },
   { id: 'mental-health-admin', label: 'Portal do Psicólogo', icon: <Brain size={20} />, path: '/mental-health/admin', roles: ['hr'] },
-  { id: 'reports', label: 'Relatórios', icon: <FileText size={20} />, path: '/reports', roles: ['admin', 'hr', 'manager'] },
   { id: 'users', label: 'Criar Usuários', icon: <UserCog size={20} />, path: '/users', roles: ['admin', 'hr'] },
   { id: 'hr', label: 'Área de RH', icon: <Heart size={20} />, path: '/hr', roles: ['admin', 'hr'] },
   { id: 'hr-calendar', label: 'Calendário', icon: <Calendar size={20} />, path: '/hr-calendar', roles: ['admin', 'hr'] },

@@ -87,8 +87,7 @@ const MentalHealthAdmin: React.FC = () => {
     { id: 'overview', label: 'Visão Geral', icon: <BarChart3 size={16} /> },
     { id: 'requests', label: 'Solicitações', icon: <Calendar size={16} /> },
     { id: 'alerts', label: 'Alertas', icon: <AlertTriangle size={16} /> },
-    { id: 'sessions', label: 'Sessões', icon: <Users size={16} /> },
-    { id: 'reports', label: 'Relatórios', icon: <FileText size={16} /> }
+    { id: 'sessions', label: 'Sessões', icon: <Users size={16} /> }
   ];
 
   useEffect(() => {
