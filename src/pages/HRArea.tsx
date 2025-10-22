@@ -27,6 +27,12 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { AddSalaryModal } from '../components/modals/AddSalaryModal';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
+type CompetencyGapChartData = {
+  competency: string;
+  current: number;
+  target: number;
+};
+
 const HRArea: React.FC = () => {
   const { user } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -36,6 +42,7 @@ const HRArea: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('overview');
   const [showAddSalaryModal, setShowAddSalaryModal] = useState(false);
   const [selectedProfileForSalary, setSelectedProfileForSalary] = useState<string>('');
+  const [competencyGapData, setCompetencyGapData] = useState<CompetencyGapChartData[]>([]);
 
   useEffect(() => {
     if (user && (user.role === 'hr' || user.role === 'admin')) {
@@ -88,7 +95,7 @@ const HRArea: React.FC = () => {
   const teamPerformanceData = React.useMemo(() => {
     // Calculate real team performance based on profiles data
     const teamMap = new Map();
-    
+
     profiles.forEach(profile => {
       if (profile.team?.name) {
         const teamName = profile.team.name;
@@ -105,6 +112,57 @@ const HRArea: React.FC = () => {
       performance: Math.min(100, Math.round((data.totalPoints / data.members.length) / 10)), // Normalize to 0-100
       members: data.members.length
     }));
+  }, [profiles]);
+
+
+  useEffect(() => {
+    const loadCompetencyGaps = async () => {
+      try {
+        const competencies = await databaseService.getAllCompetencies();
+
+        if (!competencies || competencies.length === 0) {
+          setCompetencyGapData([]);
+          return;
+        }
+
+        const aggregated = competencies.reduce((acc, competency: Competency) => {
+          if (!competency.name) {
+            return acc;
+          }
+
+          const currentLevel = Math.max(competency.manager_rating ?? 0, competency.self_rating ?? 0);
+          const targetLevel = competency.target_level ?? 0;
+          const existing = acc.get(competency.name) || { totalCurrent: 0, totalTarget: 0, count: 0 };
+
+          existing.totalCurrent += currentLevel;
+          existing.totalTarget += targetLevel;
+          existing.count += 1;
+
+          acc.set(competency.name, existing);
+          return acc;
+        }, new Map<string, { totalCurrent: number; totalTarget: number; count: number }>());
+
+        const chartData = Array.from(aggregated.entries())
+          .map(([competencyName, values]) => ({
+            competency: competencyName,
+            current: Math.round((values.totalCurrent / values.count) * 10) / 10,
+            target: Math.round((values.totalTarget / values.count) * 10) / 10
+          }))
+          .sort((a, b) => (b.target - b.current) - (a.target - a.current))
+          .slice(0, 5);
+
+        setCompetencyGapData(chartData);
+      } catch (error) {
+        console.error('Erro ao carregar gaps de competências:', error);
+        setCompetencyGapData([]);
+      }
+    };
+
+    if (profiles.length > 0) {
+      loadCompetencyGaps();
+    } else {
+      setCompetencyGapData([]);
+    }
   }, [profiles]);
 
 
