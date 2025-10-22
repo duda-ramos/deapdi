@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Users, Calendar, CheckCircle, Clock, AlertTriangle, User, Target, CreditCard as Edit, Trash2, UserPlus, UserMinus, BarChart3, Award, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useAchievements } from '../contexts/AchievementContext';
 import { actionGroupService, GroupWithDetails, CreateGroupData, CreateTaskData } from '../services/actionGroups';
 import { databaseService } from '../services/database';
 import { Profile, PDI } from '../types';
@@ -19,7 +18,6 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 
 const ActionGroups: React.FC = () => {
   const { user } = useAuth();
-  const { checkAchievements } = useAchievements();
   const [groups, setGroups] = useState<GroupWithDetails[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [userPDIs, setUserPDIs] = useState<PDI[]>([]);
@@ -113,11 +111,6 @@ const ActionGroups: React.FC = () => {
       });
       
       await loadData();
-      
-      // Check for achievements after creating group
-      setTimeout(() => {
-        checkAchievements();
-      }, 1000);
     } catch (error) {
       console.error('Erro ao criar grupo:', error);
       setError(error instanceof Error ? error.message : 'Erro ao criar grupo');
@@ -157,13 +150,6 @@ const ActionGroups: React.FC = () => {
     try {
       await actionGroupService.updateTask(taskId, { status });
       await loadData();
-      
-      // Check for achievements after completing task
-      if (status === 'done') {
-        setTimeout(() => {
-          checkAchievements();
-        }, 1000);
-      }
     } catch (error) {
       console.error('Erro ao atualizar tarefa:', error);
     }
@@ -173,11 +159,6 @@ const ActionGroups: React.FC = () => {
     try {
       await actionGroupService.completeGroup(groupId);
       await loadData();
-      
-      // Check for achievements after completing group
-      setTimeout(() => {
-        checkAchievements();
-      }, 1000);
       
       // Check for career progression after group completion
       setTimeout(async () => {

@@ -4,9 +4,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { AchievementProvider } from './contexts/AchievementContext';
-import { AchievementToast } from './components/AchievementToast';
-import { useAchievements } from './contexts/AchievementContext';
 import { ConfigurationError } from './components/ConfigurationError';
 import { autoConfigureSupabase, type ConfigurationStatus } from './utils/supabaseAutoConfig';
 import { Login } from './components/Login';
@@ -19,15 +16,12 @@ import {
   LazyCompetencies,
   LazyPDI,
   LazyActionGroups,
-  LazyAchievements,
-  LazyLearning,
   LazyMentorship,
   LazyReports,
   LazyHRArea,
   LazyAdministration,
   LazyUserManagement,
   LazyCareerTrackManagement,
-  LazyCertificates,
   LazyPsychologicalRecord,
   LazyAnalyticsDashboard,
   LazyFormBuilder,
@@ -42,20 +36,6 @@ import {
   LazyQualityAssurance,
   LazyHRCalendar
 } from './components/LazyComponents';
-
-const AchievementWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { newAchievement, clearAchievement } = useAchievements();
-
-  return (
-    <>
-      {children}
-      <AchievementToast 
-        achievement={newAchievement} 
-        onClose={clearAchievement} 
-      />
-    </>
-  );
-};
 
 const useSupabaseSetup = () => {
   const [configStatus, setConfigStatus] = React.useState<ConfigurationStatus | null>(null);
@@ -290,22 +270,6 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
-        path="/achievements"
-        element={
-          <ProtectedRoute>
-            <LazyAchievements />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/learning"
-        element={
-          <ProtectedRoute>
-            <LazyLearning />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/mentorship"
         element={
           <ProtectedRoute>
@@ -350,14 +314,6 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <LazyCareerTrackManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/certificates"
-        element={
-          <ProtectedRoute>
-            <LazyCertificates />
           </ProtectedRoute>
         }
       />
@@ -444,11 +400,7 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <Router>
-          <AchievementProvider>
-            <AchievementWrapper>
-              <AppRoutes />
-            </AchievementWrapper>
-          </AchievementProvider>
+          <AppRoutes />
         </Router>
       </AuthProvider>
     </ErrorBoundary>

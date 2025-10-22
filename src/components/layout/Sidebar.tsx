@@ -44,9 +44,6 @@ const sidebarItems: SidebarItem[] = [
   { id: 'competencies', label: 'Competências', icon: <BarChart3 size={20} />, path: '/competencies', roles: ['admin', 'hr', 'manager', 'employee'] },
   { id: 'pdi', label: 'PDI', icon: <Target size={20} />, path: '/pdi', roles: ['admin', 'hr', 'manager', 'employee'] },
   { id: 'groups', label: 'Grupos de Ação', icon: <Users size={20} />, path: '/groups', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { id: 'achievements', label: 'Conquistas', icon: <Trophy size={20} />, path: '/achievements', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { id: 'learning', label: 'Aprendizado', icon: <BookOpen size={20} />, path: '/learning', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { id: 'certificates', label: 'Certificados', icon: <Award size={20} />, path: '/certificates', roles: ['admin', 'hr', 'manager', 'employee'] },
   { id: 'mentorship', label: 'Mentoria', icon: <Users size={20} />, path: '/mentorship', roles: ['admin', 'hr', 'manager', 'employee'] },
   { 
     id: 'mental-health', 

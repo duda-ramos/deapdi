@@ -1,11 +1,10 @@
 import { supabase } from '../lib/supabase';
-import { Profile, PDI, Competency, Achievement } from '../types';
+import { Profile, PDI, Competency } from '../types';
 
 export interface ReportData {
   profiles: Profile[];
   pdis: PDI[];
   competencies: Competency[];
-  achievements: Achievement[];
 }
 
 export interface PerformanceReport {
@@ -16,7 +15,6 @@ export interface PerformanceReport {
   points: number;
   completedPDIs: number;
   averageCompetencyRating: number;
-  achievementsCount: number;
   engagementScore: number;
 }
 
@@ -41,8 +39,7 @@ export const reportService = {
         .select(`
           *,
           pdis!pdis_profile_id_fkey(id, status),
-          competencies!competencies_profile_id_fkey(self_rating, manager_rating),
-          achievements!achievements_profile_id_fkey(id)
+          competencies!competencies_profile_id_fkey(self_rating, manager_rating)
         `);
 
       if (profileId) {
@@ -67,7 +64,6 @@ export const reportService = {
           pdi.status === 'completed' || pdi.status === 'validated'
         ).length || 0,
         averageCompetencyRating: this.calculateAverageRating(profile.competencies || []),
-        achievementsCount: profile.achievements?.length || 0,
         engagementScore: this.calculateEngagementScore(profile)
       })) || [];
     } catch (error) {
@@ -224,8 +220,8 @@ export const reportService = {
     // Simple engagement calculation based on activity
     const pdiScore = (profile.pdis?.length || 0) * 10;
     const competencyScore = (profile.competencies?.length || 0) * 5;
-    const achievementScore = (profile.achievements?.length || 0) * 15;
+    const pointsScore = (profile.points || 0) / 10; // Use points as engagement metric
     
-    return Math.min(100, pdiScore + competencyScore + achievementScore);
+    return Math.min(100, pdiScore + competencyScore + pointsScore);
   }
 };
