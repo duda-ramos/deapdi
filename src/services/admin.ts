@@ -19,7 +19,6 @@ export interface SystemStats {
   total_pdis: number;
   completed_pdis: number;
   total_teams: number;
-  total_achievements: number;
   system_uptime: string;
   last_backup: string;
   database_size: string;
@@ -114,13 +113,11 @@ export const adminService = {
       const [
         profilesResult,
         pdisResult,
-        teamsResult,
-        achievementsResult
+        teamsResult
       ] = await Promise.all([
         supabase.from('profiles').select('id, status', { count: 'exact' }),
         supabase.from('pdis').select('id, status', { count: 'exact' }),
-        supabase.from('teams').select('id', { count: 'exact', head: true }),
-        supabase.from('achievements').select('id', { count: 'exact', head: true })
+        supabase.from('teams').select('id', { count: 'exact', head: true })
       ]);
 
       const profiles = profilesResult.data || [];
@@ -132,7 +129,6 @@ export const adminService = {
         total_pdis: pdis.length,
         completed_pdis: pdis.filter(p => p.status === 'completed' || p.status === 'validated').length,
         total_teams: teamsResult.count || 0,
-        total_achievements: achievementsResult.count || 0,
         system_uptime: '99.9%', // Would come from monitoring service
         last_backup: new Date().toISOString(),
         database_size: '2.3GB', // Would come from database metrics
@@ -146,7 +142,6 @@ export const adminService = {
         total_pdis: 0,
         completed_pdis: 0,
         total_teams: 0,
-        total_achievements: 0,
         system_uptime: 'N/A',
         last_backup: 'N/A',
         database_size: 'N/A',

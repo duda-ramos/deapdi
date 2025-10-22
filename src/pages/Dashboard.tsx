@@ -202,9 +202,9 @@ const Dashboard: React.FC = () => {
                 size="sm"
                 variant="ghost"
                 className="text-white hover:bg-white/10 hover:text-white focus-visible:ring-white focus-visible:ring-offset-slate-800"
-                onClick={() => window.location.href = '/learning'}
+                onClick={() => window.location.href = '/career'}
               >
-                Explorar Trilhas
+                Explorar Trilhas de Carreira
               </Button>
             </div>
           </div>
@@ -359,22 +359,22 @@ const Dashboard: React.FC = () => {
           </div>
         </Card>
 
-        {/* Empty Achievements */}
+        {/* Mental Health */}
         <Card className="p-4 md:p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold">Suas Conquistas</h3>
-            <Button size="sm" variant="ghost">
-              <Trophy size={16} className="mr-2" />
-              Ver Todas
+            <h3 className="text-lg font-semibold">Bem-estar</h3>
+            <Button size="sm" variant="ghost" onClick={() => window.location.href = '/mental-health'}>
+              <Brain size={16} className="mr-2" />
+              Acessar
             </Button>
           </div>
           <div className="text-center py-8">
-            <Trophy size={32} className="mx-auto mb-2 text-gray-300" />
+            <Brain size={32} className="mx-auto mb-2 text-gray-300" />
             <p className="text-gray-600 mb-4">
-              Suas conquistas aparecerão aqui conforme você progride!
+              Cuide do seu bem-estar emocional
             </p>
-            <Button size="sm" onClick={() => window.location.href = '/achievements'}>
-              Ver Sistema de Conquistas
+            <Button size="sm" onClick={() => window.location.href = '/mental-health'}>
+              Check-in Emocional
             </Button>
           </div>
         </Card>
@@ -403,10 +403,10 @@ const Dashboard: React.FC = () => {
           <Button 
             variant="success" 
             className="flex flex-col items-center py-4 space-y-2"
-            onClick={() => window.location.href = '/learning'}
+            onClick={() => window.location.href = '/groups'}
           >
-            <BookOpen size={24} />
-            <span className="text-sm">Iniciar Curso</span>
+            <Users size={24} />
+            <span className="text-sm">Grupos de Ação</span>
           </Button>
           <Button 
             variant="ghost" 
@@ -419,10 +419,10 @@ const Dashboard: React.FC = () => {
           <Button 
             variant="ghost" 
             className="flex flex-col items-center py-4 space-y-2"
-            onClick={() => window.location.href = '/achievements'}
+            onClick={() => window.location.href = '/career'}
           >
-            <Trophy size={24} />
-            <span className="text-sm">Conquistas</span>
+            <TrendingUp size={24} />
+            <span className="text-sm">Carreira</span>
           </Button>
           <Button 
             variant="ghost" 

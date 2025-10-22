@@ -3,7 +3,6 @@ import { Database } from './database';
 // Export database types for easier access
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfileWithRelations = Profile & {
-  achievements?: Achievement[];
   team?: Team;
   manager?: Profile;
   is_onboarded?: boolean;
@@ -30,7 +29,6 @@ export type CareerTrack = Database['public']['Tables']['career_tracks']['Row'];
 export type SalaryEntry = Database['public']['Tables']['salary_history']['Row'];
 export type Competency = Database['public']['Tables']['competencies']['Row'];
 export type PDI = Database['public']['Tables']['pdis']['Row'];
-export type Achievement = Database['public']['Tables']['achievements']['Row'];
 export type ActionGroup = Database['public']['Tables']['action_groups']['Row'];
 export type Task = Database['public']['Tables']['tasks']['Row'];
 export type PsychologicalRecord = Database['public']['Tables']['psychological_records']['Row'];
@@ -41,7 +39,6 @@ export type NotificationPreferences = {
   pdi_approved: boolean;
   pdi_rejected: boolean;
   task_assigned: boolean;
-  achievement_unlocked: boolean;
   mentorship_scheduled: boolean;
   mentorship_cancelled: boolean;
   group_invitation: boolean;
@@ -64,7 +61,6 @@ export interface User {
   level: string;
   position: string;
   points: number;
-  achievements: Achievement[];
   careerTrack: CareerTrack;
 }
 

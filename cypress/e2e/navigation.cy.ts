@@ -22,8 +22,6 @@ describe('Navigation', () => {
       { name: 'Competências', url: '/competencies' },
       { name: 'PDI', url: '/pdi' },
       { name: 'Grupos de Ação', url: '/groups' },
-      { name: 'Conquistas', url: '/achievements' },
-      { name: 'Aprendizado', url: '/learning' },
       { name: 'Mentoria', url: '/mentorship' },
       { name: 'Relatórios', url: '/reports' },
       { name: 'Gerenciar Usuários', url: '/users' },

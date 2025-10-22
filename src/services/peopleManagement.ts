@@ -31,7 +31,6 @@ export interface PerformanceMetrics {
   points: number;
   completed_pdis: number;
   average_competency_rating: number;
-  achievements_count: number;
   last_activity: string;
   engagement_score: number;
 }
@@ -81,7 +80,6 @@ export const peopleManagementService = {
     manager?: Profile;
     direct_reports?: Profile[];
     pdis_count?: number;
-    achievements_count?: number;
     competencies_count?: number;
   }> {
     console.log('👥 PeopleManagement: Getting profile details for:', profileId);
@@ -98,16 +96,14 @@ export const peopleManagementService = {
       .single(), 'getProfileDetails');
 
     // Get additional stats
-    const [pdisCount, achievementsCount, competenciesCount] = await Promise.all([
+    const [pdisCount, competenciesCount] = await Promise.all([
       supabase.from('pdis').select('id', { count: 'exact', head: true }).eq('profile_id', profileId),
-      supabase.from('achievements').select('id', { count: 'exact', head: true }).eq('profile_id', profileId),
       supabase.from('competencies').select('id', { count: 'exact', head: true }).eq('profile_id', profileId)
     ]);
 
     return {
       ...profile,
       pdis_count: pdisCount.count || 0,
-      achievements_count: achievementsCount.count || 0,
       competencies_count: competenciesCount.count || 0
     };
   },
@@ -250,12 +246,6 @@ export const peopleManagementService = {
             .eq('profile_id', profile.id)
             .in('status', ['completed', 'validated']);
 
-          // Get achievements count
-          const { count: achievementsCount } = await supabase
-            .from('achievements')
-            .select('*', { count: 'exact', head: true })
-            .eq('profile_id', profile.id);
-
           // Get competencies average
           const { data: competencies } = await supabase
             .from('competencies')
@@ -273,7 +263,6 @@ export const peopleManagementService = {
           const engagementScore = Math.min(100, 
             (profile.points / 10) + 
             ((pdisCount || 0) * 15) + 
-            ((achievementsCount || 0) * 10) +
             (avgRating * 10)
           );
 
@@ -285,7 +274,6 @@ export const peopleManagementService = {
             points: profile.points,
             completed_pdis: pdisCount || 0,
             average_competency_rating: avgRating,
-            achievements_count: achievementsCount || 0,
             last_activity: profile.updated_at,
             engagement_score: Math.round(engagementScore)
           };

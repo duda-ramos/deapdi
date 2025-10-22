@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Target, Calendar, User, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useAchievements } from '../contexts/AchievementContext';
 import { databaseService } from '../services/database';
 import { notificationService } from '../services/notifications';
 import { PDI as PDIType, Profile } from '../types';
@@ -18,7 +17,6 @@ import { Badge } from '../components/ui/Badge';
 
 const PDI: React.FC = () => {
   const { user } = useAuth();
-  const { checkAchievements } = useAchievements();
   const [pdis, setPdis] = useState<PDIType[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
