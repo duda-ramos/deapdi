@@ -38,16 +38,36 @@ DECLARE
   v_mentorship_record mentorships%ROWTYPE;
   v_mentor_name text;
   v_mentee_name text;
+  v_requester_role text;
 BEGIN
+  -- Validar autenticação
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Não autenticado';
+  END IF;
+
   -- Validar que mentorship existe
   SELECT * INTO v_mentorship_record
   FROM mentorships
   WHERE id = mentorship_id_param;
-  
+
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Mentoria não encontrada: %', mentorship_id_param;
   END IF;
   
+  -- Determinar role do solicitante
+  SELECT COALESCE(auth.jwt() ->> 'user_role', role)
+  INTO v_requester_role
+  FROM profiles
+  WHERE id = auth.uid();
+
+  v_requester_role := COALESCE(v_requester_role, auth.jwt() ->> 'user_role');
+
+  -- Validar permissão do solicitante
+  IF auth.uid() NOT IN (v_mentorship_record.mentor_id, v_mentorship_record.mentee_id)
+     AND COALESCE(v_requester_role, 'colaborador') NOT IN ('admin', 'hr', 'manager') THEN
+    RAISE EXCEPTION 'Sem permissão para agendar sessão para esta mentoria';
+  END IF;
+
   -- Buscar nomes para notificação
   SELECT name INTO v_mentor_name FROM profiles WHERE id = v_mentorship_record.mentor_id;
   SELECT name INTO v_mentee_name FROM profiles WHERE id = v_mentorship_record.mentee_id;
@@ -141,7 +161,13 @@ DECLARE
   v_mentorship_record mentorships%ROWTYPE;
   v_mentor_name text;
   v_mentee_name text;
+  v_requester_role text;
 BEGIN
+  -- Validar autenticação
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Não autenticado';
+  END IF;
+
   -- Buscar dados da sessão
   SELECT * INTO v_session_record
   FROM mentorship_sessions
@@ -161,7 +187,21 @@ BEGIN
   SELECT * INTO v_mentorship_record
   FROM mentorships
   WHERE id = v_session_record.mentorship_id;
-  
+
+  -- Determinar role do solicitante
+  SELECT COALESCE(auth.jwt() ->> 'user_role', role)
+  INTO v_requester_role
+  FROM profiles
+  WHERE id = auth.uid();
+
+  v_requester_role := COALESCE(v_requester_role, auth.jwt() ->> 'user_role');
+
+  -- Validar permissão
+  IF auth.uid() NOT IN (v_mentorship_record.mentor_id, v_mentorship_record.mentee_id)
+     AND COALESCE(v_requester_role, 'colaborador') NOT IN ('admin', 'hr', 'manager') THEN
+    RAISE EXCEPTION 'Sem permissão para concluir sessão desta mentoria';
+  END IF;
+
   -- Buscar nomes
   SELECT name INTO v_mentor_name FROM profiles WHERE id = v_mentorship_record.mentor_id;
   SELECT name INTO v_mentee_name FROM profiles WHERE id = v_mentorship_record.mentee_id;
@@ -248,14 +288,21 @@ DECLARE
   v_result jsonb;
   v_team_data jsonb;
   v_hr_data jsonb;
+  v_requester_role text;
 BEGIN
   -- Validar autenticação
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Não autenticado';
   END IF;
-  
+
+  -- Determinar role real do solicitante
+  SELECT COALESCE(auth.jwt() ->> 'user_role', role)
+  INTO v_requester_role
+  FROM profiles
+  WHERE id = auth.uid();
+
   -- Validar que usuário pode acessar dados
-  IF auth.uid() != p_profile_id AND p_user_role NOT IN ('admin', 'hr') THEN
+  IF auth.uid() != p_profile_id AND COALESCE(v_requester_role, 'colaborador') NOT IN ('admin', 'hr') THEN
     -- Permitir se for gestor do perfil
     IF NOT EXISTS (
       SELECT 1 FROM profiles
@@ -384,7 +431,7 @@ BEGIN
   -- ============================================
   -- DADOS DE GESTOR
   -- ============================================
-  IF p_user_role IN ('manager', 'gestor') THEN
+  IF COALESCE(v_requester_role, 'colaborador') IN ('manager', 'gestor') THEN
     SELECT jsonb_build_object(
       'team_size', (
         SELECT COUNT(*) FROM profiles
@@ -436,7 +483,7 @@ BEGIN
   -- ============================================
   -- DADOS DE RH
   -- ============================================
-  IF p_user_role IN ('hr', 'rh', 'admin') THEN
+  IF COALESCE(v_requester_role, 'colaborador') IN ('hr', 'rh', 'admin') THEN
     SELECT jsonb_build_object(
       'total_employees', (
         SELECT COUNT(*) FROM profiles WHERE status = 'active'
@@ -740,7 +787,12 @@ BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Não autenticado';
   END IF;
-  
+
+  -- Garantir que solicitante é o mesmo informado no parâmetro
+  IF auth.uid() != p_completed_by THEN
+    RAISE EXCEPTION 'Usuário autenticado não corresponde ao responsável informado';
+  END IF;
+
   -- Buscar PDI
   SELECT * INTO v_pdi_record
   FROM pdis
@@ -782,32 +834,6 @@ BEGIN
   
   -- Extrair competência relacionada
   v_related_competency := v_pdi_record.related_competency;
-  
-  -- Adicionar pontos extras à competência (se houver)
-  -- Nota: Supondo que existe uma coluna bonus_points em competencies
-  -- Caso não exista, esta parte deve ser adaptada
-  IF v_related_competency IS NOT NULL THEN
-    -- Tentar atualizar competência existente
-    UPDATE competencies
-    SET 
-      bonus_points = COALESCE(bonus_points, 0) + v_bonus_points,
-      updated_at = now()
-    WHERE profile_id = v_pdi_record.profile_id
-    AND name = v_related_competency;
-    
-    -- Se não existir, criar
-    IF NOT FOUND THEN
-      INSERT INTO competencies (
-        profile_id,
-        name,
-        bonus_points
-      ) VALUES (
-        v_pdi_record.profile_id,
-        v_related_competency,
-        v_bonus_points
-      );
-    END IF;
-  END IF;
   
   -- Adicionar pontos ao perfil
   UPDATE profiles
