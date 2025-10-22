@@ -17,7 +17,6 @@ import {
   LazyPDI,
   LazyActionGroups,
   LazyMentorship,
-  LazyReports,
   LazyHRArea,
   LazyAdministration,
   LazyUserManagement,
@@ -274,14 +273,6 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <LazyMentorship />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reports"
-        element={
-          <ProtectedRoute>
-            <LazyReports />
           </ProtectedRoute>
         }
       />

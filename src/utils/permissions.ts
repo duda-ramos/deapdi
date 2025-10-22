@@ -6,7 +6,6 @@ export interface PermissionCheck {
   canCreateTeams: boolean;
   canChangeRoles: boolean;
   canAccessSystemSettings: boolean;
-  canViewAllReports: boolean;
   canManageCareerTracks: boolean;
 }
 
@@ -32,10 +31,6 @@ export const permissionService = {
     return userRole === 'admin';
   },
 
-  canViewAllReports(userRole: UserRole): boolean {
-    return ['admin', 'hr', 'manager'].includes(userRole);
-  },
-
   canManageCareerTracks(userRole: UserRole): boolean {
     return ['admin', 'hr'].includes(userRole);
   },
@@ -56,7 +51,6 @@ export const permissionService = {
       canCreateTeams: this.canCreateTeams(userRole),
       canChangeRoles: this.canChangeRoles(userRole),
       canAccessSystemSettings: this.canAccessSystemSettings(userRole),
-      canViewAllReports: this.canViewAllReports(userRole),
       canManageCareerTracks: this.canManageCareerTracks(userRole)
     };
   },

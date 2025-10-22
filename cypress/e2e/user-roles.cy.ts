@@ -9,7 +9,7 @@ describe('User Role Permissions', () => {
     {
       role: 'manager',
       name: 'Manager User',
-      shouldSee: ['Dashboard', 'Relatórios', 'Área de RH'],
+      shouldSee: ['Dashboard', 'Área de RH'],
       shouldNotSee: ['Administração']
     },
     {

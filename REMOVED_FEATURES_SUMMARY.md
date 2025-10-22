@@ -1,4 +1,4 @@
-# Resumo: Remoção de Funcionalidades de Conquistas, Aprendizados e Certificados
+# Resumo: Remoção de Funcionalidades de Conquistas, Aprendizados, Certificados e Relatórios
 
 ## Data: 2025-10-22
 
@@ -21,18 +21,29 @@ As seguintes funcionalidades foram completamente removidas da aplicação:
 - Progresso de módulos
 - Geração de certificados
 
+### 3. **Módulo de Relatórios (Reports)** ✨ NOVO
+- Página de relatórios (`/reports`)
+- Serviço de relatórios (`reports.ts`)
+- Relatórios de performance individual
+- Relatórios de performance por equipe
+- Relatórios de gap de competências
+- Exportação de relatórios em CSV
+- Visualizações gráficas de dados (charts)
+
 ## Arquivos Removidos
 
 ### Componentes de UI:
 - `/src/pages/Achievements.tsx`
 - `/src/pages/Learning.tsx`
 - `/src/pages/Certificates.tsx`
+- `/src/pages/Reports.tsx` ✨
 - `/src/components/AchievementToast.tsx`
 - `/src/contexts/AchievementContext.tsx`
 
 ### Serviços:
 - `/src/services/achievements.ts`
 - `/src/services/courses.ts`
+- `/src/services/reports.ts` ✨
 
 ## Arquivos Modificados
 
@@ -174,14 +185,16 @@ Se estiver em ambiente de desenvolvimento e quiser começar do zero:
 - ✅ Mentorias
 - ✅ Bem-estar/Saúde Mental
 - ✅ Gestão de Pessoas
-- ✅ Relatórios
 - ✅ Sistema de pontos
+- ✅ Analytics (dashboards de bem-estar e performance por área específica)
 
 ### Ajustes Realizados:
 - Métricas de engajamento agora calculadas sem achievements e courses
 - Dashboard atualizado para focar em PDI, competências e bem-estar
-- Navegação simplificada sem as seções removidas
+- Navegação simplificada sem as seções removidas (achievements, learning, reports) ✨
 - Hooks de verificação de conquistas removidos de PDI, competências e grupos de ação
+- Abas de relatórios removidas das páginas de administração (HRArea, Administration, MentalHealthAdmin) ✨
+- Permissões de visualização de relatórios removidas do sistema de permissões ✨
 
 ## Próximos Passos Recomendados
 
@@ -209,3 +222,4 @@ A aplicação agora está focada em:
 - Gestão de pessoas e times
 - Bem-estar e saúde mental
 - Mentorias e grupos de ação
+- Analytics específicos por módulo (sem módulo centralizado de relatórios genéricos)

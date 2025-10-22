@@ -27,6 +27,12 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { AddSalaryModal } from '../components/modals/AddSalaryModal';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
+type CompetencyGapChartData = {
+  competency: string;
+  current: number;
+  target: number;
+};
+
 const HRArea: React.FC = () => {
   const { user } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -36,6 +42,7 @@ const HRArea: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('overview');
   const [showAddSalaryModal, setShowAddSalaryModal] = useState(false);
   const [selectedProfileForSalary, setSelectedProfileForSalary] = useState<string>('');
+  const [competencyGapData, setCompetencyGapData] = useState<CompetencyGapChartData[]>([]);
 
   useEffect(() => {
     if (user && (user.role === 'hr' || user.role === 'admin')) {
@@ -88,7 +95,7 @@ const HRArea: React.FC = () => {
   const teamPerformanceData = React.useMemo(() => {
     // Calculate real team performance based on profiles data
     const teamMap = new Map();
-    
+
     profiles.forEach(profile => {
       if (profile.team?.name) {
         const teamName = profile.team.name;
@@ -107,33 +114,57 @@ const HRArea: React.FC = () => {
     }));
   }, [profiles]);
 
-  const [competencyGapData, setCompetencyGapData] = React.useState<any[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadCompetencyGaps = async () => {
       try {
-        const { reportService } = await import('../services/reports');
-        const gaps = await reportService.generateCompetencyGapReport();
-        
-        // Transform for chart display
-        const chartData = gaps.slice(0, 5).map(gap => ({
-          competency: gap.competencyName,
-          current: gap.currentLevel,
-          target: gap.targetLevel
-        }));
-        
+        const competencies = await databaseService.getAllCompetencies();
+
+        if (!competencies || competencies.length === 0) {
+          setCompetencyGapData([]);
+          return;
+        }
+
+        const aggregated = competencies.reduce((acc, competency: Competency) => {
+          if (!competency.name) {
+            return acc;
+          }
+
+          const currentLevel = Math.max(competency.manager_rating ?? 0, competency.self_rating ?? 0);
+          const targetLevel = competency.target_level ?? 0;
+          const existing = acc.get(competency.name) || { totalCurrent: 0, totalTarget: 0, count: 0 };
+
+          existing.totalCurrent += currentLevel;
+          existing.totalTarget += targetLevel;
+          existing.count += 1;
+
+          acc.set(competency.name, existing);
+          return acc;
+        }, new Map<string, { totalCurrent: number; totalTarget: number; count: number }>());
+
+        const chartData = Array.from(aggregated.entries())
+          .map(([competencyName, values]) => ({
+            competency: competencyName,
+            current: Math.round((values.totalCurrent / values.count) * 10) / 10,
+            target: Math.round((values.totalTarget / values.count) * 10) / 10
+          }))
+          .sort((a, b) => (b.target - b.current) - (a.target - a.current))
+          .slice(0, 5);
+
         setCompetencyGapData(chartData);
       } catch (error) {
-        console.error('Error loading competency gaps:', error);
-        // Fallback to empty array
+        console.error('Erro ao carregar gaps de competências:', error);
         setCompetencyGapData([]);
       }
     };
 
     if (profiles.length > 0) {
       loadCompetencyGaps();
+    } else {
+      setCompetencyGapData([]);
     }
   }, [profiles]);
+
 
   const engagementData = [
     { month: 'Jan', engagement: 78, satisfaction: 82 },
@@ -155,8 +186,7 @@ const HRArea: React.FC = () => {
     { id: 'overview', label: 'Visão Geral', icon: <BarChart3 size={16} /> },
     { id: 'employees', label: 'Colaboradores', icon: <Users size={16} /> },
     { id: 'performance', label: 'Performance', icon: <TrendingUp size={16} /> },
-    { id: 'development', label: 'Desenvolvimento', icon: <Target size={16} /> },
-    { id: 'reports', label: 'Relatórios', icon: <FileText size={16} /> }
+    { id: 'development', label: 'Desenvolvimento', icon: <Target size={16} /> }
   ];
 
   const employeeColumns = [
@@ -574,83 +604,6 @@ const HRArea: React.FC = () => {
         </div>
       )}
 
-      {/* Reports Tab */}
-      {selectedTab === 'reports' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                title: 'Relatório de Performance',
-                description: 'Análise completa de performance por colaborador e equipe',
-                icon: <TrendingUp size={24} />,
-                color: 'bg-blue-500'
-              },
-              {
-                title: 'Relatório de Competências',
-                description: 'Mapeamento de competências e gaps de desenvolvimento',
-                icon: <BarChart3 size={24} />,
-                color: 'bg-green-500'
-              },
-              {
-                title: 'Relatório de Engajamento',
-                description: 'Métricas de engajamento e satisfação dos colaboradores',
-                icon: <Award size={24} />,
-                color: 'bg-purple-500'
-              },
-              {
-                title: 'Relatório de PDIs',
-                description: 'Status e progresso dos planos de desenvolvimento',
-                icon: <Target size={24} />,
-                color: 'bg-orange-500'
-              },
-              {
-                title: 'Relatório de Trilhas',
-                description: 'Progresso nas trilhas de carreira por colaborador',
-                icon: <Users size={24} />,
-                color: 'bg-pink-500'
-              },
-              {
-                title: 'Relatório Executivo',
-                description: 'Resumo executivo com principais métricas e insights',
-                icon: <FileText size={24} />,
-                color: 'bg-indigo-500'
-              }
-            ].map((report, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-                  <div className={`w-12 h-12 rounded-lg ${report.color} flex items-center justify-center text-white mb-4`}>
-                    {report.icon}
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {report.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4">
-                    {report.description}
-                  </p>
-                  <Button 
-                    size="sm" 
-                    className="w-full"
-                    onClick={() => {
-                      if (report.title === 'Calendário de Férias') {
-                        window.location.href = '/hr-calendar';
-                      } else {
-                        // Gerar outros relatórios
-                      }
-                    }}
-                  >
-                    {report.title === 'Calendário de Férias' ? 'Abrir Calendário' : 'Gerar Relatório'}
-                  </Button>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

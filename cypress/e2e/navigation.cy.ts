@@ -23,7 +23,6 @@ describe('Navigation', () => {
       { name: 'PDI', url: '/pdi' },
       { name: 'Grupos de Ação', url: '/groups' },
       { name: 'Mentoria', url: '/mentorship' },
-      { name: 'Relatórios', url: '/reports' },
       { name: 'Gerenciar Usuários', url: '/users' },
       { name: 'Área de RH', url: '/hr' },
       { name: 'Administração', url: '/admin' }

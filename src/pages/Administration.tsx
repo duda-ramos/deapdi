@@ -55,8 +55,7 @@ const Administration: React.FC = () => {
     { id: 'competencies', label: 'Competências', icon: <Target size={16} /> },
     { id: 'security', label: 'Segurança', icon: <Shield size={16} /> },
     { id: 'notifications', label: 'Notificações', icon: <Bell size={16} /> },
-    { id: 'appearance', label: 'Aparência', icon: <Palette size={16} /> },
-    { id: 'reports', label: 'Relatórios', icon: <FileText size={16} /> }
+    { id: 'appearance', label: 'Aparência', icon: <Palette size={16} /> }
   ];
 
   useEffect(() => {
@@ -520,18 +519,6 @@ const Administration: React.FC = () => {
           <Palette size={48} className="mx-auto mb-4 text-gray-300" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Personalização da Aparência
-          </h3>
-          <p className="text-gray-600">
-            Em desenvolvimento...
-          </p>
-        </Card>
-      )}
-
-      {selectedTab === 'reports' && (
-        <Card className="p-8 text-center">
-          <FileText size={48} className="mx-auto mb-4 text-gray-300" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Relatórios Administrativos
           </h3>
           <p className="text-gray-600">
             Em desenvolvimento...
