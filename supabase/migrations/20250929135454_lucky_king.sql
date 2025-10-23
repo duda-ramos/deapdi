@@ -21,8 +21,8 @@ SECURITY DEFINER
 AS $$
 DECLARE
   group_id_to_update uuid;
-  total_tasks integer;
-  completed_tasks integer;
+  v_total_tasks integer;
+  v_completed_tasks integer;
   progress_percentage numeric;
 BEGIN
   -- Determine which group to update
@@ -41,13 +41,13 @@ BEGIN
   SELECT 
     COUNT(*),
     COUNT(*) FILTER (WHERE status = 'done')
-  INTO total_tasks, completed_tasks
+  INTO v_total_tasks, v_completed_tasks
   FROM tasks
   WHERE group_id = group_id_to_update;
   
   -- Calculate progress percentage
-  IF total_tasks > 0 THEN
-    progress_percentage := (completed_tasks::numeric / total_tasks) * 100;
+  IF v_total_tasks > 0 THEN
+    progress_percentage := (v_completed_tasks::numeric / v_total_tasks) * 100;
   ELSE
     progress_percentage := 0;
   END IF;
@@ -56,8 +56,8 @@ BEGIN
   UPDATE action_groups
   SET 
     progress = progress_percentage,
-    total_tasks = update_group_progress.total_tasks,
-    completed_tasks = update_group_progress.completed_tasks,
+    total_tasks = v_total_tasks,
+    completed_tasks = v_completed_tasks,
     completed_at = CASE 
       WHEN progress_percentage = 100 AND action_groups.completed_at IS NULL THEN now()
       ELSE action_groups.completed_at
