@@ -508,8 +508,7 @@ INSERT INTO action_group_participants (id, group_id, profile_id, role) VALUES
 ON CONFLICT (id) DO UPDATE SET
   group_id = EXCLUDED.group_id,
   profile_id = EXCLUDED.profile_id,
-  role = EXCLUDED.role,
-  updated_at = NOW();
+  role = EXCLUDED.role;
 
 INSERT INTO tasks (
   id,
