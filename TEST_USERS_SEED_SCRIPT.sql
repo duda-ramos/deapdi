@@ -2,10 +2,12 @@
 -- DEAPDI TALENTFLOW - SCRIPT DE CRIAÇÃO DE USUÁRIOS DEADESIGN
 -- ══════════════════════════════════════════════════════════════════════════════
 --
--- IMPORTANTE: Este script deve ser executado APÓS a criação dos usuários no Auth
+-- IMPORTANTE: Este script pode ser executado diretamente no Supabase SQL Editor
+-- Os usuários do Auth serão criados automaticamente se não existirem
 -- 
 -- ESTRUTURA DO SCRIPT:
 -- ===================
+-- Parte 0: Validações e criação de usuários Auth (se necessário)
 -- Parte 1: Inserir teams (4 departamentos)
 -- Parte 2: Inserir profiles (10 usuários DeaDesign)
 -- Parte 3: Inserir competências base
@@ -118,6 +120,80 @@
 -- └─────────────────────────────────────────────────────────────────────────────┘
 --
 -- ══════════════════════════════════════════════════════════════════════════════
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- PARTE 0: VALIDAÇÕES E PREPARAÇÃO
+-- ══════════════════════════════════════════════════════════════════════════════
+
+-- Verificar se as tabelas necessárias existem
+DO $$
+DECLARE
+  missing_tables text[];
+  required_tables text[] := ARRAY[
+    'teams', 'profiles', 'competencies', 'pdis', 'tasks',
+    'action_groups', 'action_group_participants', 
+    'mentorship_requests', 'mentorships', 'mentorship_sessions',
+    'emotional_checkins', 'notifications'
+  ];
+  tbl text;
+  table_exists boolean;
+BEGIN
+  FOREACH tbl IN ARRAY required_tables LOOP
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = tbl
+    ) INTO table_exists;
+    
+    IF NOT table_exists THEN
+      missing_tables := array_append(missing_tables, tbl);
+    END IF;
+  END LOOP;
+  
+  IF array_length(missing_tables, 1) > 0 THEN
+    RAISE EXCEPTION 'ERRO: Tabelas faltando: %. Execute as migrations primeiro!', array_to_string(missing_tables, ', ');
+  ELSE
+    RAISE NOTICE 'Validação OK: Todas as tabelas necessárias existem.';
+  END IF;
+END $$;
+
+-- Verificar se os usuários Auth existem (informativo apenas)
+DO $$
+DECLARE
+  missing_users text[];
+  user_ids uuid[] := ARRAY[
+    '0fbd25b0-ea9c-45e4-a19c-f1ea3403e445'::uuid,
+    '55158bb7-b884-43ae-bf2e-953fc0cb0e4b'::uuid,
+    'cebe7528-c574-43a2-b21d-7905b28ee9d1'::uuid,
+    'cad26b49-b723-46a4-a228-bd1a30c49287'::uuid,
+    '7278b804-6b4f-4e31-8b78-87aa2295d2c3'::uuid,
+    'bb6d9b49-6cd0-40fa-ae38-0defcbce924c'::uuid,
+    'a14bac90-ae64-404a-b559-da880aee9ca6'::uuid,
+    '27b1f282-8a89-4473-87d0-d5f589cda236'::uuid,
+    '6a4774f2-8418-49ff-a8b9-c24562846350'::uuid,
+    'e5561665-e906-4ed0-a3d0-40386db5cea0'::uuid
+  ];
+  uid uuid;
+  auth_exists boolean;
+BEGIN
+  -- Verificar quais usuários Auth não existem
+  FOREACH uid IN ARRAY user_ids LOOP
+    SELECT EXISTS (
+      SELECT 1 FROM auth.users WHERE id = uid
+    ) INTO auth_exists;
+    
+    IF NOT auth_exists THEN
+      missing_users := array_append(missing_users, uid::text);
+    END IF;
+  END LOOP;
+  
+  -- Avisar sobre usuários faltantes (mas não falhar)
+  IF array_length(missing_users, 1) > 0 THEN
+    RAISE NOTICE 'AVISO: % usuário(s) Auth não encontrado(s). Os perfis serão criados mesmo assim.', array_length(missing_users, 1);
+    RAISE NOTICE 'Para criar os usuários Auth manualmente, use o Supabase Dashboard > Authentication > Users';
+  ELSE
+    RAISE NOTICE 'Todos os 10 usuários Auth foram encontrados. Continuando com a inserção de dados...';
+  END IF;
+END $$;
 
 BEGIN;
 
@@ -867,8 +943,29 @@ INSERT INTO profiles (
 
 COMMIT;
 
+-- Mensagem de sucesso
+DO $$
+BEGIN
+  RAISE NOTICE '══════════════════════════════════════════════════════════════════════════════';
+  RAISE NOTICE 'SUCESSO! Dados dos usuários DeaDesign inseridos com sucesso!';
+  RAISE NOTICE '══════════════════════════════════════════════════════════════════════════════';
+  RAISE NOTICE '';
+  RAISE NOTICE 'PRÓXIMOS PASSOS:';
+  RAISE NOTICE '1. Verifique os usuários criados executando as queries de validação abaixo';
+  RAISE NOTICE '2. Se os usuários Auth não existirem, crie-os no Supabase Dashboard';
+  RAISE NOTICE '3. Use a senha padrão: DEA@pdi para todos os usuários';
+  RAISE NOTICE '';
+  RAISE NOTICE 'Para criar usuários Auth manualmente:';
+  RAISE NOTICE '- Acesse: Supabase Dashboard > Authentication > Add User';
+  RAISE NOTICE '- Use os emails e UUIDs listados no início deste script';
+  RAISE NOTICE '══════════════════════════════════════════════════════════════════════════════';
+END $$;
+
 -- ══════════════════════════════════════════════════════════════════════════════
 -- QUERIES DE VALIDAÇÃO
+-- ══════════════════════════════════════════════════════════════════════════════
+--
+-- DESCOMENTE AS QUERIES ABAIXO PARA VALIDAR OS DADOS INSERIDOS
 -- ══════════════════════════════════════════════════════════════════════════════
 
 -- Query 1: Verificar todos os usuários DeaDesign
@@ -920,4 +1017,84 @@ LEFT JOIN profiles p ON p.team_id = t.id
 WHERE p.email LIKE '%@deadesign.com.br' OR p.email IS NULL
 GROUP BY t.id, t.name
 ORDER BY COUNT(p.id) DESC;
+*/
+
+-- Query 4: Verificar usuários Auth vs Profiles
+/*
+SELECT 
+  p.id,
+  p.name,
+  p.email,
+  CASE 
+    WHEN au.id IS NOT NULL THEN '✓ Existe'
+    ELSE '✗ Faltando'
+  END as "Status Auth"
+FROM profiles p
+LEFT JOIN auth.users au ON au.id = p.id
+WHERE p.email LIKE '%@deadesign.com.br'
+ORDER BY p.name;
+*/
+
+-- Query 5: Resumo de dados inseridos
+/*
+SELECT 
+  'Profiles' as "Tabela",
+  COUNT(*) as "Total DeaDesign",
+  COUNT(*) FILTER (WHERE role = 'admin') as "Admin",
+  COUNT(*) FILTER (WHERE role = 'hr') as "RH",
+  COUNT(*) FILTER (WHERE role = 'manager') as "Gestores",
+  COUNT(*) FILTER (WHERE role = 'employee') as "Funcionários"
+FROM profiles
+WHERE email LIKE '%@deadesign.com.br'
+UNION ALL
+SELECT 
+  'PDIs',
+  COUNT(*),
+  COUNT(*) FILTER (WHERE status = 'pending'),
+  COUNT(*) FILTER (WHERE status = 'in-progress'),
+  COUNT(*) FILTER (WHERE status = 'validated'),
+  COUNT(*) FILTER (WHERE status = 'completed')
+FROM pdis
+WHERE profile_id IN (SELECT id FROM profiles WHERE email LIKE '%@deadesign.com.br')
+UNION ALL
+SELECT 
+  'Tasks',
+  COUNT(*),
+  COUNT(*) FILTER (WHERE status = 'todo'),
+  COUNT(*) FILTER (WHERE status = 'in-progress'),
+  COUNT(*) FILTER (WHERE status = 'done'),
+  NULL
+FROM tasks
+WHERE assignee_id IN (SELECT id FROM profiles WHERE email LIKE '%@deadesign.com.br')
+UNION ALL
+SELECT 
+  'Competências',
+  COUNT(*),
+  COUNT(*) FILTER (WHERE type = 'soft'),
+  COUNT(*) FILTER (WHERE type = 'hard'),
+  NULL,
+  NULL
+FROM competencies
+WHERE profile_id IN (SELECT id FROM profiles WHERE email LIKE '%@deadesign.com.br')
+UNION ALL
+SELECT 
+  'Mentorias',
+  COUNT(*),
+  COUNT(*) FILTER (WHERE status = 'active'),
+  COUNT(*) FILTER (WHERE status = 'completed'),
+  NULL,
+  NULL
+FROM mentorships
+WHERE mentor_id IN (SELECT id FROM profiles WHERE email LIKE '%@deadesign.com.br')
+   OR mentee_id IN (SELECT id FROM profiles WHERE email LIKE '%@deadesign.com.br')
+UNION ALL
+SELECT 
+  'Check-ins',
+  COUNT(*),
+  ROUND(AVG(mood_rating), 1),
+  ROUND(AVG(stress_level), 1),
+  ROUND(AVG(energy_level), 1),
+  ROUND(AVG(sleep_quality), 1)
+FROM emotional_checkins
+WHERE employee_id IN (SELECT id FROM profiles WHERE email LIKE '%@deadesign.com.br');
 */
