@@ -56,15 +56,15 @@ BEGIN
   UPDATE action_groups
   SET 
     progress = progress_percentage,
-    total_tasks = total_tasks,
-    completed_tasks = completed_tasks,
+    total_tasks = update_group_progress.total_tasks,
+    completed_tasks = update_group_progress.completed_tasks,
     completed_at = CASE 
-      WHEN progress_percentage = 100 AND completed_at IS NULL THEN now()
-      ELSE completed_at
+      WHEN progress_percentage = 100 AND action_groups.completed_at IS NULL THEN now()
+      ELSE action_groups.completed_at
     END,
     status = CASE 
-      WHEN progress_percentage = 100 AND status = 'active' THEN 'completed'
-      ELSE status
+      WHEN progress_percentage = 100 AND action_groups.status = 'active' THEN 'completed'
+      ELSE action_groups.status
     END
   WHERE id = group_id_to_update;
   
