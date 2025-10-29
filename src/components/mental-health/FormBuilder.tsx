@@ -314,7 +314,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ onSave, onCancel, initialTemp
               {question.options.map((option, optionIndex) => (
                 <div key={`${question.id}-option-${optionIndex}`} className="flex items-center space-x-2">
                   <Input
-                    value={typeof option.value === 'string' ? option.value : String(option.value || '')}
+                    value={typeof option.value === 'string' ? option.value : String(option.value ?? '')}
                     onChange={(e) => updateOption(index, optionIndex, 'value', e.target.value)}
                     placeholder="Valor"
                     className="flex-1"
