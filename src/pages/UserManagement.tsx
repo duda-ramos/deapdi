@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, Eye, UserCheck, UserX, Users, Mail, User, Briefcase } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,6 +47,11 @@ const UserManagement: React.FC = () => {
     team_id: '',
     manager_id: ''
   });
+
+  // Memoized handler to prevent input focus loss
+  const handleFormChange = useCallback((field: keyof UserFormData, value: string | UserRole) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   const roleOptions = [
     { value: 'employee', label: 'Colaborador' },
@@ -347,16 +352,16 @@ const UserManagement: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Nome Completo"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.name || ''}
+                onChange={(e) => handleFormChange('name', e.target.value)}
                 placeholder="Ex: João Silva Santos"
                 required
               />
               <Input
                 label="Email Corporativo"
                 type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                value={formData.email || ''}
+                onChange={(e) => handleFormChange('email', e.target.value)}
                 placeholder="joao.silva@empresa.com"
                 required
               />
@@ -372,8 +377,8 @@ const UserManagement: React.FC = () => {
             <Input
               label="Senha Inicial"
               type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              value={formData.password || ''}
+              onChange={(e) => handleFormChange('password', e.target.value)}
               placeholder="Senha temporária (usuário deve alterar no primeiro login)"
               required
               helperText="Mínimo 6 caracteres - O usuário será solicitado a alterar no primeiro acesso"
@@ -390,22 +395,22 @@ const UserManagement: React.FC = () => {
               <Select
                 label="Função no Sistema"
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+                onChange={(e) => handleFormChange('role', e.target.value as UserRole)}
                 options={roleOptions}
                 required
               />
               <Select
                 label="Nível Profissional"
                 value={formData.level}
-                onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                onChange={(e) => handleFormChange('level', e.target.value)}
                 options={levelOptions}
                 required
               />
             </div>
             <Input
               label="Cargo/Posição"
-              value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              value={formData.position || ''}
+              onChange={(e) => handleFormChange('position', e.target.value)}
               placeholder="Ex: Desenvolvedor Frontend, Analista de Marketing, etc."
               required
             />
@@ -417,15 +422,15 @@ const UserManagement: React.FC = () => {
             <div className="space-y-4">
               <Textarea
                 label="Biografia/Apresentação"
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                value={formData.bio || ''}
+                onChange={(e) => handleFormChange('bio', e.target.value)}
                 placeholder="Breve descrição sobre o colaborador, experiências, interesses..."
                 rows={3}
               />
               <Textarea
                 label="Formação Acadêmica"
-                value={formData.formation}
-                onChange={(e) => setFormData({ ...formData, formation: e.target.value })}
+                value={formData.formation || ''}
+                onChange={(e) => handleFormChange('formation', e.target.value)}
                 placeholder="Graduação, pós-graduação, certificações..."
                 rows={2}
               />
@@ -481,8 +486,8 @@ const UserManagement: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Nome Completo"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.name || ''}
+                onChange={(e) => handleFormChange('name', e.target.value)}
                 required
               />
               <Input
@@ -502,22 +507,22 @@ const UserManagement: React.FC = () => {
               <Select
                 label="Função no Sistema"
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+                onChange={(e) => handleFormChange('role', e.target.value as UserRole)}
                 options={roleOptions}
                 required
               />
               <Select
                 label="Nível Profissional"
                 value={formData.level}
-                onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                onChange={(e) => handleFormChange('level', e.target.value)}
                 options={levelOptions}
                 required
               />
             </div>
             <Input
               label="Cargo/Posição"
-              value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              value={formData.position || ''}
+              onChange={(e) => handleFormChange('position', e.target.value)}
               required
             />
           </div>
@@ -528,14 +533,14 @@ const UserManagement: React.FC = () => {
             <div className="space-y-4">
               <Textarea
                 label="Biografia/Apresentação"
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                value={formData.bio || ''}
+                onChange={(e) => handleFormChange('bio', e.target.value)}
                 rows={3}
               />
               <Textarea
                 label="Formação Acadêmica"
-                value={formData.formation}
-                onChange={(e) => setFormData({ ...formData, formation: e.target.value })}
+                value={formData.formation || ''}
+                onChange={(e) => handleFormChange('formation', e.target.value)}
                 rows={2}
               />
             </div>

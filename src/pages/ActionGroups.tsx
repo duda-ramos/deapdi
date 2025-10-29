@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Users, Calendar, CheckCircle, Clock, AlertTriangle, User, Target, CreditCard as Edit, Trash2, UserPlus, UserMinus, BarChart3, Award, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -45,6 +45,15 @@ const ActionGroups: React.FC = () => {
     deadline: '',
     group_id: ''
   });
+
+  // Memoized handlers to prevent input focus loss
+  const handleTaskFormChange = useCallback((field: keyof CreateTaskData, value: string) => {
+    setTaskForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleGroupFormChange = useCallback((field: keyof CreateGroupData, value: string | string[]) => {
+    setGroupForm(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -492,16 +501,16 @@ const ActionGroups: React.FC = () => {
         <form onSubmit={handleCreateGroup} className="space-y-4">
           <Input
             label="Título do Grupo"
-            value={groupForm.title}
-            onChange={(e) => setGroupForm({ ...groupForm, title: e.target.value })}
+            value={groupForm.title || ''}
+            onChange={(e) => handleGroupFormChange('title', e.target.value)}
             placeholder="Ex: Projeto de Melhoria de Processos"
             required
           />
 
           <Textarea
             label="Descrição"
-            value={groupForm.description}
-            onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
+            value={groupForm.description || ''}
+            onChange={(e) => handleGroupFormChange('description', e.target.value)}
             placeholder="Descreva os objetivos e escopo do grupo..."
             rows={4}
             required
@@ -512,14 +521,14 @@ const ActionGroups: React.FC = () => {
               label="Prazo"
               type="date"
               value={groupForm.deadline}
-              onChange={(e) => setGroupForm({ ...groupForm, deadline: e.target.value })}
+              onChange={(e) => handleGroupFormChange('deadline', e.target.value)}
               required
             />
 
             <Select
               label="Vincular ao PDI (Opcional)"
               value={groupForm.linked_pdi_id}
-              onChange={(e) => setGroupForm({ ...groupForm, linked_pdi_id: e.target.value })}
+              onChange={(e) => handleGroupFormChange('linked_pdi_id', e.target.value)}
               options={pdiOptions}
               placeholder="Selecione um PDI"
             />
@@ -610,16 +619,16 @@ const ActionGroups: React.FC = () => {
           
           <Input
             label="Título da Tarefa"
-            value={taskForm.title}
-            onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+            value={taskForm.title || ''}
+            onChange={(e) => handleTaskFormChange('title', e.target.value)}
             placeholder="Ex: Revisar documentação do processo"
             required
           />
 
           <Textarea
             label="Descrição (Opcional)"
-            value={taskForm.description}
-            onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+            value={taskForm.description || ''}
+            onChange={(e) => handleTaskFormChange('description', e.target.value)}
             placeholder="Detalhes sobre a tarefa..."
             rows={3}
           />
@@ -628,7 +637,7 @@ const ActionGroups: React.FC = () => {
             <Select
               label="Responsável"
               value={taskForm.assignee_id}
-              onChange={(e) => setTaskForm({ ...taskForm, assignee_id: e.target.value })}
+              onChange={(e) => handleTaskFormChange('assignee_id', e.target.value)}
               options={selectedGroup?.participants?.map(p => ({
                 value: p.profile_id,
                 label: p.profile.name
@@ -641,7 +650,7 @@ const ActionGroups: React.FC = () => {
               label="Prazo"
               type="date"
               value={taskForm.deadline}
-              onChange={(e) => setTaskForm({ ...taskForm, deadline: e.target.value })}
+              onChange={(e) => handleTaskFormChange('deadline', e.target.value)}
               required
               min={new Date().toISOString().split('T')[0]}
             />

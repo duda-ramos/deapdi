@@ -8,7 +8,7 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
   sanitize?: boolean;
 }
 
-export const Textarea: React.FC<TextareaProps> = ({
+const TextareaComponent: React.FC<TextareaProps> = ({
   label,
   error,
   helperText,
@@ -63,3 +63,7 @@ export const Textarea: React.FC<TextareaProps> = ({
     </div>
   );
 };
+
+// Memoize to prevent unnecessary re-renders
+export const Textarea = React.memo(TextareaComponent);
+Textarea.displayName = 'Textarea';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard as Edit, Save, X, User, Briefcase, Calendar, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,6 +24,11 @@ const Profile: React.FC = () => {
     formation: user?.formation || '',
     avatar_url: user?.avatar_url || ''
   });
+
+  // Memoized handler to prevent input focus loss
+  const handleFormChange = useCallback((field: 'name' | 'bio' | 'formation' | 'avatar_url', value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -198,8 +203,8 @@ const Profile: React.FC = () => {
             {isEditing ? (
               <div className="space-y-3">
                 <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.name || ''}
+                  onChange={(e) => handleFormChange('name', e.target.value)}
                   placeholder="Nome completo"
                 />
               </div>
@@ -258,8 +263,8 @@ const Profile: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Sobre Mim</h3>
             {isEditing ? (
               <Textarea
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                value={formData.bio || ''}
+                onChange={(e) => handleFormChange('bio', e.target.value)}
                 placeholder="Conte um pouco sobre você..."
                 rows={4}
               />
@@ -274,8 +279,8 @@ const Profile: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4">Formação</h3>
             {isEditing ? (
               <Textarea
-                value={formData.formation}
-                onChange={(e) => setFormData({ ...formData, formation: e.target.value })}
+                value={formData.formation || ''}
+                onChange={(e) => handleFormChange('formation', e.target.value)}
                 placeholder="Descreva sua formação acadêmica e cursos..."
                 rows={3}
               />
