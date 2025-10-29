@@ -28,6 +28,7 @@ const ActionGroups: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GroupWithDetails | null>(null);
   const [creating, setCreating] = useState(false);
+  const [taskError, setTaskError] = useState<string>('');
 
   const [groupForm, setGroupForm] = useState<CreateGroupData>({
     title: '',
@@ -125,17 +126,17 @@ const ActionGroups: React.FC = () => {
 
     // Validate all required fields
     if (!taskForm.title || taskForm.title.trim().length === 0) {
-      setError('Título da tarefa é obrigatório');
+      setTaskError('Título da tarefa é obrigatório');
       return;
     }
-    
+
     if (!taskForm.assignee_id) {
-      setError('Responsável pela tarefa é obrigatório');
+      setTaskError('Responsável pela tarefa é obrigatório');
       return;
     }
-    
+
     if (!taskForm.deadline) {
-      setError('Prazo da tarefa é obrigatório');
+      setTaskError('Prazo da tarefa é obrigatório');
       return;
     }
 
@@ -160,15 +161,15 @@ const ActionGroups: React.FC = () => {
         group_id: ''
       });
       
-      setError('');
+      setTaskError('');
       await loadData();
-      
+
       // Trigger will automatically create notification for assignee
     } catch (error) {
       console.error('Erro ao criar tarefa:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro ao criar tarefa';
-      setError(errorMessage);
-      
+      setTaskError(errorMessage);
+
       // Log detailed error for debugging
       if (error instanceof Error && error.message.includes('permission')) {
         console.error('RLS Permission Error: User may not have permission to create tasks in this group');
@@ -454,6 +455,7 @@ const ActionGroups: React.FC = () => {
                           onClick={() => {
                             setSelectedGroup(group);
                             setTaskForm(prev => ({ ...prev, group_id: group.id }));
+                            setTaskError('');
                             setShowTaskModal(true);
                           }}
                         >
@@ -594,15 +596,15 @@ const ActionGroups: React.FC = () => {
         isOpen={showTaskModal}
         onClose={() => {
           setShowTaskModal(false);
-          setError('');
+          setTaskError('');
         }}
         title="Criar Nova Tarefa"
         size="md"
       >
         <form onSubmit={handleCreateTask} className="space-y-4">
-          {error && (
+          {taskError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
+              {taskError}
             </div>
           )}
           
@@ -655,7 +657,7 @@ const ActionGroups: React.FC = () => {
               variant="secondary"
               onClick={() => {
                 setShowTaskModal(false);
-                setError('');
+                setTaskError('');
               }}
               disabled={creating}
             >
@@ -817,6 +819,7 @@ const ActionGroups: React.FC = () => {
                     size="sm"
                     onClick={() => {
                       setTaskForm(prev => ({ ...prev, group_id: selectedGroup.id }));
+                      setTaskError('');
                       setShowTaskModal(true);
                     }}
                   >
