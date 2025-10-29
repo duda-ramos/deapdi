@@ -12,12 +12,14 @@ export const sanitizeHtml = (dirty: string): string => {
 
 /**
  * Sanitize plain text input
+ * Note: We don't trim() during input to preserve user experience
+ * Trimming should be done on form submission, not during typing
  */
 export const sanitizeText = (input: string): string => {
+  // Remove only dangerous characters, keep spaces and length as-is during input
   return input
     .replace(/[<>]/g, '') // Remove only HTML tag brackets
-    .trim()
-    .substring(0, 1000); // Limit length
+    .substring(0, 5000); // Increased limit, trim should be done on submit
 };
 
 /**
