@@ -120,8 +120,7 @@ const PeopleManagement: React.FC = () => {
     if (user && permissions?.canManageTeam) {
       loadData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, permissions?.canManageTeam]);
+  }, [user?.id, permissions]);
 
   const loadData = useCallback(async () => {
     if (!user || !userFilter) {
