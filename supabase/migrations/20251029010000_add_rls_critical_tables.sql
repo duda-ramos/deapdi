@@ -23,6 +23,8 @@ DROP POLICY IF EXISTS "HR can manage all tasks" ON therapeutic_tasks;
 DROP POLICY IF EXISTS therapeutic_tasks_assigned_read ON therapeutic_tasks;
 DROP POLICY IF EXISTS therapeutic_tasks_complete ON therapeutic_tasks;
 DROP POLICY IF EXISTS therapeutic_tasks_hr_manage ON therapeutic_tasks;
+DROP TRIGGER IF EXISTS therapeutic_tasks_assignee_guard ON therapeutic_tasks;
+DROP FUNCTION IF EXISTS enforce_therapeutic_task_assignee_update();
 
 -- 1.3 Política SELECT: Ver apenas tarefas atribuídas
 CREATE POLICY therapeutic_tasks_assigned_read
@@ -40,7 +42,7 @@ CREATE POLICY therapeutic_tasks_assigned_read
 
 -- 1.4 Política UPDATE: Completar apenas próprias tarefas
 CREATE POLICY therapeutic_tasks_complete
-  ON therapeutic_tasks 
+  ON therapeutic_tasks
   FOR UPDATE
   TO authenticated
   USING (
@@ -52,6 +54,52 @@ CREATE POLICY therapeutic_tasks_complete
     auth.uid() = ANY(assigned_to) AND
     status IN ('in_progress', 'completed')
   );
+
+-- 1.4.1 Trigger para impedir que colaboradores alterem atribuições ou campos sensíveis
+CREATE OR REPLACE FUNCTION enforce_therapeutic_task_assignee_update()
+RETURNS trigger
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- HR/Admin mantêm controle total
+  IF COALESCE(auth.jwt() ->> 'user_role', '') NOT IN ('hr', 'admin') THEN
+    -- Apenas usuários atribuídos podem atualizar
+    IF auth.uid() IS NULL OR NOT auth.uid() = ANY(OLD.assigned_to) THEN
+      RAISE EXCEPTION USING
+        ERRCODE = '42501',
+        MESSAGE = 'Only assigned users can update this therapeutic task.';
+    END IF;
+
+    -- Bloquear alterações em campos sensíveis como assigned_to, title, due_date etc.
+    IF NEW.assigned_to IS DISTINCT FROM OLD.assigned_to OR
+       NEW.assigned_by IS DISTINCT FROM OLD.assigned_by OR
+       NEW.title IS DISTINCT FROM OLD.title OR
+       NEW.type IS DISTINCT FROM OLD.type OR
+       NEW.content IS DISTINCT FROM OLD.content OR
+       NEW.due_date IS DISTINCT FROM OLD.due_date OR
+       NEW.recurrence IS DISTINCT FROM OLD.recurrence THEN
+      RAISE EXCEPTION USING
+        ERRCODE = '42501',
+        MESSAGE = 'Assigned collaborators may only update status, completion_notes, effectiveness_rating, or updated_at.';
+    END IF;
+
+    -- Garantir que status permaneça nos valores permitidos para colaboradores
+    IF NEW.status NOT IN ('in_progress', 'completed') THEN
+      RAISE EXCEPTION USING
+        ERRCODE = '42501',
+        MESSAGE = 'Assigned collaborators can only set status to in_progress or completed.';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER therapeutic_tasks_assignee_guard
+BEFORE UPDATE ON therapeutic_tasks
+FOR EACH ROW
+EXECUTE FUNCTION enforce_therapeutic_task_assignee_update();
 
 -- 1.5 Política INSERT/DELETE: Apenas HR/Admin gerencia
 CREATE POLICY therapeutic_tasks_hr_manage

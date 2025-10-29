@@ -57,9 +57,9 @@ END $$;
 -- TESTES DE ISOLAMENTO - THERAPEUTIC_TASKS
 -- ============================================
 
-\echo '\n=== TESTE 1: User1 vê apenas própria tarefa ==='
-SET LOCAL role TO authenticated;
-SET LOCAL request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000001", "user_role": "colaborador"}';
+SELECT E'\n=== TESTE 1: User1 vê apenas própria tarefa ===' AS info;
+SET ROLE authenticated;
+SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000001", "user_role": "colaborador"}';
 
 SELECT 
   CASE 
@@ -68,8 +68,8 @@ SELECT
   END as resultado
 FROM therapeutic_tasks;
 
-\echo '\n=== TESTE 2: User2 NÃO vê tarefa do User1 (ISOLAMENTO) ==='
-SET LOCAL request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000002", "user_role": "colaborador"}';
+SELECT E'\n=== TESTE 2: User2 NÃO vê tarefa do User1 (ISOLAMENTO) ===' AS info;
+SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000002", "user_role": "colaborador"}';
 
 SELECT 
   CASE 
@@ -78,8 +78,8 @@ SELECT
   END as resultado
 FROM therapeutic_tasks;
 
-\echo '\n=== TESTE 3: HR vê todas as tarefas ==='
-SET LOCAL request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000003", "user_role": "hr"}';
+SELECT E'\n=== TESTE 3: HR vê todas as tarefas ===' AS info;
+SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000003", "user_role": "hr"}';
 
 SELECT 
   CASE 
@@ -88,8 +88,8 @@ SELECT
   END as resultado
 FROM therapeutic_tasks;
 
-\echo '\n=== TESTE 4: User1 NÃO pode deletar tarefa ==='
-SET LOCAL request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000001", "user_role": "colaborador"}';
+SELECT E'\n=== TESTE 4: User1 NÃO pode deletar tarefa ===' AS info;
+SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000001", "user_role": "colaborador"}';
 
 DO $$
 BEGIN
@@ -106,8 +106,8 @@ END $$;
 -- TESTES DE ISOLAMENTO - CHECKIN_SETTINGS
 -- ============================================
 
-\echo '\n=== TESTE 5: User1 vê apenas própria configuração ==='
-SET LOCAL request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000001", "user_role": "colaborador"}';
+SELECT E'\n=== TESTE 5: User1 vê apenas própria configuração ===' AS info;
+SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000001", "user_role": "colaborador"}';
 
 SELECT 
   CASE 
@@ -117,8 +117,8 @@ SELECT
   END as resultado
 FROM checkin_settings;
 
-\echo '\n=== TESTE 6: User2 NÃO vê config do User1 ==='
-SET LOCAL request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000002", "user_role": "colaborador"}';
+SELECT E'\n=== TESTE 6: User2 NÃO vê config do User1 ===' AS info;
+SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000002", "user_role": "colaborador"}';
 
 SELECT 
   CASE 
@@ -127,8 +127,8 @@ SELECT
   END as resultado
 FROM checkin_settings;
 
-\echo '\n=== TESTE 7: HR pode ver configs (analytics) ==='
-SET LOCAL request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000003", "user_role": "hr"}';
+SELECT E'\n=== TESTE 7: HR pode ver configs (analytics) ===' AS info;
+SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000003", "user_role": "hr"}';
 
 SELECT 
   CASE 
@@ -141,6 +141,7 @@ FROM checkin_settings;
 -- CLEANUP
 -- ============================================
 
+RESET request.jwt.claims;
 RESET role;
 
 DELETE FROM therapeutic_tasks WHERE id = '10000000-0000-0000-0000-000000000001';
@@ -154,4 +155,4 @@ DELETE FROM profiles WHERE id IN (
   '00000000-0000-0000-0000-000000000003'
 );
 
-\echo '\n✅ Cleanup completo - dados de teste removidos'
+SELECT E'\n✅ Cleanup completo - dados de teste removidos' AS info;
