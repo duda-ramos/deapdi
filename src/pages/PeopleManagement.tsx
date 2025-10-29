@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, CreditCard as Edit, Trash2, Eye, UserCheck, UserX, Users, Building, Crown, BarChart3, ArrowRightLeft, Settings, AlertTriangle, CheckCircle, Search, Filter, Download, Upload, MoreHorizontal, User, Mail, Phone, MapPin, Calendar, Award, Target, Heart, Briefcase } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,6 +50,9 @@ const PeopleManagement: React.FC = () => {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  
+  // Use ref to track loading state for preventing race conditions
+  const isLoadingRef = useRef(false);
 
   const [filters, setFilters] = useState<PeopleFilters>({
     search: '',
@@ -101,23 +104,40 @@ const PeopleManagement: React.FC = () => {
     manager_id: ''
   });
 
-  const permissions = user ? permissionService.getUserPermissions(user.role) : null;
-  const userFilter = user ? permissionService.getVisibleUserFilter(user) : null;
+  // Memoize permissions and userFilter to prevent infinite loops
+  const permissions = useMemo(() => 
+    user ? permissionService.getUserPermissions(user.role) : null,
+    [user?.role]
+  );
+  
+  const userFilter = useMemo(() => 
+    user ? permissionService.getVisibleUserFilter(user) : null,
+    [user?.id, user?.role]
+  );
 
+  // Load data only once when component mounts and user is available
   useEffect(() => {
     if (user && permissions?.canManageTeam) {
       loadData();
     }
-  }, [user, permissions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, permissions?.canManageTeam]);
 
-  useEffect(() => {
-    applyFilters();
-  }, [profiles, filters]);
+  const loadData = useCallback(async () => {
+    if (!user || !userFilter) {
+      console.warn('⚠️ PeopleManagement: Cannot load data - user or userFilter missing');
+      return;
+    }
 
-  const loadData = async () => {
-    if (!user || !userFilter) return;
+    // Prevent multiple simultaneous calls using ref
+    if (isLoadingRef.current) {
+      console.warn('⚠️ PeopleManagement: Already loading, skipping duplicate call');
+      return;
+    }
 
     try {
+      console.log('🔄 PeopleManagement: Loading data...', { userRole: user.role, filterType: userFilter.all ? 'all' : 'filtered' });
+      isLoadingRef.current = true;
       setLoading(true);
       setError('');
 
@@ -125,31 +145,41 @@ const PeopleManagement: React.FC = () => {
       
       if (userFilter.all) {
         // Admin/HR can see all profiles
+        console.log('📊 PeopleManagement: Fetching all profiles (Admin/HR)');
         profilesData = await databaseService.getProfiles();
       } else if (userFilter.managerFilter) {
-        // Manager can see only their team
-        profilesData = await databaseService.getProfiles({ 
-          manager_id: userFilter.managerFilter 
-        });
+        // Manager can see only their team - fetch all profiles and filter client-side
+        console.log('📊 PeopleManagement: Fetching profiles for manager:', userFilter.managerFilter);
+        const allProfiles = await databaseService.getProfiles();
+        // Filter profiles where the manager_id matches the current user
+        profilesData = allProfiles.filter(p => p.manager_id === userFilter.managerFilter);
       }
 
+      console.log('📊 PeopleManagement: Fetching teams and managers...');
       const [teamsData, managersData] = await Promise.all([
         teamService.getTeams(),
         databaseService.getProfiles({ role: 'manager' })
       ]);
 
+      console.log('✅ PeopleManagement: Data loaded successfully', {
+        profiles: profilesData?.length || 0,
+        teams: teamsData?.length || 0,
+        managers: managersData?.length || 0
+      });
+
       setProfiles(profilesData || []);
       setTeams(teamsData || []);
       setManagers(managersData || []);
     } catch (error) {
-      console.error('Error loading people data:', error);
+      console.error('❌ PeopleManagement: Error loading people data:', error);
       setError(error instanceof Error ? error.message : 'Erro ao carregar dados de pessoas');
     } finally {
+      isLoadingRef.current = false;
       setLoading(false);
     }
-  };
+  }, [user?.id, user?.role, userFilter?.all, userFilter?.managerFilter]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = profiles;
 
     // Search filter
@@ -195,7 +225,12 @@ const PeopleManagement: React.FC = () => {
     }
 
     setFilteredProfiles(filtered);
-  };
+  }, [profiles, filters]);
+
+  // Apply filters whenever profiles or filters change
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
