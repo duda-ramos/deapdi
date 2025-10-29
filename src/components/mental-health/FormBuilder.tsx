@@ -312,15 +312,15 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ onSave, onCancel, initialTemp
             </label>
             <div className="space-y-2">
               {question.options.map((option, optionIndex) => (
-                <div key={optionIndex} className="flex items-center space-x-2">
+                <div key={`${question.id}-option-${optionIndex}`} className="flex items-center space-x-2">
                   <Input
-                    value={option.value}
+                    value={typeof option.value === 'string' ? option.value : String(option.value || '')}
                     onChange={(e) => updateOption(index, optionIndex, 'value', e.target.value)}
                     placeholder="Valor"
                     className="flex-1"
                   />
                   <Input
-                    value={option.label}
+                    value={option.label || ''}
                     onChange={(e) => updateOption(index, optionIndex, 'label', e.target.value)}
                     placeholder="Rótulo"
                     className="flex-1"

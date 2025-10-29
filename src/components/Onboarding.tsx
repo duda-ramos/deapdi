@@ -28,6 +28,53 @@ import { Textarea } from './ui/Textarea';
 import { Select } from './ui/Select';
 import { Badge } from './ui/Badge';
 
+interface LanguageInputProps {
+  addLanguage: (language: string, level: string) => void;
+}
+
+const LanguageInput: React.FC<LanguageInputProps> = ({ addLanguage }) => {
+  const [language, setLanguage] = useState('');
+  const [level, setLevel] = useState('');
+
+  const handleAdd = () => {
+    if (language.trim() && level) {
+      addLanguage(language.trim(), level);
+      setLanguage('');
+      setLevel('');
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <input
+        type="text"
+        placeholder="Idioma"
+        value={language || ''}
+        onChange={(e) => setLanguage(e.target.value)}
+        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        onKeyPress={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            handleAdd();
+          }
+        }}
+      />
+      <select
+        value={level || ''}
+        onChange={(e) => setLevel(e.target.value)}
+        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option value="">Nível</option>
+        <option value="Básico">Básico</option>
+        <option value="Intermediário">Intermediário</option>
+        <option value="Avançado">Avançado</option>
+        <option value="Fluente">Fluente</option>
+        <option value="Nativo">Nativo</option>
+      </select>
+    </div>
+  );
+};
+
 interface SkillInputProps {
   type: 'hard_skills' | 'soft_skills' | 'certifications' | 'development_interests';
   label: string;
@@ -48,23 +95,27 @@ const SkillInput: React.FC<SkillInputProps> = ({ type, label, suggestions, formD
         <div className="flex space-x-2">
           <input
             type="text"
-            value={inputValue}
+            value={inputValue || ''}
             onChange={(e) => setInputValue(e.target.value)}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder={`Digite ${label.toLowerCase()}`}
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                addSkill(type, inputValue);
-                setInputValue('');
+                if (inputValue.trim()) {
+                  addSkill(type, inputValue);
+                  setInputValue('');
+                }
               }
             }}
           />
           <Button
             type="button"
             onClick={() => {
-              addSkill(type, inputValue);
-              setInputValue('');
+              if (inputValue.trim()) {
+                addSkill(type, inputValue);
+                setInputValue('');
+              }
             }}
             disabled={!inputValue.trim()}
           >
@@ -634,33 +685,7 @@ export const Onboarding: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Idiomas</label>
               <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    placeholder="Idioma"
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const language = (e.target as HTMLInputElement).value;
-                        const levelSelect = e.currentTarget.parentElement?.nextElementSibling as HTMLSelectElement;
-                        if (language && levelSelect?.value) {
-                          addLanguage(language, levelSelect.value);
-                          (e.target as HTMLInputElement).value = '';
-                          levelSelect.value = '';
-                        }
-                      }
-                    }}
-                  />
-                  <select className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="">Nível</option>
-                    <option value="Básico">Básico</option>
-                    <option value="Intermediário">Intermediário</option>
-                    <option value="Avançado">Avançado</option>
-                    <option value="Fluente">Fluente</option>
-                    <option value="Nativo">Nativo</option>
-                  </select>
-                </div>
+                <LanguageInput addLanguage={addLanguage} />
                 
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(formData.languages).map(([language, level]) => (
