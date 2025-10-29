@@ -8,7 +8,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   sanitize?: boolean;
 }
 
-export const Input: React.FC<InputProps> = ({
+const InputComponent: React.FC<InputProps> = ({
   label,
   error,
   helperText,
@@ -73,3 +73,7 @@ export const Input: React.FC<InputProps> = ({
     </div>
   );
 };
+
+// Memoize to prevent unnecessary re-renders
+export const Input = React.memo(InputComponent);
+Input.displayName = 'Input';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Target, Calendar, User, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,6 +29,11 @@ const PDI: React.FC = () => {
     deadline: '',
     mentor_id: ''
   });
+
+  // Memoized handler to prevent input focus loss
+  const handleFormChange = useCallback((field: 'title' | 'description' | 'deadline' | 'mentor_id', value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -358,16 +363,16 @@ const PDI: React.FC = () => {
         <form onSubmit={handleCreatePDI} className="space-y-4">
           <Input
             label="Título"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            value={formData.title || ''}
+            onChange={(e) => handleFormChange('title', e.target.value)}
             placeholder="Ex: Desenvolver habilidades em React"
             required
           />
 
           <Textarea
             label="Descrição"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            value={formData.description || ''}
+            onChange={(e) => handleFormChange('description', e.target.value)}
             placeholder="Descreva detalhadamente o objetivo e como pretende alcançá-lo..."
             rows={4}
             required
@@ -376,15 +381,15 @@ const PDI: React.FC = () => {
           <Input
             label="Prazo"
             type="date"
-            value={formData.deadline}
-            onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+            value={formData.deadline || ''}
+            onChange={(e) => handleFormChange('deadline', e.target.value)}
             required
           />
 
           <Select
             label="Mentor (Opcional)"
-            value={formData.mentor_id}
-            onChange={(e) => setFormData({ ...formData, mentor_id: e.target.value })}
+            value={formData.mentor_id || ''}
+            onChange={(e) => handleFormChange('mentor_id', e.target.value)}
             options={mentorOptions}
             placeholder="Selecione um mentor"
           />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Users, 
@@ -58,6 +58,19 @@ const Mentorship: React.FC = () => {
     rating: 5,
     comment: ''
   });
+
+  // Memoized handlers to prevent input focus loss
+  const handleRequestFormChange = useCallback((field: 'mentorId' | 'message', value: string) => {
+    setRequestForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleScheduleFormChange = useCallback((field: 'date' | 'time' | 'duration' | 'meetingLink', value: string | number) => {
+    setScheduleForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleRatingFormChange = useCallback((field: 'rating' | 'comment', value: string | number) => {
+    setRatingForm(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -456,7 +469,7 @@ const Mentorship: React.FC = () => {
                 size="sm"
                 className="w-full mt-3"
                 onClick={() => {
-                  setRequestForm(prev => ({ ...prev, mentorId: mentor.id }));
+                  handleRequestFormChange('mentorId', mentor.id);
                   setShowRequestModal(true);
                 }}
               >
@@ -477,8 +490,8 @@ const Mentorship: React.FC = () => {
         <form onSubmit={handleRequestMentorship} className="space-y-4">
           <Select
             label="Mentor"
-            value={requestForm.mentorId}
-            onChange={(e) => setRequestForm({ ...requestForm, mentorId: e.target.value })}
+            value={requestForm.mentorId || ''}
+            onChange={(e) => handleRequestFormChange('mentorId', e.target.value)}
             options={mentorOptions}
             placeholder="Selecione um mentor"
             required
@@ -486,8 +499,8 @@ const Mentorship: React.FC = () => {
 
           <Textarea
             label="Mensagem"
-            value={requestForm.message}
-            onChange={(e) => setRequestForm({ ...requestForm, message: e.target.value })}
+            value={requestForm.message || ''}
+            onChange={(e) => handleRequestFormChange('message', e.target.value)}
             placeholder="Descreva seus objetivos e o que espera da mentoria..."
             rows={4}
             required
@@ -540,15 +553,15 @@ const Mentorship: React.FC = () => {
             <Input
               label="Data"
               type="date"
-              value={scheduleForm.date}
-              onChange={(e) => setScheduleForm({ ...scheduleForm, date: e.target.value })}
+              value={scheduleForm.date || ''}
+              onChange={(e) => handleScheduleFormChange('date', e.target.value)}
               min={new Date().toISOString().split('T')[0]}
               required
             />
             <Select
               label="Horário"
-              value={scheduleForm.time}
-              onChange={(e) => setScheduleForm({ ...scheduleForm, time: e.target.value })}
+              value={scheduleForm.time || ''}
+              onChange={(e) => handleScheduleFormChange('time', e.target.value)}
               options={timeSlots}
               placeholder="Selecione o horário"
               required
@@ -558,15 +571,15 @@ const Mentorship: React.FC = () => {
           <Select
             label="Duração"
             value={scheduleForm.duration.toString()}
-            onChange={(e) => setScheduleForm({ ...scheduleForm, duration: parseInt(e.target.value) })}
+            onChange={(e) => handleScheduleFormChange('duration', parseInt(e.target.value))}
             options={durationOptions.map(d => ({ value: d.value.toString(), label: d.label }))}
             required
           />
 
           <Input
             label="Link da Reunião (Opcional)"
-            value={scheduleForm.meetingLink}
-            onChange={(e) => setScheduleForm({ ...scheduleForm, meetingLink: e.target.value })}
+            value={scheduleForm.meetingLink || ''}
+            onChange={(e) => handleScheduleFormChange('meetingLink', e.target.value)}
             placeholder="https://meet.google.com/xxx-xxxx-xxx"
           />
 
@@ -764,7 +777,7 @@ const Mentorship: React.FC = () => {
               Avaliação Geral
             </label>
             {renderStars(ratingForm.rating, true, (rating) => 
-              setRatingForm({ ...ratingForm, rating })
+              handleRatingFormChange('rating', rating)
             )}
             <p className="text-sm text-gray-600 mt-2">
               {ratingForm.rating === 5 ? 'Excelente!' :
@@ -776,8 +789,8 @@ const Mentorship: React.FC = () => {
 
           <Textarea
             label="Comentário (Opcional)"
-            value={ratingForm.comment}
-            onChange={(e) => setRatingForm({ ...ratingForm, comment: e.target.value })}
+            value={ratingForm.comment || ''}
+            onChange={(e) => handleRatingFormChange('comment', e.target.value)}
             placeholder="Compartilhe sua experiência com outros colegas..."
             rows={3}
           />
