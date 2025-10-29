@@ -16,6 +16,22 @@ import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 
+const createInitialGroupForm = (): CreateGroupData => ({
+  title: '',
+  description: '',
+  deadline: '',
+  participants: [],
+  linked_pdi_id: ''
+});
+
+const createInitialTaskForm = (): CreateTaskData => ({
+  title: '',
+  description: '',
+  assignee_id: '',
+  deadline: '',
+  group_id: ''
+});
+
 const ActionGroups: React.FC = () => {
   const { user } = useAuth();
   const [groups, setGroups] = useState<GroupWithDetails[]>([]);
@@ -30,21 +46,9 @@ const ActionGroups: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const [taskError, setTaskError] = useState<string>('');
 
-  const [groupForm, setGroupForm] = useState<CreateGroupData>({
-    title: '',
-    description: '',
-    deadline: '',
-    participants: [],
-    linked_pdi_id: ''
-  });
+  const [groupForm, setGroupForm] = useState<CreateGroupData>(() => createInitialGroupForm());
 
-  const [taskForm, setTaskForm] = useState<CreateTaskData>({
-    title: '',
-    description: '',
-    assignee_id: '',
-    deadline: '',
-    group_id: ''
-  });
+  const [taskForm, setTaskForm] = useState<CreateTaskData>(() => createInitialTaskForm());
 
   // Memoized handlers to prevent input focus loss
   const handleTaskFormChange = useCallback((field: keyof CreateTaskData, value: string) => {
@@ -53,6 +57,24 @@ const ActionGroups: React.FC = () => {
 
   const handleGroupFormChange = useCallback((field: keyof CreateGroupData, value: string | string[]) => {
     setGroupForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleOpenTaskModal = useCallback((group: GroupWithDetails) => {
+    setSelectedGroup(group);
+    setTaskForm({ ...createInitialTaskForm(), group_id: group.id });
+    setTaskError('');
+    setShowTaskModal(true);
+  }, []);
+
+  const handleCloseTaskModal = useCallback(() => {
+    setShowTaskModal(false);
+    setTaskForm(createInitialTaskForm());
+    setTaskError('');
+  }, []);
+
+  const handleCloseCreateModal = useCallback(() => {
+    setShowCreateModal(false);
+    setGroupForm(createInitialGroupForm());
   }, []);
 
   useEffect(() => {
@@ -111,14 +133,7 @@ const ActionGroups: React.FC = () => {
       setCreating(true);
       await actionGroupService.createGroup(groupForm, user.id);
       
-      setShowCreateModal(false);
-      setGroupForm({
-        title: '',
-        description: '',
-        deadline: '',
-        participants: [],
-        linked_pdi_id: ''
-      });
+      handleCloseCreateModal();
       
       await loadData();
     } catch (error) {
@@ -161,16 +176,7 @@ const ActionGroups: React.FC = () => {
         group_id: selectedGroup.id
       });
       
-      setShowTaskModal(false);
-      setTaskForm({
-        title: '',
-        description: '',
-        assignee_id: '',
-        deadline: '',
-        group_id: ''
-      });
-      
-      setTaskError('');
+      handleCloseTaskModal();
       await loadData();
 
       // Trigger will automatically create notification for assignee
@@ -462,10 +468,7 @@ const ActionGroups: React.FC = () => {
                         <Button
                           size="sm"
                           onClick={() => {
-                            setSelectedGroup(group);
-                            setTaskForm(prev => ({ ...prev, group_id: group.id }));
-                            setTaskError('');
-                            setShowTaskModal(true);
+                            handleOpenTaskModal(group);
                           }}
                         >
                           <Plus size={14} className="mr-1" />
@@ -494,7 +497,7 @@ const ActionGroups: React.FC = () => {
       {/* Create Group Modal */}
       <Modal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={handleCloseCreateModal}
         title="Criar Novo Grupo de Ação"
         size="lg"
       >
@@ -588,7 +591,7 @@ const ActionGroups: React.FC = () => {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setShowCreateModal(false)}
+              onClick={handleCloseCreateModal}
               disabled={creating}
             >
               Cancelar
@@ -603,10 +606,7 @@ const ActionGroups: React.FC = () => {
       {/* Create Task Modal */}
       <Modal
         isOpen={showTaskModal}
-        onClose={() => {
-          setShowTaskModal(false);
-          setTaskError('');
-        }}
+        onClose={handleCloseTaskModal}
         title="Criar Nova Tarefa"
         size="md"
       >
@@ -664,10 +664,7 @@ const ActionGroups: React.FC = () => {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => {
-                setShowTaskModal(false);
-                setTaskError('');
-              }}
+              onClick={handleCloseTaskModal}
               disabled={creating}
             >
               Cancelar
@@ -827,9 +824,9 @@ const ActionGroups: React.FC = () => {
                   <Button
                     size="sm"
                     onClick={() => {
-                      setTaskForm(prev => ({ ...prev, group_id: selectedGroup.id }));
-                      setTaskError('');
-                      setShowTaskModal(true);
+                      if (selectedGroup) {
+                        handleOpenTaskModal(selectedGroup);
+                      }
                     }}
                   >
                     <Plus size={14} className="mr-1" />
