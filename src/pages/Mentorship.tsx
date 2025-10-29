@@ -29,6 +29,23 @@ import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
 
+const createInitialRequestForm = () => ({
+  mentorId: '',
+  message: ''
+});
+
+const createInitialScheduleForm = () => ({
+  date: '',
+  time: '',
+  duration: 60,
+  meetingLink: ''
+});
+
+const createInitialRatingForm = () => ({
+  rating: 5,
+  comment: ''
+});
+
 const Mentorship: React.FC = () => {
   const { user } = useAuth();
   const [mentorships, setMentorships] = useState<MentorshipRelation[]>([]);
@@ -42,22 +59,11 @@ const Mentorship: React.FC = () => {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showSessionDetailsModal, setShowSessionDetailsModal] = useState(false);
 
-  const [requestForm, setRequestForm] = useState({
-    mentorId: '',
-    message: ''
-  });
+  const [requestForm, setRequestForm] = useState(createInitialRequestForm);
 
-  const [scheduleForm, setScheduleForm] = useState({
-    date: '',
-    time: '',
-    duration: 60,
-    meetingLink: ''
-  });
+  const [scheduleForm, setScheduleForm] = useState(createInitialScheduleForm);
 
-  const [ratingForm, setRatingForm] = useState({
-    rating: 5,
-    comment: ''
-  });
+  const [ratingForm, setRatingForm] = useState(createInitialRatingForm);
 
   // Memoized handlers to prevent input focus loss
   const handleRequestFormChange = useCallback((field: 'mentorId' | 'message', value: string) => {
@@ -70,6 +76,21 @@ const Mentorship: React.FC = () => {
 
   const handleRatingFormChange = useCallback((field: 'rating' | 'comment', value: string | number) => {
     setRatingForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleCloseRequestModal = useCallback(() => {
+    setShowRequestModal(false);
+    setRequestForm(createInitialRequestForm());
+  }, []);
+
+  const handleCloseScheduleModal = useCallback(() => {
+    setShowScheduleModal(false);
+    setScheduleForm(createInitialScheduleForm());
+  }, []);
+
+  const handleCloseRatingModal = useCallback(() => {
+    setShowRatingModal(false);
+    setRatingForm(createInitialRatingForm());
   }, []);
 
   useEffect(() => {
@@ -122,8 +143,7 @@ const Mentorship: React.FC = () => {
         requestForm.message
       );
       
-      setShowRequestModal(false);
-      setRequestForm({ mentorId: '', message: '' });
+      handleCloseRequestModal();
       loadMentorships();
     } catch (error) {
       console.error('Error requesting mentorship:', error);
@@ -144,14 +164,8 @@ const Mentorship: React.FC = () => {
         meeting_link: scheduleForm.meetingLink || undefined
       });
 
-      setShowScheduleModal(false);
-      setScheduleForm({
-        date: '',
-        time: '',
-        duration: 60,
-        meetingLink: ''
-      });
-      
+      handleCloseScheduleModal();
+
       if (selectedMentorship) {
         loadSessions(selectedMentorship.id);
       }
@@ -185,8 +199,7 @@ const Mentorship: React.FC = () => {
         ratingForm.comment
       );
 
-      setShowRatingModal(false);
-      setRatingForm({ rating: 5, comment: '' });
+      handleCloseRatingModal();
       setSelectedSession(null);
     } catch (error) {
       console.error('Error rating mentor:', error);
@@ -483,7 +496,7 @@ const Mentorship: React.FC = () => {
       {/* Request Mentorship Modal */}
       <Modal
         isOpen={showRequestModal}
-        onClose={() => setShowRequestModal(false)}
+        onClose={handleCloseRequestModal}
         title="Solicitar Mentoria"
         size="lg"
       >
@@ -521,7 +534,7 @@ const Mentorship: React.FC = () => {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setShowRequestModal(false)}
+              onClick={handleCloseRequestModal}
             >
               Cancelar
             </Button>
@@ -535,7 +548,7 @@ const Mentorship: React.FC = () => {
       {/* Schedule Session Modal */}
       <Modal
         isOpen={showScheduleModal}
-        onClose={() => setShowScheduleModal(false)}
+        onClose={handleCloseScheduleModal}
         title="Agendar Sessão de Mentoria"
         size="lg"
       >
@@ -597,7 +610,7 @@ const Mentorship: React.FC = () => {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setShowScheduleModal(false)}
+              onClick={handleCloseScheduleModal}
             >
               Cancelar
             </Button>
@@ -758,7 +771,7 @@ const Mentorship: React.FC = () => {
       {/* Rate Mentor Modal */}
       <Modal
         isOpen={showRatingModal}
-        onClose={() => setShowRatingModal(false)}
+        onClose={handleCloseRatingModal}
         title="Avaliar Mentor"
         size="md"
       >
@@ -809,7 +822,7 @@ const Mentorship: React.FC = () => {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setShowRatingModal(false)}
+              onClick={handleCloseRatingModal}
             >
               Cancelar
             </Button>
