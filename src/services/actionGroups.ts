@@ -530,6 +530,12 @@ class ActionGroupService {
    */
   async createTask(taskData: CreateTaskData): Promise<GroupTask> {
     console.log('👥 ActionGroups: Creating task:', taskData.title);
+    console.log('👥 ActionGroups: Task data:', {
+      title: taskData.title,
+      assignee_id: taskData.assignee_id,
+      group_id: taskData.group_id,
+      deadline: taskData.deadline
+    });
 
     // Validate task data
     if (!taskData.title || taskData.title.trim().length === 0) {
@@ -537,6 +543,9 @@ class ActionGroupService {
     }
     if (!taskData.assignee_id) {
       throw new Error('Responsável pela tarefa é obrigatório');
+    }
+    if (!taskData.group_id) {
+      throw new Error('ID do grupo é obrigatório');
     }
     if (!taskData.deadline) {
       throw new Error('Prazo da tarefa é obrigatório');
@@ -549,13 +558,17 @@ class ActionGroupService {
 
     try {
       // Verify assignee is a participant of the group
+      console.log('👥 ActionGroups: Verifying assignee is a participant...');
       const participants = await this.getGroupParticipants(taskData.group_id);
+      console.log('👥 ActionGroups: Group participants:', participants.map(p => ({ id: p.profile_id, name: p.profile.name })));
+      
       const isParticipant = participants.some(p => p.profile_id === taskData.assignee_id);
 
       if (!isParticipant) {
         throw new Error('Responsável deve ser um participante do grupo');
       }
 
+      console.log('👥 ActionGroups: Inserting task into database...');
       const task = await supabaseRequest(
         () => supabase!
           .from('tasks')
@@ -574,6 +587,8 @@ class ActionGroupService {
           .single(),
         'createGroupTask'
       );
+
+      console.log('👥 ActionGroups: Task created successfully:', task.id);
 
       // Send notification to assignee
       try {
@@ -601,7 +616,17 @@ class ActionGroupService {
       return task;
     } catch (error) {
       console.error('👥 ActionGroups: Error creating task:', error);
+      
+      // Enhanced error logging
       if (error instanceof Error) {
+        console.error('👥 ActionGroups: Error message:', error.message);
+        console.error('👥 ActionGroups: Error stack:', error.stack);
+        
+        // Check for RLS permission errors
+        if (error.message.includes('permission') || error.message.includes('policy')) {
+          throw new Error('Sem permissão para criar tarefa. Verifique se você é participante do grupo.');
+        }
+        
         throw error;
       }
       throw new Error('Erro ao criar tarefa');
