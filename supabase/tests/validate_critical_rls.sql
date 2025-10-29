@@ -57,7 +57,7 @@ END $$;
 -- TESTES DE ISOLAMENTO - THERAPEUTIC_TASKS
 -- ============================================
 
-\echo '\n=== TESTE 1: User1 vê apenas própria tarefa ==='
+SELECT '\n=== TESTE 1: User1 vê apenas própria tarefa ===' AS info;
 SET ROLE authenticated;
 SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000001", "user_role": "colaborador"}';
 
@@ -68,7 +68,7 @@ SELECT
   END as resultado
 FROM therapeutic_tasks;
 
-\echo '\n=== TESTE 2: User2 NÃO vê tarefa do User1 (ISOLAMENTO) ==='
+SELECT '\n=== TESTE 2: User2 NÃO vê tarefa do User1 (ISOLAMENTO) ===' AS info;
 SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000002", "user_role": "colaborador"}';
 
 SELECT 
@@ -78,7 +78,7 @@ SELECT
   END as resultado
 FROM therapeutic_tasks;
 
-\echo '\n=== TESTE 3: HR vê todas as tarefas ==='
+SELECT '\n=== TESTE 3: HR vê todas as tarefas ===' AS info;
 SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000003", "user_role": "hr"}';
 
 SELECT 
@@ -88,7 +88,7 @@ SELECT
   END as resultado
 FROM therapeutic_tasks;
 
-\echo '\n=== TESTE 4: User1 NÃO pode deletar tarefa ==='
+SELECT '\n=== TESTE 4: User1 NÃO pode deletar tarefa ===' AS info;
 SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000001", "user_role": "colaborador"}';
 
 DO $$
@@ -106,7 +106,7 @@ END $$;
 -- TESTES DE ISOLAMENTO - CHECKIN_SETTINGS
 -- ============================================
 
-\echo '\n=== TESTE 5: User1 vê apenas própria configuração ==='
+SELECT '\n=== TESTE 5: User1 vê apenas própria configuração ===' AS info;
 SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000001", "user_role": "colaborador"}';
 
 SELECT 
@@ -117,7 +117,7 @@ SELECT
   END as resultado
 FROM checkin_settings;
 
-\echo '\n=== TESTE 6: User2 NÃO vê config do User1 ==='
+SELECT '\n=== TESTE 6: User2 NÃO vê config do User1 ===' AS info;
 SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000002", "user_role": "colaborador"}';
 
 SELECT 
@@ -127,7 +127,7 @@ SELECT
   END as resultado
 FROM checkin_settings;
 
-\echo '\n=== TESTE 7: HR pode ver configs (analytics) ==='
+SELECT '\n=== TESTE 7: HR pode ver configs (analytics) ===' AS info;
 SET request.jwt.claims TO '{"sub": "00000000-0000-0000-0000-000000000003", "user_role": "hr"}';
 
 SELECT 
@@ -155,4 +155,4 @@ DELETE FROM profiles WHERE id IN (
   '00000000-0000-0000-0000-000000000003'
 );
 
-\echo '\n✅ Cleanup completo - dados de teste removidos'
+SELECT '\n✅ Cleanup completo - dados de teste removidos' AS info;
