@@ -28,6 +28,7 @@ const ActionGroups: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GroupWithDetails | null>(null);
   const [creating, setCreating] = useState(false);
+  const [taskError, setTaskError] = useState<string>('');
 
   const [groupForm, setGroupForm] = useState<CreateGroupData>({
     title: '',
@@ -123,7 +124,29 @@ const ActionGroups: React.FC = () => {
     e.preventDefault();
     if (!selectedGroup) return;
 
+    // Validate all required fields
+    if (!taskForm.title || taskForm.title.trim().length === 0) {
+      setTaskError('Título da tarefa é obrigatório');
+      return;
+    }
+
+    if (!taskForm.assignee_id) {
+      setTaskError('Responsável pela tarefa é obrigatório');
+      return;
+    }
+
+    if (!taskForm.deadline) {
+      setTaskError('Prazo da tarefa é obrigatório');
+      return;
+    }
+
     try {
+      setCreating(true);
+      console.log('Creating task with data:', {
+        ...taskForm,
+        group_id: selectedGroup.id
+      });
+      
       await actionGroupService.createTask({
         ...taskForm,
         group_id: selectedGroup.id
@@ -138,11 +161,21 @@ const ActionGroups: React.FC = () => {
         group_id: ''
       });
       
+      setTaskError('');
       await loadData();
-      
+
       // Trigger will automatically create notification for assignee
     } catch (error) {
       console.error('Erro ao criar tarefa:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar tarefa';
+      setTaskError(errorMessage);
+
+      // Log detailed error for debugging
+      if (error instanceof Error && error.message.includes('permission')) {
+        console.error('RLS Permission Error: User may not have permission to create tasks in this group');
+      }
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -422,6 +455,7 @@ const ActionGroups: React.FC = () => {
                           onClick={() => {
                             setSelectedGroup(group);
                             setTaskForm(prev => ({ ...prev, group_id: group.id }));
+                            setTaskError('');
                             setShowTaskModal(true);
                           }}
                         >
@@ -560,11 +594,20 @@ const ActionGroups: React.FC = () => {
       {/* Create Task Modal */}
       <Modal
         isOpen={showTaskModal}
-        onClose={() => setShowTaskModal(false)}
+        onClose={() => {
+          setShowTaskModal(false);
+          setTaskError('');
+        }}
         title="Criar Nova Tarefa"
         size="md"
       >
         <form onSubmit={handleCreateTask} className="space-y-4">
+          {taskError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {taskError}
+            </div>
+          )}
+          
           <Input
             label="Título da Tarefa"
             value={taskForm.title}
@@ -600,18 +643,27 @@ const ActionGroups: React.FC = () => {
               value={taskForm.deadline}
               onChange={(e) => setTaskForm({ ...taskForm, deadline: e.target.value })}
               required
+              min={new Date().toISOString().split('T')[0]}
             />
+          </div>
+
+          <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-800">
+            <strong>Nota:</strong> O responsável será notificado automaticamente quando a tarefa for criada.
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setShowTaskModal(false)}
+              onClick={() => {
+                setShowTaskModal(false);
+                setTaskError('');
+              }}
+              disabled={creating}
             >
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" loading={creating}>
               Criar Tarefa
             </Button>
           </div>
@@ -767,6 +819,7 @@ const ActionGroups: React.FC = () => {
                     size="sm"
                     onClick={() => {
                       setTaskForm(prev => ({ ...prev, group_id: selectedGroup.id }));
+                      setTaskError('');
                       setShowTaskModal(true);
                     }}
                   >
