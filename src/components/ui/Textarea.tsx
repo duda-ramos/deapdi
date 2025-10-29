@@ -18,17 +18,23 @@ export const Textarea: React.FC<TextareaProps> = ({
   ...props
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (sanitize && onChange) {
+    if (!onChange) return;
+    
+    if (sanitize) {
+      // Create a new event with sanitized value
       const sanitizedValue = sanitizeText(e.target.value);
-      const sanitizedEvent = {
+      
+      // Clone the event to avoid React synthetic event reuse issues
+      const newEvent = {
         ...e,
         target: {
           ...e.target,
           value: sanitizedValue
         }
       };
-      onChange(sanitizedEvent as React.ChangeEvent<HTMLTextAreaElement>);
-    } else if (onChange) {
+      
+      onChange(newEvent as React.ChangeEvent<HTMLTextAreaElement>);
+    } else {
       onChange(e);
     }
   };

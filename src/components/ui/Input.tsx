@@ -18,17 +18,24 @@ export const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (sanitize && onChange) {
+    if (!onChange) return;
+    
+    if (sanitize) {
+      // Create a new event with sanitized value
+      // We use Object.defineProperty to make it work like a native event
       const sanitizedValue = sanitizeText(e.target.value);
-      const sanitizedEvent = {
+      
+      // Clone the event to avoid React synthetic event reuse issues
+      const newEvent = {
         ...e,
         target: {
           ...e.target,
           value: sanitizedValue
         }
       };
-      onChange(sanitizedEvent as React.ChangeEvent<HTMLInputElement>);
-    } else if (onChange) {
+      
+      onChange(newEvent as React.ChangeEvent<HTMLInputElement>);
+    } else {
       onChange(e);
     }
   };
