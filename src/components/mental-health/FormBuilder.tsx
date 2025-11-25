@@ -50,6 +50,11 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ onSave, onCancel, initialTemp
   const [showSettings, setShowSettings] = useState(false);
   const [draggedQuestion, setDraggedQuestion] = useState<number | null>(null);
 
+  // Memoized handlers to prevent input focus loss
+  const handleTemplateChange = React.useCallback((field: string, value: any) => {
+    setTemplate(prev => ({ ...prev, [field]: value }));
+  }, []);
+
   const questionTypes = [
     { value: 'scale', label: 'Escala (1-10)', icon: <Hash size={16} /> },
     { value: 'multiple_choice', label: 'Múltipla Escolha', icon: <CheckSquare size={16} /> },
@@ -452,21 +457,21 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ onSave, onCancel, initialTemp
               <Input
                 label="Título do Formulário"
                 value={template.title || ''}
-                onChange={(e) => setTemplate(prev => ({ ...prev, title: e.target.value }))}
+                onChange={(e) => handleTemplateChange('title', e.target.value)}
                 placeholder="Ex: Questionário de Bem-estar"
                 required
               />
               <Select
                 label="Tipo de Formulário"
                 value={template.form_type || 'custom'}
-                onChange={(e) => setTemplate(prev => ({ ...prev, form_type: e.target.value as any }))}
+                onChange={(e) => handleTemplateChange('form_type', e.target.value)}
                 options={formTypes}
               />
             </div>
             <Textarea
               label="Descrição"
               value={template.description || ''}
-              onChange={(e) => setTemplate(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) => handleTemplateChange('description', e.target.value)}
               placeholder="Descreva o propósito deste formulário..."
               rows={2}
             />
@@ -554,26 +559,20 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ onSave, onCancel, initialTemp
             <Input
               label="Pontuação Máxima"
               type="number"
-              value={template.scoring_rules?.max_score || 100}
-              onChange={(e) => setTemplate(prev => ({
-                ...prev,
-                scoring_rules: {
-                  ...prev.scoring_rules,
-                  max_score: parseInt(e.target.value)
-                }
-              }))}
+              value={String(template.scoring_rules?.max_score || 100)}
+              onChange={(e) => handleTemplateChange('scoring_rules', {
+                ...template.scoring_rules,
+                max_score: parseInt(e.target.value) || 100
+              })}
             />
             <Input
               label="Limite Alto Risco"
               type="number"
-              value={template.alert_thresholds?.alto || 70}
-              onChange={(e) => setTemplate(prev => ({
-                ...prev,
-                alert_thresholds: {
-                  ...prev.alert_thresholds,
-                  alto: parseInt(e.target.value)
-                }
-              }))}
+              value={String(template.alert_thresholds?.alto || 70)}
+              onChange={(e) => handleTemplateChange('alert_thresholds', {
+                ...template.alert_thresholds,
+                alto: parseInt(e.target.value) || 70
+              })}
             />
           </div>
           
@@ -582,7 +581,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ onSave, onCancel, initialTemp
               type="checkbox"
               id="is_recurring"
               checked={template.is_recurring || false}
-              onChange={(e) => setTemplate(prev => ({ ...prev, is_recurring: e.target.checked }))}
+              onChange={(e) => handleTemplateChange('is_recurring', e.target.checked)}
               className="rounded border-gray-300"
             />
             <label htmlFor="is_recurring" className="text-sm text-gray-700">
