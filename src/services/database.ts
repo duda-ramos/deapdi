@@ -26,7 +26,7 @@ export const databaseService = {
       .select(`
         *,
         team:teams!profiles_team_id_fkey(name),
-        manager:manager_id(name)
+        manager:profiles!profiles_manager_id_fkey(name)
       `);
 
     if (filters?.role) query = query.eq('role', filters.role);
