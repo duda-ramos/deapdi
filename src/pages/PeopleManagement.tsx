@@ -120,7 +120,7 @@ const PeopleManagement: React.FC = () => {
     if (user && permissions?.canManageTeam) {
       loadData();
     }
-  }, [user?.id, permissions?.canManageTeam]);
+  }, [user?.id, user?.role, permissions?.canManageTeam, userFilter?.all, userFilter?.managerFilter]);
 
   const loadData = useCallback(async () => {
     if (!user || !userFilter) {
