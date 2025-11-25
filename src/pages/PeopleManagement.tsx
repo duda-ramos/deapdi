@@ -120,7 +120,7 @@ const PeopleManagement: React.FC = () => {
     if (user && permissions?.canManageTeam) {
       loadData();
     }
-  }, [user?.id, permissions]);
+  }, [user?.id, user?.role, permissions?.canManageTeam, userFilter?.all, userFilter?.managerFilter]);
 
   const loadData = useCallback(async () => {
     if (!user || !userFilter) {
@@ -155,9 +155,16 @@ const PeopleManagement: React.FC = () => {
       }
 
       console.log('📊 PeopleManagement: Fetching teams and managers...');
+      // Fetch teams and managers in parallel for better performance
       const [teamsData, managersData] = await Promise.all([
-        teamService.getTeams(),
-        databaseService.getProfiles({ role: 'manager' })
+        teamService.getTeams().catch(err => {
+          console.error('⚠️ PeopleManagement: Error fetching teams:', err);
+          return [];
+        }),
+        databaseService.getProfiles({ role: 'manager' }).catch(err => {
+          console.error('⚠️ PeopleManagement: Error fetching managers:', err);
+          return [];
+        })
       ]);
 
       console.log('✅ PeopleManagement: Data loaded successfully', {
