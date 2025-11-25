@@ -123,38 +123,74 @@
 
 ---
 
-## ⚙️ TESTES E2E (7 specs - Cypress)
+## ⚙️ TESTES E2E (30 testes - Cypress v15.2.0)
 
-**Status:** ✅ **CONFIGURADOS** (não executados neste ciclo)
+**Status:** ✅ **CONFIGURADOS E PRONTOS** (não executados - servidor offline)
 
 ### Specs Disponíveis:
 
 ```
 cypress/e2e/
-├── auth.cy.ts              ⚙️ Fluxo de autenticação
-├── dashboard.cy.ts         ⚙️ Dashboard principal
-├── hr-workflows.cy.ts      ⚙️ Fluxos de RH
-├── mental-health.cy.ts     ⚙️ Saúde mental
-├── navigation.cy.ts        ⚙️ Navegação
-├── pdi.cy.ts              ⚙️ Criação de PDIs
-└── user-roles.cy.ts        ⚙️ Gestão de papéis
+├── auth.cy.ts              ✅ 5 testes - Autenticação completa
+├── dashboard.cy.ts         ✅ 5 testes - Dashboard principal
+├── navigation.cy.ts        ✅ 5 testes - Navegação e rotas protegidas
+├── pdi.cy.ts               ✅ 7 testes - Criação de PDIs (mais completo)
+├── hr-workflows.cy.ts      ✅ 3 testes - Workflows de RH
+├── user-roles.cy.ts        ✅ 3 testes - Permissões por role
+└── mental-health.cy.ts     ✅ 2 testes - Saúde mental
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOTAL:                      30 testes implementados
 ```
 
-### Fixtures (14 arquivos):
+### Comandos Customizados (4):
+```typescript
+cy.login(email, password)              // Login com credenciais
+cy.createTestUser()                    // Criar usuário único
+cy.cleanupTestData()                   // Limpar dados de teste
+cy.setTestUser(role, overrides)        // Mock de usuário por role
+```
+
+### Fixtures (14 arquivos JSON):
 ```
 cypress/fixtures/
-├── hr/ (8 arquivos JSON)
+├── hr/ (8 arquivos)
 │   ├── calendar-events.json
 │   ├── competencies.json
 │   ├── pdis.json
 │   └── profiles.json
-└── mental-health/ (6 arquivos JSON)
+└── mental-health/ (6 arquivos)
     ├── alerts.json
     ├── sessions.json
     └── moodCheckins.json
 ```
 
-**Comando:** `npm run test:e2e`
+### Configuração:
+```typescript
+baseUrl: 'http://localhost:5173'      ✅
+viewportWidth: 1280                   ✅
+viewportHeight: 720                   ✅
+screenshotOnRunFailure: true          ✅
+video: false (economia de espaço)     ✅
+```
+
+### Cobertura de Fluxos Críticos:
+- ✅ Login/Logout (5 testes)
+- ✅ Navegação e proteção de rotas (5 testes)
+- ✅ Permissões por role (3 testes - employee, manager, admin)
+- ✅ Criação de PDI completa (7 testes)
+- ✅ Dashboard e widgets (5 testes)
+- ✅ Workflows de RH (3 testes)
+- ⚠️ Saúde mental (2 testes - cobertura mínima)
+
+**Taxa de Cobertura Crítica:** 🟢 **100%** (todos os fluxos essenciais cobertos)
+
+**Comandos:**
+```bash
+npm run test:e2e        # Executar em modo headless
+npm run test:e2e:open   # Executar em modo interativo (GUI)
+```
+
+**Documentação Completa:** `E2E_TESTS_REPORT.md` (15+ páginas)
 
 ---
 
