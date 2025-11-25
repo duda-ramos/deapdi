@@ -1,3 +1,6 @@
+// Mock api service first
+jest.mock('../api');
+
 import { databaseService } from '../database';
 import { supabase } from '../../lib/supabase';
 
@@ -53,8 +56,10 @@ describe('DatabaseService', () => {
         deadline: '2024-12-31',
         profile_id: '123',
         created_by: '123',
-        status: 'pending',
-        points: 100
+        status: 'pending' as const,
+        points: 100,
+        mentor_id: null,
+        validated_by: null
       };
 
       const mockCreatedPDI = { id: '456', ...mockPDI };

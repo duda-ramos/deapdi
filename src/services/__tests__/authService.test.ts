@@ -1,9 +1,22 @@
-import { authService } from '../auth';
-import { supabase } from '../../lib/supabase';
+// Mock Supabase first before importing auth service
+const mockSignInWithPassword = jest.fn();
+const mockSignUp = jest.fn();
+const mockSignOut = jest.fn();
 
-// Mock Supabase
-jest.mock('../../lib/supabase');
-const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+jest.mock('../../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      signInWithPassword: mockSignInWithPassword,
+      signUp: mockSignUp,
+      signOut: mockSignOut,
+      getSession: jest.fn(),
+      onAuthStateChange: jest.fn()
+    },
+    from: jest.fn()
+  }
+}));
+
+import { authService } from '../auth';
 
 describe('AuthService', () => {
   beforeEach(() => {
@@ -15,7 +28,7 @@ describe('AuthService', () => {
       const mockUser = { id: '123', email: 'test@example.com' };
       const mockSession = { access_token: 'token' };
       
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      mockSignInWithPassword.mockResolvedValue({
         data: { user: mockUser, session: mockSession },
         error: null
       });
@@ -28,7 +41,7 @@ describe('AuthService', () => {
     });
 
     it('should handle sign in errors', async () => {
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      mockSignInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
         error: { message: 'Invalid login credentials' }
       });
@@ -51,7 +64,7 @@ describe('AuthService', () => {
         level: 'Júnior'
       };
 
-      mockSupabase.auth.signUp.mockResolvedValue({
+      mockSignUp.mockResolvedValue({
         data: { user: mockUser, session: null },
         error: null
       });
@@ -63,7 +76,7 @@ describe('AuthService', () => {
     });
 
     it('should handle sign up errors', async () => {
-      mockSupabase.auth.signUp.mockResolvedValue({
+      mockSignUp.mockResolvedValue({
         data: { user: null, session: null },
         error: { message: 'User already registered' }
       });
@@ -85,14 +98,14 @@ describe('AuthService', () => {
 
   describe('signOut', () => {
     it('should sign out successfully', async () => {
-      mockSupabase.auth.signOut.mockResolvedValue({ error: null });
+      mockSignOut.mockResolvedValue({ error: null });
 
       await expect(authService.signOut()).resolves.not.toThrow();
     });
 
     it('should handle sign out errors', async () => {
       const error = new Error('Sign out failed');
-      mockSupabase.auth.signOut.mockResolvedValue({ error });
+      mockSignOut.mockResolvedValue({ error });
 
       await expect(authService.signOut()).rejects.toThrow('Sign out failed');
     });

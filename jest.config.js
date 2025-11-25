@@ -13,8 +13,10 @@ export default {
         allowSyntheticDefaultImports: true,
         module: 'esnext',
         target: 'es2020',
-        moduleResolution: 'bundler'
-      }
+        moduleResolution: 'bundler',
+        types: ['node', 'jest', '@testing-library/jest-dom']
+      },
+      isolatedModules: true
     }],
     '^.+\\.(js|jsx)$': 'babel-jest'
   },
