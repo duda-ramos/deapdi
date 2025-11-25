@@ -88,14 +88,17 @@ WHERE schemaname = 'public' AND rowsecurity = false;
 
 ### 4️⃣ EXECUTAR QUERY 3 - Políticas Críticas (5 min)
 
-**Copiar esta query ATUALIZADA:**
+**⚠️ IMPORTANTE: Use o arquivo `RLS_AUDIT_QUERIES_CORRECTED.sql` para copiar a query completa!**
+
+**Ou copie esta query COMPLETA:**
 
 ```sql
 SELECT 
   tablename, 
   policyname, 
   cmd as operacao,
-  roles
+  roles,
+  permissive
 FROM pg_policies
 WHERE schemaname = 'public' 
   AND tablename IN (
@@ -110,9 +113,12 @@ WHERE schemaname = 'public'
     'psychology_sessions',
     'therapeutic_activities',
     'mental_health_alerts',
-    'consent_records'
+    'consent_records',
+    'action_groups',
+    'mentorships',
+    'mentorship_sessions'
   )
-ORDER BY tablename, cmd;
+ORDER BY tablename, cmd, policyname;
 ```
 
 **Executar:**
