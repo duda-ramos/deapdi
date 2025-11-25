@@ -1,0 +1,385 @@
+═══════════════════════════════════════════════════════════════
+  RESULTADOS DA AUDITORIA RLS - TALENTFLOW
+  Data: [PREENCHER DATA E HORA DA EXECUÇÃO]
+  Executor: [PREENCHER SEU NOME]
+  Projeto Supabase: fvobspjiujcurfugjsxr
+═══════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUERY 1 - STATUS RLS DE TODAS AS TABELAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[COLAR RESULTADO COMPLETO DA QUERY 1 AQUI]
+
+Query Executada:
+SELECT 
+  tablename, 
+  rowsecurity,
+  CASE 
+    WHEN rowsecurity = true THEN '✅ PROTEGIDO'
+    ELSE '🚨 VULNERÁVEL'
+  END as status
+FROM pg_tables 
+WHERE schemaname = 'public'
+ORDER BY rowsecurity ASC, tablename;
+
+Resultado:
+┌─────────────────────────────┬─────────────┬─────────────────┐
+│ tablename                   │ rowsecurity │ status          │
+├─────────────────────────────┼─────────────┼─────────────────┤
+│ [COLAR LINHAS AQUI]         │             │                 │
+│                             │             │                 │
+│                             │             │                 │
+└─────────────────────────────┴─────────────┴─────────────────┘
+
+RESUMO:
+- Total de tabelas encontradas: _______
+- Tabelas com RLS habilitado: _______
+- Tabelas sem RLS (vulneráveis): _______
+- Taxa de proteção: _______ %
+
+ANÁLISE:
+[ ] ✅ PASS - Todas as tabelas protegidas (100%)
+[ ] ⚠️ WARNING - 95-99% protegidas
+[ ] 🚨 CRITICAL - < 95% protegidas
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUERY 2 - CRÍTICO: TABELAS SEM RLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[COLAR RESULTADO COMPLETO DA QUERY 2 AQUI]
+
+Query Executada:
+SELECT tablename 
+FROM pg_tables 
+WHERE schemaname = 'public' AND rowsecurity = false;
+
+Resultado:
+┌─────────────┐
+│ tablename   │
+├─────────────┤
+│ [COLAR]     │
+│             │
+└─────────────┘
+
+RESULTADO: 
+[ ] ✅ ZERO TABELAS (esperado)
+[ ] 🚨 TABELAS ENCONTRADAS (crítico)
+
+SE TABELAS VULNERÁVEIS FORAM ENCONTRADAS, LISTAR E CLASSIFICAR:
+
+1. _____________________________ 
+   Criticidade: [ ] ALTA [ ] MÉDIA [ ] BAIXA
+   Tipo de dados: _____________________________
+   Impacto: ___________________________________
+
+2. _____________________________ 
+   Criticidade: [ ] ALTA [ ] MÉDIA [ ] BAIXA
+   Tipo de dados: _____________________________
+   Impacto: ___________________________________
+
+3. _____________________________ 
+   Criticidade: [ ] ALTA [ ] MÉDIA [ ] BAIXA
+   Tipo de dados: _____________________________
+   Impacto: ___________________________________
+
+ANÁLISE DE CRITICIDADE:
+- Tabelas CRÍTICAS (psychological_records, salary_history, etc.): _______
+- Tabelas IMPORTANTES (pdis, profiles, tasks, etc.): _______
+- Tabelas SECUNDÁRIAS (logs, cache, etc.): _______
+
+AÇÃO REQUERIDA:
+[ ] Nenhuma (0 tabelas vulneráveis)
+[ ] Investigar tabelas secundárias
+[ ] Corrigir urgentemente tabelas críticas (criar migration)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUERY 3 - POLÍTICAS DE TABELAS CRÍTICAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[COLAR RESULTADO COMPLETO DA QUERY 3 AQUI]
+
+Query Executada:
+SELECT 
+  tablename, 
+  policyname, 
+  cmd as operacao,
+  roles
+FROM pg_policies
+WHERE schemaname = 'public' 
+  AND tablename IN (
+    'profiles', 'psychological_records', 'emotional_checkins',
+    'salary_history', 'audit_logs', 'pdis', 'tasks', 'competencies',
+    'psychology_sessions', 'therapeutic_activities', 'mental_health_alerts',
+    'consent_records'
+  )
+ORDER BY tablename, cmd;
+
+Resultado:
+┌────────────────────────────┬──────────────────────────────────┬──────────┬──────────────┐
+│ tablename                  │ policyname                       │ operacao │ roles        │
+├────────────────────────────┼──────────────────────────────────┼──────────┼──────────────┤
+│ [COLAR LINHAS AQUI]        │                                  │          │              │
+│                            │                                  │          │              │
+└────────────────────────────┴──────────────────────────────────┴──────────┴──────────────┘
+
+VALIDAÇÕES ESPECÍFICAS:
+
+1. PSYCHOLOGICAL_RECORDS (Registros Psicológicos):
+   [ ] RLS habilitado
+   [ ] Tem política SELECT para HR/Admin
+   [ ] Tem política INSERT para HR/Admin
+   [ ] NÃO tem política para manager
+   [ ] NÃO tem política para employee
+   [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+   Notas: _________________________________________________
+
+2. SALARY_HISTORY (Histórico Salarial):
+   [ ] RLS habilitado
+   [ ] Tem política SELECT para HR/Admin
+   [ ] Tem política INSERT para HR/Admin
+   [ ] NÃO tem política para manager
+   [ ] NÃO tem política para employee
+   [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+   Notas: _________________________________________________
+
+3. EMOTIONAL_CHECKINS (Check-ins Emocionais):
+   [ ] RLS habilitado
+   [ ] Próprio usuário pode SELECT (auth.uid())
+   [ ] Próprio usuário pode INSERT
+   [ ] HR/Admin podem SELECT
+   [ ] NÃO tem política de SELECT para manager
+   [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+   Notas: _________________________________________________
+
+4. AUDIT_LOGS (Logs de Auditoria):
+   [ ] RLS habilitado
+   [ ] Apenas Admin pode SELECT
+   [ ] Apenas Admin pode INSERT
+   [ ] NÃO tem política para HR
+   [ ] NÃO tem política para manager
+   [ ] NÃO tem política para employee
+   [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+   Notas: _________________________________________________
+
+5. THERAPEUTIC_ACTIVITIES (Atividades Terapêuticas):
+   [ ] RLS habilitado
+   [ ] Tem pelo menos 2 políticas
+   [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+   Notas: _________________________________________________
+
+6. PSYCHOLOGY_SESSIONS (Sessões de Psicologia):
+   [ ] RLS habilitado
+   [ ] Tem pelo menos 2 políticas
+   [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+   Notas: _________________________________________________
+
+7. CONSENT_RECORDS (Registros de Consentimento):
+   [ ] RLS habilitado
+   [ ] Tem pelo menos 2 políticas
+   [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+   Notas: _________________________________________________
+
+8. PROFILES (Perfis):
+   [ ] RLS habilitado
+   [ ] Tem política para SELECT próprio
+   [ ] Tem política para UPDATE próprio
+   [ ] Tem política para HR/Admin
+   [ ] Total de políticas: _______
+   [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+   Notas: _________________________________________________
+
+9. PDIS (Planos de Desenvolvimento):
+   [ ] RLS habilitado
+   [ ] Tem políticas para CRUD próprio
+   [ ] Total de políticas: _______
+   [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+   Notas: _________________________________________________
+
+10. TASKS (Tarefas):
+    [ ] RLS habilitado
+    [ ] Tem política INSERT para participantes de grupo
+    [ ] Total de políticas: _______
+    [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+    Notas: _________________________________________________
+
+11. COMPETENCIES (Competências):
+    [ ] RLS habilitado
+    [ ] Total de políticas: _______
+    [ ] ✅ PASS / ⚠️ WARNING / 🚨 FAIL
+    Notas: _________________________________________________
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUERY 3B - CONTAGEM DE POLÍTICAS POR TABELA (OPCIONAL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[SE EXECUTADO, COLAR RESULTADO AQUI]
+
+Query Executada:
+SELECT 
+  tablename,
+  COUNT(*) as total_politicas,
+  COUNT(CASE WHEN cmd = 'SELECT' THEN 1 END) as politicas_select,
+  COUNT(CASE WHEN cmd = 'INSERT' THEN 1 END) as politicas_insert,
+  COUNT(CASE WHEN cmd = 'UPDATE' THEN 1 END) as politicas_update,
+  COUNT(CASE WHEN cmd = 'DELETE' THEN 1 END) as politicas_delete
+FROM pg_policies
+WHERE schemaname = 'public'
+GROUP BY tablename
+ORDER BY tablename;
+
+Resultado:
+┌────────────────────────────┬─────────────────┬─────────────────┬─────────────────┬─────────────────┬─────────────────┐
+│ tablename                  │ total_politicas │ politicas_select│ politicas_insert│ politicas_update│ politicas_delete│
+├────────────────────────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────┤
+│ [COLAR]                    │                 │                 │                 │                 │                 │
+└────────────────────────────┴─────────────────┴─────────────────┴─────────────────┴─────────────────┴─────────────────┘
+
+ANÁLISE:
+- Total de tabelas com políticas: _______
+- Média de políticas por tabela: _______
+- Tabelas com 0 políticas (mas RLS habilitado): _______
+
+OBSERVAÇÕES:
+________________________________________________________________
+________________________________________________________________
+________________________________________________________________
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHECKLIST DE VALIDAÇÃO ESSENCIAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. TOTAL DE TABELAS COM RLS:
+   [ ] Total de tabelas: ______ (esperado: 42-46)
+   [ ] Tabelas com RLS: ______ (esperado: igual ao total)
+   [ ] Taxa de proteção: ______ % (esperado: 100%)
+   [ ] ✅ PASS / ⚠️ WARNING / 🚨 CRITICAL
+
+2. TABELAS VULNERÁVEIS (QUERY 2):
+   [ ] Query 2 retornou: ______ linhas (esperado: 0)
+   [ ] ✅ ZERO VULNERABILIDADES / 🚨 VULNERABILIDADES ENCONTRADAS
+
+3. TABELAS ULTRA-SENSÍVEIS:
+   [ ] psychological_records: ✅ / ⚠️ / 🚨
+   [ ] salary_history: ✅ / ⚠️ / 🚨
+   [ ] emotional_checkins: ✅ / ⚠️ / 🚨
+   [ ] audit_logs: ✅ / ⚠️ / 🚨
+   [ ] therapeutic_activities: ✅ / ⚠️ / 🚨
+   [ ] psychology_sessions: ✅ / ⚠️ / 🚨
+   [ ] consent_records: ✅ / ⚠️ / 🚨
+
+4. TABELAS CRÍTICAS DE NEGÓCIO:
+   [ ] profiles: _____ políticas (esperado: 4+)
+   [ ] pdis: _____ políticas (esperado: 4+)
+   [ ] tasks: _____ políticas (esperado: 4+)
+   [ ] competencies: _____ políticas (esperado: 3+)
+   [ ] action_groups: _____ políticas (esperado: 3+)
+   [ ] mentorships: _____ políticas (esperado: 3+)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RESUMO EXECUTIVO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STATUS GERAL DA AUDITORIA:
+[ ] ✅ APROVADO - Sistema seguro, sem vulnerabilidades
+[ ] ⚠️ ATENÇÃO - Pequenas melhorias necessárias
+[ ] 🚨 CRÍTICO - Vulnerabilidades graves encontradas
+
+ESTATÍSTICAS CONSOLIDADAS:
+┌────────────────────────────────────┬─────────┬──────────┐
+│ Métrica                            │ Valor   │ Esperado │
+├────────────────────────────────────┼─────────┼──────────┤
+│ Total de tabelas                   │ _______ │ 42-46    │
+│ Tabelas com RLS                    │ _______ │ ______   │
+│ Taxa de proteção                   │ _____% │ 100%     │
+│ Tabelas vulneráveis                │ _______ │ 0        │
+│ Total de políticas                 │ _______ │ 100+     │
+│ Políticas por tabela (média)       │ _______ │ 2-3      │
+└────────────────────────────────────┴─────────┴──────────┘
+
+AVALIAÇÃO DE TABELAS CRÍTICAS:
+┌────────────────────────────┬────────┬───────────────────┐
+│ Tabela                     │ Status │ Observações       │
+├────────────────────────────┼────────┼───────────────────┤
+│ psychological_records      │ ___    │ _________________ │
+│ salary_history             │ ___    │ _________________ │
+│ emotional_checkins         │ ___    │ _________________ │
+│ audit_logs                 │ ___    │ _________________ │
+│ profiles                   │ ___    │ _________________ │
+│ pdis                       │ ___    │ _________________ │
+│ tasks                      │ ___    │ _________________ │
+└────────────────────────────┴────────┴───────────────────┘
+
+ANOMALIAS ENCONTRADAS:
+
+1. _____________________________________________________________
+   Severidade: [ ] ALTA [ ] MÉDIA [ ] BAIXA
+   Impacto: ____________________________________________________
+   Recomendação: _______________________________________________
+
+2. _____________________________________________________________
+   Severidade: [ ] ALTA [ ] MÉDIA [ ] BAIXA
+   Impacto: ____________________________________________________
+   Recomendação: _______________________________________________
+
+3. _____________________________________________________________
+   Severidade: [ ] ALTA [ ] MÉDIA [ ] BAIXA
+   Impacto: ____________________________________________________
+   Recomendação: _______________________________________________
+
+PONTOS FORTES:
+- ____________________________________________________________
+- ____________________________________________________________
+- ____________________________________________________________
+
+PONTOS DE MELHORIA:
+- ____________________________________________________________
+- ____________________________________________________________
+- ____________________________________________________________
+
+RISCOS IDENTIFICADOS:
+┌─────────────────────────┬──────────┬─────────┬────────────┐
+│ Risco                   │ Severida │ Probab. │ Mitigação  │
+├─────────────────────────┼──────────┼─────────┼────────────┤
+│ ____________________    │ ALTA     │ BAIXA   │ __________ │
+│ ____________________    │ MÉDIA    │ MÉDIA   │ __________ │
+│ ____________________    │ BAIXA    │ ALTA    │ __________ │
+└─────────────────────────┴──────────┴─────────┴────────────┘
+
+PRÓXIMOS PASSOS (PRIORIZADO):
+
+🔴 ALTA PRIORIDADE (Executar imediatamente):
+1. _____________________________________________________________
+2. _____________________________________________________________
+3. _____________________________________________________________
+
+🟡 MÉDIA PRIORIDADE (Executar em 1-2 semanas):
+1. _____________________________________________________________
+2. _____________________________________________________________
+
+🟢 BAIXA PRIORIDADE (Backlog):
+1. _____________________________________________________________
+2. _____________________________________________________________
+
+CONCLUSÃO GERAL:
+________________________________________________________________
+________________________________________________________________
+________________________________________________________________
+________________________________________________________________
+________________________________________________________________
+________________________________________________________________
+
+RECOMENDAÇÃO FINAL:
+[ ] APROVADO para produção
+[ ] APROVADO com ressalvas (listar acima)
+[ ] NÃO APROVADO - correções obrigatórias
+
+ASSINATURA:
+Auditor: _______________________
+Data/Hora: _____________________
+Próxima Auditoria: ______________
+
+═══════════════════════════════════════════════════════════════
+  FIM DO RELATÓRIO DE AUDITORIA RLS
+  Este documento deve ser arquivado e revisado periodicamente
+═══════════════════════════════════════════════════════════════

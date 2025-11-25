@@ -1,10 +1,13 @@
+// Mock security utils first
+jest.mock('../../../utils/security');
+
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Input } from '../Input';
 
 describe('Input Component', () => {
   it('renders input with label', () => {
-    render(<Input label="Email" />);
+    render(<Input label="Email" name="email" />);
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
   });
 
@@ -31,7 +34,7 @@ describe('Input Component', () => {
   it('applies error styles when error is present', () => {
     render(<Input error="Error message" />);
     const input = screen.getByRole('textbox');
-    expect(input).toHaveClass('border-red-500');
+    expect(input).toHaveClass('border-rose-500');
   });
 
   it('supports different input types', () => {

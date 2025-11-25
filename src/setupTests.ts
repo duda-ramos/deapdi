@@ -1,4 +1,28 @@
 import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
+
+// Polyfills -----------------------------------------------------------------
+
+// TextEncoder/TextDecoder for react-router-dom
+global.TextEncoder = TextEncoder as any;
+global.TextDecoder = TextDecoder as any;
+
+// Mock import.meta.env
+const mockEnv = {
+  DEV: false,
+  PROD: true,
+  MODE: 'test',
+  VITE_ENABLE_RATE_LIMITING: 'false',
+  VITE_SUPABASE_URL: 'https://test.supabase.co',
+  VITE_SUPABASE_ANON_KEY: 'test-key'
+};
+
+// @ts-ignore
+global.import = {
+  meta: {
+    env: mockEnv
+  }
+};
 
 // Shared mocks --------------------------------------------------------------
 
@@ -45,7 +69,13 @@ const mockSupabase = {
     signUp: jest.fn(),
     signOut: jest.fn(),
     getSession: jest.fn(),
-    onAuthStateChange: jest.fn()
+    onAuthStateChange: jest.fn(() => ({
+      data: {
+        subscription: {
+          unsubscribe: jest.fn()
+        }
+      }
+    }))
   },
   from: jest.fn(() => ({
     select: jest.fn().mockReturnThis(),
@@ -53,6 +83,9 @@ const mockSupabase = {
     update: jest.fn().mockReturnThis(),
     delete: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
+    or: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
     single: jest.fn(),
     maybeSingle: jest.fn()
   }))

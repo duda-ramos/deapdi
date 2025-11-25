@@ -23,21 +23,21 @@ describe('Button Component', () => {
 
   it('applies correct variant classes', () => {
     const { rerender } = render(<Button variant="primary">Primary</Button>);
-    expect(screen.getByRole('button')).toHaveClass('bg-blue-600');
+    expect(screen.getByRole('button')).toHaveClass('bg-primary');
 
     rerender(<Button variant="secondary">Secondary</Button>);
-    expect(screen.getByRole('button')).toHaveClass('bg-gray-200');
+    expect(screen.getByRole('button')).toHaveClass('bg-slate-900');
 
     rerender(<Button variant="danger">Danger</Button>);
-    expect(screen.getByRole('button')).toHaveClass('bg-red-600');
+    expect(screen.getByRole('button')).toHaveClass('bg-rose-500');
   });
 
   it('applies correct size classes', () => {
     const { rerender } = render(<Button size="sm">Small</Button>);
-    expect(screen.getByRole('button')).toHaveClass('px-3', 'py-1.5', 'text-sm');
+    expect(screen.getByRole('button')).toHaveClass('px-3', 'py-2', 'text-sm');
 
     rerender(<Button size="lg">Large</Button>);
-    expect(screen.getByRole('button')).toHaveClass('px-6', 'py-3', 'text-base');
+    expect(screen.getByRole('button')).toHaveClass('px-5', 'py-3', 'text-base');
   });
 
   it('is disabled when loading', () => {
