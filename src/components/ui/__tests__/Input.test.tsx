@@ -7,7 +7,7 @@ import { Input } from '../Input';
 
 describe('Input Component', () => {
   it('renders input with label', () => {
-    render(<Input label="Email" id="email-input" />);
+    render(<Input label="Email" name="email" />);
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
   });
 
