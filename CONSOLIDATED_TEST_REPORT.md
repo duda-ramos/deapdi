@@ -194,6 +194,93 @@ npm run test:e2e:open   # Executar em modo interativo (GUI)
 
 ---
 
+## 🔒 AUDITORIA RLS (Preparada - Pendente Execução)
+
+**Status:** ✅ **PREPARADA E PRONTA PARA EXECUÇÃO**
+
+### Arquivos Criados:
+
+```
+✅ DATABASE_AUDIT_QUERIES.sql           (9.4 KB)  - 10 queries SQL
+✅ RLS_AUDIT_EXECUTION_GUIDE.md         (22 KB)   - Guia detalhado
+✅ RLS_AUDIT_EXECUTION_RESULTS.txt      (20 KB)   - Template resultados
+✅ RLS_AUDIT_SUMMARY.md                 (17 KB)   - Sumário executivo
+✅ RLS_AUDIT_QUICK_START.md             (7 KB)    - Guia rápido
+```
+
+### Queries Preparadas:
+
+| Query | Objetivo | Criticidade |
+|-------|----------|-------------|
+| **Query 1** | Status RLS de TODAS as tabelas | 🔴 ESSENCIAL |
+| **Query 2** | Tabelas SEM RLS (vulneráveis) | 🔴 CRÍTICO |
+| **Query 3** | Políticas de tabelas críticas | 🔴 CRÍTICO |
+| **Query 3B** | Contagem de políticas | 🟡 OPCIONAL |
+| **Queries 4-10** | Foreign keys, índices, triggers, etc. | 🟢 COMPLEMENTAR |
+
+### Tabelas Críticas a Auditar (12):
+
+**Ultra-Sensíveis (5):**
+- ✅ `psychological_records` - Apenas HR/Admin
+- ✅ `salary_history` - Apenas HR/Admin
+- ✅ `emotional_checkins` - Próprio + HR/Admin (NÃO manager)
+- ✅ `audit_logs` - Apenas Admin
+- ✅ `consent_records` - Próprio + HR/Admin
+
+**Críticas de Negócio (7):**
+- ✅ `profiles` - 4+ políticas
+- ✅ `pdis` - 4+ políticas
+- ✅ `tasks` - 4+ políticas
+- ✅ `competencies` - 3+ políticas
+- ✅ `psychology_sessions` - 2+ políticas
+- ✅ `therapeutic_activities` - 2+ políticas
+- ✅ `mental_health_alerts` - 2+ políticas
+
+### Expectativa de Resultado:
+
+**Baseado em Documentação Existente:**
+```
+Total de Tabelas:        42-46
+Tabelas com RLS:         42-46 (100%)
+Tabelas Vulneráveis:     0 (esperado)
+Total de Políticas:      ~110
+Sincronização JWT:       ✅ Implementada
+Recursão:                ❌ Eliminada
+```
+
+**Confiança Pré-Auditoria:** ⭐⭐⭐⭐⭐ (5/5)
+
+**Razão:** Migration completa de RLS executada (`20250930140232_complete_rls_consolidation.sql`)
+
+### Como Executar:
+
+1. **Abrir Dashboard:**
+   ```
+   URL: https://supabase.com/dashboard/project/fvobspjiujcurfugjsxr
+   Menu: SQL Editor > New Query
+   ```
+
+2. **Seguir Guia:**
+   - Quick Start: `RLS_AUDIT_QUICK_START.md` (5 passos, 15 min)
+   - Guia Completo: `RLS_AUDIT_EXECUTION_GUIDE.md` (20 páginas)
+
+3. **Preencher Resultados:**
+   - Template: `RLS_AUDIT_EXECUTION_RESULTS.txt`
+
+### Status Atual:
+
+```
+PREPARAÇÃO:              ✅ 100% COMPLETA
+EXECUÇÃO MANUAL:         ⚠️ PENDENTE (requer acesso web)
+RESULTADO ESPERADO:      ✅ APROVADO (alta confiança)
+```
+
+**Tempo Estimado de Execução:** 15-20 minutos
+
+**Documentação Completa:** `RLS_AUDIT_SUMMARY.md` (17 KB)
+
+---
+
 ## ✅ VALIDAÇÃO MANUAL (6/6 - 100%)
 
 ### Testes Realizados:
