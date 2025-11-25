@@ -80,6 +80,15 @@ const TaskManager: React.FC = () => {
     effectiveness_rating: 5
   });
 
+  // Memoized handlers to prevent input focus loss
+  const handleTaskFormChange = React.useCallback((field: keyof typeof taskForm, value: any) => {
+    setTaskForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleCompletionFormChange = React.useCallback((field: keyof typeof completionForm, value: any) => {
+    setCompletionForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
   const taskTypes = [
     { value: 'form', label: 'Formulário', icon: <FileText size={16} /> },
     { value: 'meditation', label: 'Meditação', icon: <Brain size={16} /> },
@@ -411,8 +420,8 @@ const TaskManager: React.FC = () => {
         <form onSubmit={handleCreateTask} className="space-y-4">
           <Input
             label="Título da Tarefa"
-            value={taskForm.title}
-            onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+            value={taskForm.title || ''}
+            onChange={(e) => handleTaskFormChange('title', e.target.value)}
             placeholder="Ex: Exercício de respiração diário"
             required
           />
@@ -420,15 +429,15 @@ const TaskManager: React.FC = () => {
           <Select
             label="Tipo de Tarefa"
             value={taskForm.type}
-            onChange={(e) => setTaskForm({ ...taskForm, type: e.target.value as any })}
+            onChange={(e) => handleTaskFormChange('type', e.target.value)}
             options={taskTypes}
             required
           />
 
           <Textarea
             label="Descrição"
-            value={taskForm.description}
-            onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+            value={taskForm.description || ''}
+            onChange={(e) => handleTaskFormChange('description', e.target.value)}
             placeholder="Descreva a tarefa e suas instruções..."
             rows={3}
           />
@@ -437,13 +446,13 @@ const TaskManager: React.FC = () => {
             <Input
               label="Data de Vencimento"
               type="date"
-              value={taskForm.due_date}
-              onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
+              value={taskForm.due_date || ''}
+              onChange={(e) => handleTaskFormChange('due_date', e.target.value)}
             />
             <Select
               label="Recorrência"
-              value={taskForm.recurrence}
-              onChange={(e) => setTaskForm({ ...taskForm, recurrence: e.target.value })}
+              value={taskForm.recurrence || ''}
+              onChange={(e) => handleTaskFormChange('recurrence', e.target.value)}
               options={[
                 { value: '', label: 'Sem recorrência' },
                 { value: 'daily', label: 'Diária' },
@@ -486,8 +495,8 @@ const TaskManager: React.FC = () => {
 
           <Textarea
             label="Notas de Conclusão"
-            value={completionForm.notes}
-            onChange={(e) => setCompletionForm({ ...completionForm, notes: e.target.value })}
+            value={completionForm.notes || ''}
+            onChange={(e) => handleCompletionFormChange('notes', e.target.value)}
             placeholder="Descreva como foi a experiência e quais insights você teve..."
             rows={4}
             required
@@ -502,7 +511,7 @@ const TaskManager: React.FC = () => {
                 <button
                   key={rating}
                   type="button"
-                  onClick={() => setCompletionForm({ ...completionForm, effectiveness_rating: rating })}
+                  onClick={() => handleCompletionFormChange('effectiveness_rating', rating)}
                   className={`p-2 rounded-lg ${
                     completionForm.effectiveness_rating === rating
                       ? 'bg-yellow-100 text-yellow-700'

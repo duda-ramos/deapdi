@@ -33,6 +33,11 @@ export const RequestForm: React.FC<RequestFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
 
+  // Memoized handler to prevent input focus loss
+  const handleFormChange = React.useCallback((field: keyof typeof formData, value: string | 'ferias' | 'day_off') => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       // Reset form
@@ -159,7 +164,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({
                     ? 'border-blue-300 bg-blue-100'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
-                onClick={() => setFormData({ ...formData, event_type: type.value as any })}
+                onClick={() => handleFormChange('event_type', type.value as any)}
               >
                 <div className="flex items-center space-x-3">
                   {type.icon}
@@ -239,16 +244,16 @@ export const RequestForm: React.FC<RequestFormProps> = ({
             <Input
               label="Data de Início"
               type="date"
-              value={formData.start_date}
-              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+              value={formData.start_date || ''}
+              onChange={(e) => handleFormChange('start_date', e.target.value)}
               min={getMinDate()}
               required
             />
             <Input
               label="Data de Fim"
               type="date"
-              value={formData.end_date}
-              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+              value={formData.end_date || ''}
+              onChange={(e) => handleFormChange('end_date', e.target.value)}
               min={formData.start_date || getMinDate()}
               required
             />
@@ -289,8 +294,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({
           <h4 className="font-medium text-indigo-900 mb-3">Justificativa</h4>
           <Textarea
             label="Motivo da Solicitação"
-            value={formData.reason}
-            onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+            value={formData.reason || ''}
+            onChange={(e) => handleFormChange('reason', e.target.value)}
             placeholder={
               formData.event_type === 'ferias' 
                 ? 'Descreva o motivo das férias (viagem, descanso, etc.)...'

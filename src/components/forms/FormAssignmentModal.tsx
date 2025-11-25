@@ -55,6 +55,11 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
   const [dueDate, setDueDate] = useState('');
   const [permission, setPermission] = useState<any>(null);
 
+  // Memoized handler to prevent input focus loss
+  const handleDueDateChange = React.useCallback((value: string) => {
+    setDueDate(value);
+  }, []);
+
   useEffect(() => {
     if (isOpen && user) {
       loadAssignableUsers();
@@ -343,8 +348,8 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
           </label>
           <Input
             type="datetime-local"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
+            value={dueDate || ''}
+            onChange={(e) => handleDueDateChange(e.target.value)}
             min={new Date().toISOString().slice(0, 16)}
           />
         </div>

@@ -170,7 +170,7 @@ const Profile: React.FC = () => {
                   userId={user.id}
                   currentAvatarUrl={user.avatar_url}
                   onUploadSuccess={async (url) => {
-                    setFormData({ ...formData, avatar_url: url });
+                    handleFormChange('avatar_url', url);
                     await refreshUser();
                   }}
                   onUploadError={(error) => {
