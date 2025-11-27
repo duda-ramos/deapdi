@@ -281,26 +281,26 @@ export const NotificationCenter: React.FC = () => {
       switch (category) {
         case 'pdi_approved':
         case 'pdi_rejected':
-          return <Target size={16} className="text-blue-500" />;
+          return <Target size={16} className="text-blue-500" aria-hidden="true" />;
         case 'task_assigned':
-          return <CheckCircle size={16} className="text-green-500" />;
+          return <CheckCircle size={16} className="text-green-500" aria-hidden="true" />;
         case 'achievement_unlocked':
-          return <Trophy size={16} className="text-yellow-500" />;
+          return <Trophy size={16} className="text-yellow-500" aria-hidden="true" />;
         case 'mentorship_scheduled':
         case 'mentorship_cancelled':
-          return <Calendar size={16} className="text-purple-500" />;
+          return <Calendar size={16} className="text-purple-500" aria-hidden="true" />;
         case 'group_invitation':
-          return <Users size={16} className="text-indigo-500" />;
+          return <Users size={16} className="text-indigo-500" aria-hidden="true" />;
         default:
           break;
       }
     }
 
     switch (type) {
-      case 'success': return <CheckCircle size={16} className="text-green-500" />;
-      case 'warning': return <AlertTriangle size={16} className="text-yellow-500" />;
-      case 'error': return <AlertCircle size={16} className="text-red-500" />;
-      default: return <Info size={16} className="text-blue-500" />;
+      case 'success': return <CheckCircle size={16} className="text-green-500" aria-hidden="true" />;
+      case 'warning': return <AlertTriangle size={16} className="text-yellow-500" aria-hidden="true" />;
+      case 'error': return <AlertCircle size={16} className="text-red-500" aria-hidden="true" />;
+      default: return <Info size={16} className="text-blue-500" aria-hidden="true" />;
     }
   };
 
@@ -335,23 +335,31 @@ export const NotificationCenter: React.FC = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+        aria-label="Centro de notificações"
+        aria-expanded={isOpen}
+        aria-controls="notification-panel"
+        aria-haspopup="true"
       >
-        <Bell size={20} />
+        <Bell size={20} aria-hidden="true" />
         {unreadCount > 0 && (
           <motion.span
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center"
+            aria-label={`${unreadCount} ${unreadCount === 1 ? 'notificação não lida' : 'notificações não lidas'}`}
           >
             {unreadCount > 9 ? '9+' : unreadCount}
           </motion.span>
         )}
         
         {/* Connection Status Indicator */}
-        <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full ${
-          subscriptionStatus === 'connected' ? 'bg-green-500' :
-          subscriptionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
-        }`} />
+        <div 
+          className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full ${
+            subscriptionStatus === 'connected' ? 'bg-green-500' :
+            subscriptionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+          }`}
+          aria-hidden="true"
+        />
       </button>
 
       {/* Notification Panel */}
@@ -362,14 +370,18 @@ export const NotificationCenter: React.FC = () => {
             <div 
               className="fixed inset-0 z-40"
               onClick={() => setIsOpen(false)}
+              aria-hidden="true"
             />
             
             {/* Panel */}
             <motion.div
+              id="notification-panel"
               initial={{ opacity: 0, scale: 0.95, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               className="absolute right-0 top-12 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden"
+              role="region"
+              aria-label="Painel de notificações"
             >
               {/* Header */}
               <div className="p-4 border-b border-gray-200">
@@ -381,30 +393,36 @@ export const NotificationCenter: React.FC = () => {
                     <button
                       onClick={() => setShowPreferences(true)}
                       className="text-gray-400 hover:text-gray-600 p-1"
-                      title="Configurações"
+                      aria-label="Configurações de notificações"
                     >
-                      <Settings size={16} />
+                      <Settings size={16} aria-hidden="true" />
                     </button>
                     <button
                       onClick={loadNotifications}
                       className="text-gray-400 hover:text-gray-600 p-1"
-                      title="Atualizar"
+                      aria-label="Atualizar notificações"
                     >
-                      <RefreshCw size={16} />
+                      <RefreshCw size={16} aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => setIsOpen(false)}
                       className="text-gray-400 hover:text-gray-600 p-1"
+                      aria-label="Fechar painel de notificações"
                     >
-                      <X size={16} />
+                      <X size={16} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
                 
                 {/* Stats and Actions */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <span className={getConnectionStatusColor()}>●</span>
+                  <div 
+                    className="flex items-center space-x-2 text-sm"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <span className={getConnectionStatusColor()} aria-hidden="true">●</span>
                     <span className="text-gray-600">{getConnectionStatusText()}</span>
                     {stats && (
                       <Badge variant="default" size="sm">
@@ -420,8 +438,9 @@ export const NotificationCenter: React.FC = () => {
                         variant="ghost"
                         onClick={handleMarkAllAsRead}
                         className="text-xs"
+                        aria-label="Marcar todas as notificações como lidas"
                       >
-                        <Check size={12} className="mr-1" />
+                        <Check size={12} className="mr-1" aria-hidden="true" />
                         Marcar todas
                       </Button>
                     )}
@@ -432,6 +451,7 @@ export const NotificationCenter: React.FC = () => {
                         variant="ghost"
                         onClick={handleCreateTestNotifications}
                         className="text-xs"
+                        aria-label="Criar notificações de teste"
                       >
                         Teste
                       </Button>
@@ -443,16 +463,17 @@ export const NotificationCenter: React.FC = () => {
               {/* Notifications List */}
               <div className="max-h-80 overflow-y-auto">
                 {loading ? (
-                  <div className="p-4 text-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                  <div className="p-4 text-center" role="status" aria-live="polite">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto" aria-hidden="true"></div>
+                    <span className="sr-only">Carregando notificações...</span>
                   </div>
                 ) : notifications.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">
-                    <Bell size={32} className="mx-auto mb-2 text-gray-300" />
+                  <div className="p-8 text-center text-gray-500" role="status" aria-live="polite">
+                    <Bell size={32} className="mx-auto mb-2 text-gray-300" aria-hidden="true" />
                     <p>Nenhuma notificação</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-gray-100" role="list" aria-label="Lista de notificações">
                     {notifications.map((notification) => (
                       <motion.div
                         key={notification.id}
@@ -461,6 +482,7 @@ export const NotificationCenter: React.FC = () => {
                         className={`p-4 hover:bg-gray-50 transition-colors ${
                           !notification.read ? 'bg-blue-50' : ''
                         }`}
+                        role="listitem"
                       >
                         <div className="flex items-start space-x-3">
                           <div className="flex-shrink-0 mt-1">
@@ -493,17 +515,17 @@ export const NotificationCenter: React.FC = () => {
                                   <button
                                     onClick={() => handleMarkAsRead(notification.id)}
                                     className="text-blue-600 hover:text-blue-800 p-1"
-                                    title="Marcar como lida"
+                                    aria-label={`Marcar "${notification.title}" como lida`}
                                   >
-                                    <Check size={14} />
+                                    <Check size={14} aria-hidden="true" />
                                   </button>
                                 )}
                                 <button
                                   onClick={() => handleDelete(notification.id)}
                                   className="text-red-600 hover:text-red-800 p-1"
-                                  title="Excluir"
+                                  aria-label={`Excluir notificação "${notification.title}"`}
                                 >
-                                  <Trash2 size={14} />
+                                  <Trash2 size={14} aria-hidden="true" />
                                 </button>
                               </div>
                             </div>
@@ -518,6 +540,7 @@ export const NotificationCenter: React.FC = () => {
                                   }
                                 }}
                                 className="text-xs text-blue-600 hover:text-blue-800 mt-2"
+                                aria-label={`Ver detalhes de "${notification.title}"`}
                               >
                                 Ver detalhes →
                               </button>
@@ -573,14 +596,14 @@ export const NotificationCenter: React.FC = () => {
               <h4 className="font-medium text-gray-900 mb-4">Tipos de Notificação</h4>
               <div className="space-y-3">
                 {[
-                  { key: 'pdi_approved', label: 'PDI Aprovado', icon: <CheckCircle size={16} className="text-green-500" /> },
-                  { key: 'pdi_rejected', label: 'PDI Rejeitado', icon: <AlertTriangle size={16} className="text-yellow-500" /> },
-                  { key: 'task_assigned', label: 'Tarefa Atribuída', icon: <Target size={16} className="text-blue-500" /> },
-                  { key: 'achievement_unlocked', label: 'Conquista Desbloqueada', icon: <Trophy size={16} className="text-yellow-500" /> },
-                  { key: 'mentorship_scheduled', label: 'Mentoria Agendada', icon: <Calendar size={16} className="text-purple-500" /> },
-                  { key: 'mentorship_cancelled', label: 'Mentoria Cancelada', icon: <X size={16} className="text-red-500" /> },
-                  { key: 'group_invitation', label: 'Convite para Grupo', icon: <Users size={16} className="text-indigo-500" /> },
-                  { key: 'deadline_reminder', label: 'Lembrete de Prazo', icon: <AlertCircle size={16} className="text-orange-500" /> }
+                  { key: 'pdi_approved', label: 'PDI Aprovado', icon: <CheckCircle size={16} className="text-green-500" aria-hidden="true" /> },
+                  { key: 'pdi_rejected', label: 'PDI Rejeitado', icon: <AlertTriangle size={16} className="text-yellow-500" aria-hidden="true" /> },
+                  { key: 'task_assigned', label: 'Tarefa Atribuída', icon: <Target size={16} className="text-blue-500" aria-hidden="true" /> },
+                  { key: 'achievement_unlocked', label: 'Conquista Desbloqueada', icon: <Trophy size={16} className="text-yellow-500" aria-hidden="true" /> },
+                  { key: 'mentorship_scheduled', label: 'Mentoria Agendada', icon: <Calendar size={16} className="text-purple-500" aria-hidden="true" /> },
+                  { key: 'mentorship_cancelled', label: 'Mentoria Cancelada', icon: <X size={16} className="text-red-500" aria-hidden="true" /> },
+                  { key: 'group_invitation', label: 'Convite para Grupo', icon: <Users size={16} className="text-indigo-500" aria-hidden="true" /> },
+                  { key: 'deadline_reminder', label: 'Lembrete de Prazo', icon: <AlertCircle size={16} className="text-orange-500" aria-hidden="true" /> }
                 ].map((item) => (
                   <div key={item.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
@@ -590,13 +613,16 @@ export const NotificationCenter: React.FC = () => {
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
+                        role="switch"
                         checked={preferences[item.key as keyof NotificationPreferences] as boolean}
                         onChange={(e) => handleUpdatePreferences({
                           [item.key]: e.target.checked
                         })}
                         className="sr-only peer"
+                        aria-checked={preferences[item.key as keyof NotificationPreferences] as boolean}
+                        aria-label={`Ativar notificações de ${item.label}`}
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" aria-hidden="true"></div>
                     </label>
                   </div>
                 ))}
@@ -609,7 +635,7 @@ export const NotificationCenter: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <Bell size={16} className="text-blue-500" />
+                    <Bell size={16} className="text-blue-500" aria-hidden="true" />
                     <span className="text-sm font-medium text-gray-900">Notificações no Sistema</span>
                   </div>
                   <span className="text-sm text-gray-600">Sempre ativo</span>
@@ -617,37 +643,43 @@ export const NotificationCenter: React.FC = () => {
                 
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <span className="text-lg">📧</span>
+                    <span className="text-lg" aria-hidden="true">📧</span>
                     <span className="text-sm font-medium text-gray-900">Email</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
+                      role="switch"
                       checked={preferences.email_notifications}
                       onChange={(e) => handleUpdatePreferences({
                         email_notifications: e.target.checked
                       })}
                       className="sr-only peer"
+                      aria-checked={preferences.email_notifications}
+                      aria-label="Ativar notificações por email"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" aria-hidden="true"></div>
                   </label>
                 </div>
                 
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <span className="text-lg">🔔</span>
+                    <span className="text-lg" aria-hidden="true">🔔</span>
                     <span className="text-sm font-medium text-gray-900">Push (Navegador)</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
+                      role="switch"
                       checked={preferences.push_notifications}
                       onChange={(e) => handleUpdatePreferences({
                         push_notifications: e.target.checked
                       })}
                       className="sr-only peer"
+                      aria-checked={preferences.push_notifications}
+                      aria-label="Ativar notificações push no navegador"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" aria-hidden="true"></div>
                   </label>
                 </div>
               </div>
@@ -657,11 +689,11 @@ export const NotificationCenter: React.FC = () => {
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="font-medium text-gray-900 mb-2">Status da Conexão</h4>
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2" role="status" aria-live="polite" aria-atomic="true">
                   <div className={`w-2 h-2 rounded-full ${
                     subscriptionStatus === 'connected' ? 'bg-green-500' :
                     subscriptionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
-                  }`} />
+                  }`} aria-hidden="true" />
                   <span className="text-sm text-gray-600">{getConnectionStatusText()}</span>
                 </div>
                 {subscriptionStatus === 'disconnected' && reconnectAttempts < maxReconnectAttempts && (
@@ -669,13 +701,14 @@ export const NotificationCenter: React.FC = () => {
                     size="sm"
                     variant="ghost"
                     onClick={() => setReconnectAttempts(0)}
+                    aria-label="Tentar reconectar ao servidor de notificações"
                   >
                     Reconectar
                   </Button>
                 )}
               </div>
               {reconnectAttempts >= maxReconnectAttempts && (
-                <p className="text-xs text-red-600 mt-2">
+                <p className="text-xs text-red-600 mt-2" role="alert" aria-live="assertive">
                   Máximo de tentativas de reconexão atingido. Recarregue a página.
                 </p>
               )}
@@ -685,6 +718,7 @@ export const NotificationCenter: React.FC = () => {
               <Button
                 variant="secondary"
                 onClick={() => setShowPreferences(false)}
+                aria-label="Fechar preferências de notificações"
               >
                 Fechar
               </Button>
