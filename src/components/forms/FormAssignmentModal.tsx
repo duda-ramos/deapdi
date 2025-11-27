@@ -203,15 +203,15 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
   if (!permission.canAssign) {
     return (
       <Modal isOpen={isOpen} onClose={handleClose} title="Acesso Negado" size="md">
-        <div className="text-center py-8">
-          <AlertTriangle className="mx-auto text-red-500 mb-4" size={48} />
+        <div className="text-center py-8" role="alert">
+          <AlertTriangle className="mx-auto text-red-500 mb-4" size={48} aria-hidden="true" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Permissão Insuficiente
           </h3>
           <p className="text-gray-600 mb-4">
             {permission.reason || 'Você não tem permissão para atribuir este tipo de formulário.'}
           </p>
-          <Button onClick={handleClose}>
+          <Button onClick={handleClose} aria-label="Fechar modal de acesso negado">
             Fechar
           </Button>
         </div>
@@ -228,15 +228,19 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Privacy Notice */}
-        <div className={`p-4 rounded-lg border ${
-          formType === 'mental_health' 
-            ? 'bg-red-50 border-red-200' 
-            : 'bg-blue-50 border-blue-200'
-        }`}>
+        <div 
+          className={`p-4 rounded-lg border ${
+            formType === 'mental_health' 
+              ? 'bg-red-50 border-red-200' 
+              : 'bg-blue-50 border-blue-200'
+          }`}
+          role="status"
+          aria-live="polite"
+        >
           <div className="flex items-start space-x-3">
             <Shield className={`mt-1 ${
               formType === 'mental_health' ? 'text-red-600' : 'text-blue-600'
-            }`} size={20} />
+            }`} size={20} aria-hidden="true" />
             <div>
               <h4 className={`font-medium ${
                 formType === 'mental_health' ? 'text-red-900' : 'text-blue-900'
@@ -260,31 +264,33 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-3">
             Tipo de Atribuição
           </label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3" role="radiogroup" aria-label="Tipo de atribuição">
             {[
               {
                 value: 'individual',
                 label: 'Individual',
                 description: 'Selecionar usuários específicos',
-                icon: <UserCheck size={20} />
+                icon: <UserCheck size={20} aria-hidden="true" />
               },
               {
                 value: 'multiple',
                 label: 'Múltipla',
                 description: 'Selecionar vários usuários',
-                icon: <Users size={20} />
+                icon: <Users size={20} aria-hidden="true" />
               },
               {
                 value: 'all',
                 label: 'Todos',
                 description: 'Atribuir para todos os usuários',
-                icon: <UserPlus size={20} />
+                icon: <UserPlus size={20} aria-hidden="true" />
               }
             ].map((type) => (
               <button
                 key={type.value}
                 type="button"
                 onClick={() => handleAssignmentTypeChange(type.value as any)}
+                role="radio"
+                aria-checked={assignmentType === type.value}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   assignmentType === type.value
                     ? 'border-blue-500 bg-blue-50 text-blue-700'
@@ -313,29 +319,32 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleSelectAll}
+                aria-label={selectedUsers.length === users.length ? 'Desmarcar todos os usuários' : 'Selecionar todos os usuários'}
               >
                 {selectedUsers.length === users.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
               </Button>
             </div>
             
-            <div className="max-h-64 overflow-y-auto border rounded-lg p-3 space-y-2">
+            <div className="max-h-64 overflow-y-auto border rounded-lg p-3 space-y-2" role="list" aria-label="Lista de usuários para atribuição">
               {users.map((user) => (
-                <label
-                  key={user.id}
-                  className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                >
-                  <Checkbox
-                    checked={selectedUsers.includes(user.id)}
-                    onChange={(checked) => handleUserSelection(user.id, checked)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{user.name}</p>
-                    <p className="text-sm text-gray-500 truncate">{user.position}</p>
-                  </div>
-                  <Badge variant="default" size="sm">
-                    {user.email}
-                  </Badge>
-                </label>
+                <div key={user.id} role="listitem">
+                  <label
+                    className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={selectedUsers.includes(user.id)}
+                      onChange={(checked) => handleUserSelection(user.id, checked)}
+                      aria-label={`Selecionar ${user.name}`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{user.name}</p>
+                      <p className="text-sm text-gray-500 truncate">{user.position}</p>
+                    </div>
+                    <Badge variant="default" size="sm">
+                      {user.email}
+                    </Badge>
+                  </label>
+                </div>
               ))}
             </div>
           </div>
@@ -351,6 +360,7 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
             value={dueDate || ''}
             onChange={(e) => handleDueDateChange(e.target.value)}
             min={new Date().toISOString().slice(0, 16)}
+            aria-label="Data e hora limite para conclusão do formulário"
           />
         </div>
 
@@ -368,9 +378,9 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3" role="alert" aria-live="assertive">
             <div className="flex items-center space-x-2">
-              <AlertTriangle className="text-red-500" size={16} />
+              <AlertTriangle className="text-red-500" size={16} aria-hidden="true" />
               <span className="text-sm text-red-700">{error}</span>
             </div>
           </div>
@@ -382,21 +392,23 @@ const FormAssignmentModal: React.FC<FormAssignmentModalProps> = ({
             variant="secondary"
             onClick={handleClose}
             disabled={loading}
+            aria-label="Cancelar atribuição"
           >
             Cancelar
           </Button>
           <Button
             type="submit"
             disabled={loading || selectedUsers.length === 0}
+            aria-label={loading ? "Atribuindo formulário" : `Atribuir formulário para ${selectedUsers.length} ${selectedUsers.length === 1 ? 'usuário' : 'usuários'}`}
           >
             {loading ? (
               <>
-                <Clock className="mr-2 animate-spin" size={16} />
+                <Clock className="mr-2 animate-spin" size={16} aria-hidden="true" />
                 Atribuindo...
               </>
             ) : (
               <>
-                <Users size={16} className="mr-2" />
+                <Users size={16} className="mr-2" aria-hidden="true" />
                 Atribuir para {selectedUsers.length} usuário(s)
               </>
             )}
