@@ -202,9 +202,9 @@ DECLARE
 BEGIN
   SELECT user_id INTO v_user_id FROM test_users WHERE user_type = 'user1';
   
-  -- Criar PDI
-  INSERT INTO pdis (id, profile_id, title, status, start_date, end_date)
-  VALUES (gen_random_uuid(), v_user_id, 'PDI Teste Aprovação', 'completed', now(), now() + interval '90 days')
+  -- Criar PDI (usando colunas corretas: title, description, deadline, status, created_by, profile_id)
+  INSERT INTO pdis (id, profile_id, title, description, deadline, status, created_by)
+  VALUES (gen_random_uuid(), v_user_id, 'PDI Teste Aprovação', 'Descrição do PDI teste', now() + interval '90 days', 'completed', v_user_id)
   RETURNING id INTO v_pdi_id;
   
   -- Simular aprovação (mudar status para validated)
@@ -239,8 +239,8 @@ BEGIN
   SELECT user_id INTO v_user_id FROM test_users WHERE user_type = 'user1';
   
   -- Criar PDI já completado
-  INSERT INTO pdis (id, profile_id, title, status, start_date, end_date)
-  VALUES (gen_random_uuid(), v_user_id, 'PDI Teste Rejeição', 'completed', now(), now() + interval '90 days')
+  INSERT INTO pdis (id, profile_id, title, description, deadline, status, created_by)
+  VALUES (gen_random_uuid(), v_user_id, 'PDI Teste Rejeição', 'Descrição do PDI teste', now() + interval '90 days', 'completed', v_user_id)
   RETURNING id INTO v_pdi_id;
   
   -- Simular rejeição (mudar status de volta para in-progress)
