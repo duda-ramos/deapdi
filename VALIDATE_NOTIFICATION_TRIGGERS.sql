@@ -93,52 +93,95 @@ ORDER BY column_name;
 -- ============================================================================
 
 -- Criar usuários de teste se não existirem
+-- NOTA: profiles requer auth.users, então usamos usuários existentes
 DO $$
 DECLARE
   v_test_user1_id uuid;
   v_test_user2_id uuid;
   v_test_manager_id uuid;
 BEGIN
-  -- Verificar/criar usuário de teste 1 (colaborador)
-  SELECT id INTO v_test_user1_id FROM profiles WHERE email = 'test_notif_user1@example.com';
+  -- Buscar usuários existentes para usar nos testes
+  -- Usuário 1: qualquer employee
+  SELECT id INTO v_test_user1_id 
+  FROM profiles 
+  WHERE role = 'employee' 
+  LIMIT 1;
+  
+  -- Usuário 2: outro employee diferente
+  SELECT id INTO v_test_user2_id 
+  FROM profiles 
+  WHERE role = 'employee' AND id != COALESCE(v_test_user1_id, '00000000-0000-0000-0000-000000000000'::uuid)
+  LIMIT 1;
+  
+  -- Manager: qualquer manager ou admin
+  SELECT id INTO v_test_manager_id 
+  FROM profiles 
+  WHERE role IN ('manager', 'admin', 'hr')
+  LIMIT 1;
+  
+  -- Se não encontrou usuários, usar o primeiro disponível
   IF v_test_user1_id IS NULL THEN
-    INSERT INTO profiles (id, name, email, role, position, department)
-    VALUES (gen_random_uuid(), 'Usuário Teste Notif 1', 'test_notif_user1@example.com', 'collaborator', 'Developer', 'Engineering')
-    RETURNING id INTO v_test_user1_id;
-    RAISE NOTICE 'Criado usuário teste 1: %', v_test_user1_id;
+    SELECT id INTO v_test_user1_id FROM profiles LIMIT 1;
   END IF;
-
-  -- Verificar/criar usuário de teste 2 (colaborador)
-  SELECT id INTO v_test_user2_id FROM profiles WHERE email = 'test_notif_user2@example.com';
+  
   IF v_test_user2_id IS NULL THEN
-    INSERT INTO profiles (id, name, email, role, position, department)
-    VALUES (gen_random_uuid(), 'Usuário Teste Notif 2', 'test_notif_user2@example.com', 'collaborator', 'Designer', 'Design')
-    RETURNING id INTO v_test_user2_id;
-    RAISE NOTICE 'Criado usuário teste 2: %', v_test_user2_id;
+    v_test_user2_id := v_test_user1_id;
   END IF;
-
-  -- Verificar/criar gestor de teste
-  SELECT id INTO v_test_manager_id FROM profiles WHERE email = 'test_notif_manager@example.com';
+  
   IF v_test_manager_id IS NULL THEN
-    INSERT INTO profiles (id, name, email, role, position, department)
-    VALUES (gen_random_uuid(), 'Gestor Teste Notif', 'test_notif_manager@example.com', 'manager', 'Tech Lead', 'Engineering')
-    RETURNING id INTO v_test_manager_id;
-    RAISE NOTICE 'Criado gestor teste: %', v_test_manager_id;
+    v_test_manager_id := v_test_user1_id;
   END IF;
-
-  -- Criar preferências de notificação padrão para os usuários de teste
+  
+  -- Mostrar usuários selecionados
+  RAISE NOTICE 'Usuário teste 1: %', v_test_user1_id;
+  RAISE NOTICE 'Usuário teste 2: %', v_test_user2_id;
+  RAISE NOTICE 'Manager teste: %', v_test_manager_id;
+  
+  -- Garantir que preferências existam para os usuários de teste
   INSERT INTO notification_preferences (profile_id, pdi_approved, pdi_rejected, task_assigned, 
     achievement_unlocked, mentorship_scheduled, mentorship_cancelled, group_invitation, deadline_reminder)
   VALUES 
-    (v_test_user1_id, true, true, true, true, true, true, true, true),
-    (v_test_user2_id, true, true, true, true, true, true, true, true),
-    (v_test_manager_id, true, true, true, true, true, true, true, true)
-  ON CONFLICT (profile_id) DO NOTHING;
+    (v_test_user1_id, true, true, true, true, true, true, true, true)
+  ON CONFLICT (profile_id) DO UPDATE SET
+    pdi_approved = true, pdi_rejected = true, task_assigned = true,
+    achievement_unlocked = true, mentorship_scheduled = true, mentorship_cancelled = true,
+    group_invitation = true, deadline_reminder = true;
+    
+  IF v_test_user2_id != v_test_user1_id THEN
+    INSERT INTO notification_preferences (profile_id, pdi_approved, pdi_rejected, task_assigned, 
+      achievement_unlocked, mentorship_scheduled, mentorship_cancelled, group_invitation, deadline_reminder)
+    VALUES 
+      (v_test_user2_id, true, true, true, true, true, true, true, true)
+    ON CONFLICT (profile_id) DO UPDATE SET
+      pdi_approved = true, pdi_rejected = true, task_assigned = true,
+      achievement_unlocked = true, mentorship_scheduled = true, mentorship_cancelled = true,
+      group_invitation = true, deadline_reminder = true;
+  END IF;
+  
+  IF v_test_manager_id != v_test_user1_id AND v_test_manager_id != v_test_user2_id THEN
+    INSERT INTO notification_preferences (profile_id, pdi_approved, pdi_rejected, task_assigned, 
+      achievement_unlocked, mentorship_scheduled, mentorship_cancelled, group_invitation, deadline_reminder)
+    VALUES 
+      (v_test_manager_id, true, true, true, true, true, true, true, true)
+    ON CONFLICT (profile_id) DO UPDATE SET
+      pdi_approved = true, pdi_rejected = true, task_assigned = true,
+      achievement_unlocked = true, mentorship_scheduled = true, mentorship_cancelled = true,
+      group_invitation = true, deadline_reminder = true;
+  END IF;
+  
+  -- Salvar IDs em tabela temporária para uso nos testes
+  CREATE TEMP TABLE IF NOT EXISTS test_users (
+    user_type text PRIMARY KEY,
+    user_id uuid
+  );
+  DELETE FROM test_users;
+  INSERT INTO test_users VALUES ('user1', v_test_user1_id), ('user2', v_test_user2_id), ('manager', v_test_manager_id);
 END $$;
 
--- Mostrar usuários de teste criados
-SELECT id, name, email, role FROM profiles 
-WHERE email LIKE 'test_notif_%@example.com';
+-- Mostrar usuários de teste selecionados
+SELECT tu.user_type, p.id, p.name, p.email, p.role 
+FROM test_users tu
+JOIN profiles p ON p.id = tu.user_id;
 
 -- ============================================================================
 -- SEÇÃO 2: TESTES DOS TRIGGERS
@@ -146,9 +189,7 @@ WHERE email LIKE 'test_notif_%@example.com';
 
 -- Limpar notificações anteriores dos usuários de teste
 DELETE FROM notifications 
-WHERE profile_id IN (
-  SELECT id FROM profiles WHERE email LIKE 'test_notif_%@example.com'
-);
+WHERE profile_id IN (SELECT user_id FROM test_users);
 
 -- ----------------------------------------
 -- TESTE 2.1: PDI Status Change (Aprovação)
@@ -159,7 +200,7 @@ DECLARE
   v_pdi_id uuid;
   v_notif_count integer;
 BEGIN
-  SELECT id INTO v_user_id FROM profiles WHERE email = 'test_notif_user1@example.com';
+  SELECT user_id INTO v_user_id FROM test_users WHERE user_type = 'user1';
   
   -- Criar PDI
   INSERT INTO pdis (id, profile_id, title, status, start_date, end_date)
@@ -195,15 +236,15 @@ DECLARE
   v_pdi_id uuid;
   v_notif_count integer;
 BEGIN
-  SELECT id INTO v_user_id FROM profiles WHERE email = 'test_notif_user1@example.com';
+  SELECT user_id INTO v_user_id FROM test_users WHERE user_type = 'user1';
   
   -- Criar PDI já completado
   INSERT INTO pdis (id, profile_id, title, status, start_date, end_date)
   VALUES (gen_random_uuid(), v_user_id, 'PDI Teste Rejeição', 'completed', now(), now() + interval '90 days')
   RETURNING id INTO v_pdi_id;
   
-  -- Simular rejeição (mudar status de volta para in_progress)
-  UPDATE pdis SET status = 'in_progress' WHERE id = v_pdi_id;
+  -- Simular rejeição (mudar status de volta para in-progress)
+  UPDATE pdis SET status = 'in-progress' WHERE id = v_pdi_id;
   
   -- Verificar notificação criada
   SELECT COUNT(*) INTO v_notif_count
@@ -232,7 +273,7 @@ DECLARE
   v_task_id uuid;
   v_notif_count integer;
 BEGIN
-  SELECT id INTO v_user_id FROM profiles WHERE email = 'test_notif_user1@example.com';
+  SELECT user_id INTO v_user_id FROM test_users WHERE user_type = 'user1';
   
   -- Criar grupo de ação primeiro (necessário para task)
   INSERT INTO action_groups (id, title, description, created_by)
@@ -272,8 +313,8 @@ DECLARE
   v_group_id uuid;
   v_notif_count integer;
 BEGIN
-  SELECT id INTO v_user1_id FROM profiles WHERE email = 'test_notif_user1@example.com';
-  SELECT id INTO v_user2_id FROM profiles WHERE email = 'test_notif_user2@example.com';
+  SELECT user_id INTO v_user1_id FROM test_users WHERE user_type = 'user1';
+  SELECT user_id INTO v_user2_id FROM test_users WHERE user_type = 'user2';
   
   -- Criar grupo de ação
   INSERT INTO action_groups (id, title, description, created_by)
@@ -312,8 +353,8 @@ DECLARE
   v_group_id uuid;
   v_notif_count integer;
 BEGIN
-  SELECT id INTO v_user1_id FROM profiles WHERE email = 'test_notif_user1@example.com';
-  SELECT id INTO v_user2_id FROM profiles WHERE email = 'test_notif_user2@example.com';
+  SELECT user_id INTO v_user1_id FROM test_users WHERE user_type = 'user1';
+  SELECT user_id INTO v_user2_id FROM test_users WHERE user_type = 'user2';
   
   -- Criar grupo de ação
   INSERT INTO action_groups (id, title, description, created_by)
@@ -360,8 +401,8 @@ DECLARE
   v_mentorship_id uuid;
   v_notif_count integer;
 BEGIN
-  SELECT id INTO v_mentor_id FROM profiles WHERE email = 'test_notif_manager@example.com';
-  SELECT id INTO v_mentee_id FROM profiles WHERE email = 'test_notif_user1@example.com';
+  SELECT user_id INTO v_mentor_id FROM test_users WHERE user_type = 'manager';
+  SELECT user_id INTO v_mentee_id FROM test_users WHERE user_type = 'user1';
   
   -- Criar solicitação de mentoria
   INSERT INTO mentorships (id, mentor_id, mentee_id, status, notes)
@@ -395,8 +436,8 @@ DECLARE
   v_mentorship_id uuid;
   v_notif_count integer;
 BEGIN
-  SELECT id INTO v_mentor_id FROM profiles WHERE email = 'test_notif_manager@example.com';
-  SELECT id INTO v_mentee_id FROM profiles WHERE email = 'test_notif_user1@example.com';
+  SELECT user_id INTO v_mentor_id FROM test_users WHERE user_type = 'manager';
+  SELECT user_id INTO v_mentee_id FROM test_users WHERE user_type = 'user1';
   
   -- Criar mentoria pendente
   INSERT INTO mentorships (id, mentor_id, mentee_id, status, notes)
@@ -438,8 +479,8 @@ DECLARE
   v_notif_count_mentor integer;
   v_notif_count_mentee integer;
 BEGIN
-  SELECT id INTO v_mentor_id FROM profiles WHERE email = 'test_notif_manager@example.com';
-  SELECT id INTO v_mentee_id FROM profiles WHERE email = 'test_notif_user1@example.com';
+  SELECT user_id INTO v_mentor_id FROM test_users WHERE user_type = 'manager';
+  SELECT user_id INTO v_mentee_id FROM test_users WHERE user_type = 'user1';
   
   -- Criar mentoria ativa
   INSERT INTO mentorships (id, mentor_id, mentee_id, status, notes)
@@ -491,8 +532,8 @@ DECLARE
   v_session_id uuid;
   v_notif_count integer;
 BEGIN
-  SELECT id INTO v_mentor_id FROM profiles WHERE email = 'test_notif_manager@example.com';
-  SELECT id INTO v_mentee_id FROM profiles WHERE email = 'test_notif_user1@example.com';
+  SELECT user_id INTO v_mentor_id FROM test_users WHERE user_type = 'manager';
+  SELECT user_id INTO v_mentee_id FROM test_users WHERE user_type = 'user1';
   
   -- Criar mentoria ativa
   INSERT INTO mentorships (id, mentor_id, mentee_id, status, notes)
@@ -546,7 +587,7 @@ DECLARE
   v_notif_count_before integer;
   v_notif_count_after integer;
 BEGIN
-  SELECT id INTO v_user_id FROM profiles WHERE email = 'test_notif_user2@example.com';
+  SELECT user_id INTO v_user_id FROM test_users WHERE user_type = 'user2';
   
   -- Contar notificações antes
   SELECT COUNT(*) INTO v_notif_count_before
@@ -604,7 +645,7 @@ SELECT
   n.created_at
 FROM notifications n
 JOIN profiles p ON p.id = n.profile_id
-WHERE p.email LIKE 'test_notif_%@example.com'
+WHERE n.profile_id IN (SELECT user_id FROM test_users)
 ORDER BY n.created_at DESC
 LIMIT 20;
 
@@ -618,7 +659,7 @@ DECLARE
   v_user_id uuid;
   v_stats record;
 BEGIN
-  SELECT id INTO v_user_id FROM profiles WHERE email = 'test_notif_user1@example.com';
+  SELECT user_id INTO v_user_id FROM test_users WHERE user_type = 'user1';
   
   -- Obter estatísticas
   SELECT * INTO v_stats FROM get_notification_stats(v_user_id);
@@ -640,15 +681,10 @@ END $$;
 
 -- Limpar todas as notificações de teste
 -- DELETE FROM notifications 
--- WHERE profile_id IN (
---   SELECT id FROM profiles WHERE email LIKE 'test_notif_%@example.com'
--- );
+-- WHERE profile_id IN (SELECT user_id FROM test_users);
 
--- Limpar usuários de teste (cuidado!)
--- DELETE FROM notification_preferences WHERE profile_id IN (
---   SELECT id FROM profiles WHERE email LIKE 'test_notif_%@example.com'
--- );
--- DELETE FROM profiles WHERE email LIKE 'test_notif_%@example.com';
+-- Drop tabela temporária
+-- DROP TABLE IF EXISTS test_users;
 
 -- ============================================================================
 -- SEÇÃO 7: RESUMO DOS TESTES
@@ -679,9 +715,7 @@ SELECT
   'Notificações geradas nos testes',
   COUNT(*)::text
 FROM notifications 
-WHERE profile_id IN (
-  SELECT id FROM profiles WHERE email LIKE 'test_notif_%@example.com'
-);
+WHERE profile_id IN (SELECT user_id FROM test_users);
 
 -- ============================================================================
 -- FIM DO SCRIPT DE VALIDAÇÃO
