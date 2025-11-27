@@ -43,6 +43,35 @@
 -- SEÇÃO 0: PRE-REQUISITOS - GARANTIR COLUNAS NECESSÁRIAS
 -- ============================================================================
 
+-- Adicionar colunas ao notifications se não existirem
+-- Isso é necessário para armazenar informações adicionais nas notificações
+DO $$ 
+BEGIN
+  -- Add category column if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'notifications' AND column_name = 'category'
+  ) THEN
+    ALTER TABLE notifications ADD COLUMN category text DEFAULT 'general';
+  END IF;
+
+  -- Add related_id column if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'notifications' AND column_name = 'related_id'
+  ) THEN
+    ALTER TABLE notifications ADD COLUMN related_id uuid;
+  END IF;
+
+  -- Add metadata column if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'notifications' AND column_name = 'metadata'
+  ) THEN
+    ALTER TABLE notifications ADD COLUMN metadata jsonb DEFAULT '{}';
+  END IF;
+END $$;
+
 -- Adicionar colunas ao mentorship_sessions se não existirem
 -- Isso é necessário porque triggers podem depender dessas colunas
 DO $$ 
