@@ -40,6 +40,47 @@
 */
 
 -- ============================================================================
+-- SEÇÃO 0: PRE-REQUISITOS - GARANTIR COLUNAS NECESSÁRIAS
+-- ============================================================================
+
+-- Adicionar colunas ao mentorship_sessions se não existirem
+-- Isso é necessário porque triggers podem depender dessas colunas
+DO $$ 
+BEGIN
+  -- Add scheduled_start column if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'mentorship_sessions' AND column_name = 'scheduled_start'
+  ) THEN
+    ALTER TABLE mentorship_sessions ADD COLUMN scheduled_start timestamptz;
+    -- Copiar session_date para scheduled_start se a coluna existir
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'mentorship_sessions' AND column_name = 'session_date'
+    ) THEN
+      UPDATE mentorship_sessions SET scheduled_start = session_date WHERE scheduled_start IS NULL;
+    END IF;
+  END IF;
+
+  -- Add status column if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'mentorship_sessions' AND column_name = 'status'
+  ) THEN
+    ALTER TABLE mentorship_sessions ADD COLUMN status text DEFAULT 'scheduled' 
+      CHECK (status IN ('scheduled', 'completed', 'cancelled', 'no_show'));
+  END IF;
+
+  -- Add session_notes column if it doesn't exist (used by cancellation trigger)
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'mentorship_sessions' AND column_name = 'session_notes'
+  ) THEN
+    ALTER TABLE mentorship_sessions ADD COLUMN session_notes text;
+  END IF;
+END $$;
+
+-- ============================================================================
 -- SEÇÃO 1: FUNÇÕES AUXILIARES
 -- ============================================================================
 
@@ -497,6 +538,7 @@ DECLARE
   mentorship_record record;
   formatted_date text;
   formatted_time text;
+  session_datetime timestamptz;
 BEGIN
   -- Buscar dados da mentoria e participantes
   SELECT 
@@ -510,10 +552,13 @@ BEGIN
   JOIN profiles me ON me.id = m.mentee_id
   WHERE m.id = NEW.mentorship_id;
   
-  IF mentorship_record IS NOT NULL AND NEW.scheduled_start IS NOT NULL THEN
+  -- Usar scheduled_start ou session_date como fallback
+  session_datetime := COALESCE(NEW.scheduled_start, NEW.session_date);
+  
+  IF mentorship_record IS NOT NULL AND session_datetime IS NOT NULL THEN
     -- Formatar data e hora
-    formatted_date := to_char(NEW.scheduled_start::date, 'DD/MM/YYYY');
-    formatted_time := to_char(NEW.scheduled_start::time, 'HH24:MI');
+    formatted_date := to_char(session_datetime::date, 'DD/MM/YYYY');
+    formatted_time := to_char(session_datetime::time, 'HH24:MI');
     
     -- Notificar mentor
     PERFORM create_notification_if_enabled(
@@ -530,7 +575,7 @@ BEGIN
       jsonb_build_object(
         'session_id', NEW.id, 
         'mentee_name', mentorship_record.mentee_name,
-        'scheduled_start', NEW.scheduled_start
+        'scheduled_start', session_datetime
       )
     );
     
@@ -549,7 +594,7 @@ BEGIN
       jsonb_build_object(
         'session_id', NEW.id, 
         'mentor_name', mentorship_record.mentor_name,
-        'scheduled_start', NEW.scheduled_start
+        'scheduled_start', session_datetime
       )
     );
   END IF;
@@ -565,7 +610,6 @@ DROP TRIGGER IF EXISTS mentorship_session_scheduled_notification ON mentorship_s
 CREATE TRIGGER mentorship_session_scheduled_notification
   AFTER INSERT ON mentorship_sessions
   FOR EACH ROW
-  WHEN (NEW.scheduled_start IS NOT NULL)
   EXECUTE FUNCTION notify_mentorship_session_scheduled();
 
 
@@ -574,9 +618,10 @@ CREATE OR REPLACE FUNCTION notify_mentorship_session_cancelled() RETURNS trigger
 DECLARE
   mentorship_record record;
   formatted_date text;
+  session_datetime timestamptz;
 BEGIN
-  -- Verificar se a sessão foi cancelada
-  IF NEW.status = 'cancelled' AND OLD.status != 'cancelled' THEN
+  -- Verificar se a sessão foi cancelada (com tratamento para status NULL)
+  IF NEW.status = 'cancelled' AND (OLD.status IS NULL OR OLD.status != 'cancelled') THEN
     -- Buscar dados da mentoria e participantes
     SELECT 
       m.mentor_id, 
@@ -590,7 +635,13 @@ BEGIN
     WHERE m.id = NEW.mentorship_id;
     
     IF mentorship_record IS NOT NULL THEN
-      formatted_date := to_char(OLD.scheduled_start::date, 'DD/MM/YYYY');
+      -- Usar scheduled_start ou session_date como fallback
+      session_datetime := COALESCE(OLD.scheduled_start, NEW.session_date);
+      IF session_datetime IS NOT NULL THEN
+        formatted_date := to_char(session_datetime::date, 'DD/MM/YYYY');
+      ELSE
+        formatted_date := 'data não definida';
+      END IF;
       
       -- Notificar mentor
       PERFORM create_notification_if_enabled(
@@ -631,9 +682,8 @@ COMMENT ON FUNCTION notify_mentorship_session_cancelled IS
 
 DROP TRIGGER IF EXISTS mentorship_session_cancelled_notification ON mentorship_sessions;
 CREATE TRIGGER mentorship_session_cancelled_notification
-  AFTER UPDATE OF status ON mentorship_sessions
+  AFTER UPDATE ON mentorship_sessions
   FOR EACH ROW
-  WHEN (OLD.status IS DISTINCT FROM NEW.status)
   EXECUTE FUNCTION notify_mentorship_session_cancelled();
 
 
