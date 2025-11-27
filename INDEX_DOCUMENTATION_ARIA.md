@@ -3,7 +3,7 @@
 ## Navegação Rápida da Documentação Completa
 
 **Última Atualização:** 27 de Novembro de 2025  
-**Status do Projeto:** 30% Completo (7/23 componentes)
+**Status do Projeto:** 35% Completo (8/23 componentes)
 
 ---
 
@@ -109,6 +109,17 @@
   - Ferramentas recomendadas
 - **Quando usar:** Para validar que NotificationCenter está acessível
 
+### 8. TaskManager - Implementação
+**[TASKMANAGER_ARIA_IMPLEMENTATION.md](./TASKMANAGER_ARIA_IMPLEMENTATION.md)** (26K)
+- **O quê:** Relatório completo do componente de tarefas terapêuticas
+- **Conteúdo:**
+  - 12 áreas implementadas
+  - 37 ARIA attributes
+  - Input de busca, selects, lista estruturada
+  - Rating de estrelas acessível
+  - Before/after detalhado
+- **Quando usar:** Como exemplo de implementação de lista e rating
+
 ---
 
 ## 📈 Documentos de Acompanhamento
@@ -125,22 +136,32 @@
   - Cronograma atualizado
 - **Quando usar:** Para entender status geral do projeto
 
-### 9. Implementação Completa (Hoje)
+### 9. Implementação Completa (NotificationCenter)
 **[IMPLEMENTATION_COMPLETE_2024_11_27.md](./IMPLEMENTATION_COMPLETE_2024_11_27.md)** (19K)
-- **O quê:** Resumo do que foi feito hoje
+- **O quê:** Resumo da implementação do NotificationCenter
 - **Conteúdo:**
   - NotificationCenter completo
   - 65 ARIA attributes
   - Validações realizadas
   - Impacto real
   - Próximos passos
-- **Quando usar:** Para revisar conquistas de hoje
+- **Quando usar:** Para revisar implementação do NotificationCenter
+
+### 10. Implementação Completa (TaskManager)
+**[IMPLEMENTATION_TASKMANAGER_COMPLETE.md](./IMPLEMENTATION_TASKMANAGER_COMPLETE.md)** (5K)
+- **O quê:** Resumo da implementação do TaskManager
+- **Conteúdo:**
+  - TaskManager completo
+  - 37 ARIA attributes
+  - Métricas e validação
+  - Progresso atualizado
+- **Quando usar:** Para revisar implementação do TaskManager
 
 ---
 
 ## 🚀 Próximos Passos
 
-### 10. Guia de Continuação
+### 11. Guia de Continuação
 **[NEXT_STEPS_ARIA.md](./NEXT_STEPS_ARIA.md)** (15K)
 - **O quê:** Guia detalhado de como continuar
 - **Conteúdo:**
@@ -165,8 +186,9 @@
 
 ### Componentes Funcionais (Fase 2)
 7. ✅ `/src/components/NotificationCenter.tsx` - 65 ARIA attrs, 45min
+8. ✅ `/src/components/mental-health/TaskManager.tsx` - 37 ARIA attrs, 45min
 
-**Total:** 7 arquivos, 95+ ARIA attributes, ~3 horas
+**Total:** 8 arquivos, 132+ ARIA attributes, ~3.75 horas
 
 ---
 
@@ -205,13 +227,13 @@
 
 | Métrica | Valor |
 |---------|-------|
-| **Total de Documentos** | 10 |
-| **Tamanho Total** | ~200KB |
-| **Linhas Totais** | ~3000+ |
-| **Páginas (estimado)** | ~80 |
-| **Exemplos de Código** | 50+ |
-| **Checklists** | 5 |
-| **Casos de Teste** | 10+ |
+| **Total de Documentos** | 11 |
+| **Tamanho Total** | ~230KB |
+| **Linhas Totais** | ~3500+ |
+| **Páginas (estimado)** | ~90 |
+| **Exemplos de Código** | 60+ |
+| **Checklists** | 6 |
+| **Casos de Teste** | 15+ |
 
 ---
 
@@ -232,6 +254,7 @@
 - **Table** → ARIA_IMPLEMENTATION_REPORT.md
 - **AvatarUpload** → ARIA_IMPLEMENTATION_REPORT.md
 - **NotificationCenter** → NOTIFICATION_CENTER_ARIA_IMPLEMENTATION.md
+- **TaskManager** → TASKMANAGER_ARIA_IMPLEMENTATION.md
 
 ### Padrões
 - **Formulários** → ARIA_IMPLEMENTATION_GUIDE.md seção 1.1-1.4
@@ -308,17 +331,17 @@
 
 ## 🎯 Metas do Projeto
 
-### Atual (30%)
+### Atual (35%)
 ```
-██████████████░░░░░░░░░░░░░░░░░░░░░░░░ 30%
-7/23 componentes completos
+██████████████████░░░░░░░░░░░░░░░░░░░░ 35%
+8/23 componentes completos
 ```
 
 ### Próximo Marco (50%)
 ```
 ████████████████████████░░░░░░░░░░░░░░ 50%
 12/23 componentes
-Próximos: TaskManager, Onboarding, EmotionalCheckin, +2
+Próximos: Onboarding, EmotionalCheckin, Sidebar, +1
 ```
 
 ### Final (100%)

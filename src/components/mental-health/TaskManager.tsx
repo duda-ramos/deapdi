@@ -90,11 +90,11 @@ const TaskManager: React.FC = () => {
   }, []);
 
   const taskTypes = [
-    { value: 'form', label: 'Formulário', icon: <FileText size={16} /> },
-    { value: 'meditation', label: 'Meditação', icon: <Brain size={16} /> },
-    { value: 'exercise', label: 'Exercício', icon: <Activity size={16} /> },
-    { value: 'reading', label: 'Leitura', icon: <BookOpen size={16} /> },
-    { value: 'reflection', label: 'Reflexão', icon: <Target size={16} /> }
+    { value: 'form', label: 'Formulário', icon: <FileText size={16} aria-hidden="true" /> },
+    { value: 'meditation', label: 'Meditação', icon: <Brain size={16} aria-hidden="true" /> },
+    { value: 'exercise', label: 'Exercício', icon: <Activity size={16} aria-hidden="true" /> },
+    { value: 'reading', label: 'Leitura', icon: <BookOpen size={16} aria-hidden="true" /> },
+    { value: 'reflection', label: 'Reflexão', icon: <Target size={16} aria-hidden="true" /> }
   ];
 
   const statusOptions = [
@@ -209,7 +209,7 @@ const TaskManager: React.FC = () => {
 
   const getTaskIcon = (type: string) => {
     const taskType = taskTypes.find(t => t.value === type);
-    return taskType?.icon || <Activity size={16} />;
+    return taskType?.icon || <Activity size={16} aria-hidden="true" />;
   };
 
   const getStatusBadge = (status: string) => {
@@ -248,14 +248,14 @@ const TaskManager: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Target className="mr-3 text-blue-500" size={28} />
+            <Target className="mr-3 text-blue-500" size={28} aria-hidden="true" />
             Gerenciador de Tarefas
           </h1>
           <p className="text-gray-600 mt-1">Gerencie atividades terapêuticas e acompanhe o progresso</p>
         </div>
         {user?.role === 'hr' && (
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus size={16} className="mr-2" />
+          <Button onClick={() => setShowCreateModal(true)} aria-label="Criar nova tarefa terapêutica">
+            <Plus size={16} className="mr-2" aria-hidden="true" />
             Nova Tarefa
           </Button>
         )}
@@ -265,27 +265,30 @@ const TaskManager: React.FC = () => {
       <Card className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} aria-hidden="true" />
             <input
               type="text"
               placeholder="Buscar tarefas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              aria-label="Buscar tarefas por título ou descrição"
             />
           </div>
           <Select
+            label="Status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             options={statusOptions}
           />
           <Select
+            label="Tipo"
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             options={typeOptions}
           />
-          <Button variant="secondary" className="flex items-center">
-            <Filter size={16} className="mr-2" />
+          <Button variant="secondary" className="flex items-center" aria-label="Filtros adicionais">
+            <Filter size={16} className="mr-2" aria-hidden="true" />
             Filtros
           </Button>
         </div>
@@ -293,8 +296,8 @@ const TaskManager: React.FC = () => {
 
       {/* Tasks Grid */}
       {filteredTasks.length === 0 ? (
-        <Card className="p-8 text-center">
-          <Target size={48} className="mx-auto mb-4 text-gray-300" />
+        <Card className="p-8 text-center" role="status" aria-live="polite">
+          <Target size={48} className="mx-auto mb-4 text-gray-300" aria-hidden="true" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' 
               ? 'Nenhuma tarefa encontrada' 
@@ -309,15 +312,16 @@ const TaskManager: React.FC = () => {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Lista de tarefas de bem-estar">
           {filteredTasks.map((task) => (
             <motion.div
               key={task.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: filteredTasks.indexOf(task) * 0.1 }}
+              role="listitem"
             >
-              <Card className="p-6 hover:shadow-lg transition-shadow">
+              <Card className="p-6 hover:shadow-lg transition-shadow" role="article" aria-label={`Tarefa: ${task.title}`}>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-2">
                     {getTaskIcon(task.type)}
@@ -330,28 +334,28 @@ const TaskManager: React.FC = () => {
                     </div>
                   </div>
                   {isOverdue(task.due_date) && task.status !== 'completed' && (
-                    <AlertTriangle className="text-red-500" size={20} />
+                    <AlertTriangle className="text-red-500" size={20} aria-label="Tarefa atrasada" />
                   )}
                 </div>
 
                 <div className="space-y-2 mb-4">
                   {task.due_date && (
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Calendar size={14} />
+                      <Calendar size={14} aria-hidden="true" />
                       <span>Vence em {new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
                     </div>
                   )}
                   
                   {task.assigned_by_user && (
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Users size={14} />
+                      <Users size={14} aria-hidden="true" />
                       <span>Atribuída por {task.assigned_by_user.name}</span>
                     </div>
                   )}
 
                   {task.effectiveness_rating && (
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Star size={14} />
+                      <Star size={14} aria-hidden="true" />
                       <span>Avaliação: {task.effectiveness_rating}/5</span>
                     </div>
                   )}
@@ -373,8 +377,9 @@ const TaskManager: React.FC = () => {
                       <Button
                         size="sm"
                         onClick={() => handleStartTask(task.id)}
+                        aria-label={`Iniciar tarefa "${task.title}"`}
                       >
-                        <Play size={14} className="mr-1" />
+                        <Play size={14} className="mr-1" aria-hidden="true" />
                         Iniciar
                       </Button>
                     )}
@@ -387,8 +392,9 @@ const TaskManager: React.FC = () => {
                           setSelectedTask(task);
                           setShowCompleteModal(true);
                         }}
+                        aria-label={`Marcar tarefa "${task.title}" como concluída`}
                       >
-                        <CheckCircle size={14} className="mr-1" />
+                        <CheckCircle size={14} className="mr-1" aria-hidden="true" />
                         Concluir
                       </Button>
                     )}
@@ -398,8 +404,9 @@ const TaskManager: React.FC = () => {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleCancelTask(task.id)}
+                        aria-label={`Cancelar tarefa "${task.title}"`}
                       >
-                        <Pause size={14} />
+                        <Pause size={14} aria-hidden="true" />
                       </Button>
                     )}
                   </div>
@@ -467,11 +474,12 @@ const TaskManager: React.FC = () => {
               type="button"
               variant="secondary"
               onClick={() => setShowCreateModal(false)}
+              aria-label="Cancelar criação de tarefa"
             >
               Cancelar
             </Button>
-            <Button type="submit">
-              <Plus size={16} className="mr-2" />
+            <Button type="submit" aria-label="Criar nova tarefa terapêutica">
+              <Plus size={16} className="mr-2" aria-hidden="true" />
               Criar Tarefa
             </Button>
           </div>
@@ -506,7 +514,7 @@ const TaskManager: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Avaliação de Efetividade (1-5)
             </label>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2" role="radiogroup" aria-label="Avaliação de eficácia da tarefa">
               {[1, 2, 3, 4, 5].map((rating) => (
                 <button
                   key={rating}
@@ -517,8 +525,11 @@ const TaskManager: React.FC = () => {
                       ? 'bg-yellow-100 text-yellow-700'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
+                  role="radio"
+                  aria-checked={completionForm.effectiveness_rating === rating}
+                  aria-label={`Avaliar com ${rating} ${rating === 1 ? 'estrela' : 'estrelas'}`}
                 >
-                  <Star size={20} fill={completionForm.effectiveness_rating >= rating ? 'currentColor' : 'none'} />
+                  <Star size={20} fill={completionForm.effectiveness_rating >= rating ? 'currentColor' : 'none'} aria-hidden="true" />
                 </button>
               ))}
             </div>
@@ -529,11 +540,12 @@ const TaskManager: React.FC = () => {
               type="button"
               variant="secondary"
               onClick={() => setShowCompleteModal(false)}
+              aria-label="Cancelar conclusão de tarefa"
             >
               Cancelar
             </Button>
-            <Button type="submit">
-              <CheckCircle size={16} className="mr-2" />
+            <Button type="submit" aria-label="Confirmar conclusão da tarefa">
+              <CheckCircle size={16} className="mr-2" aria-hidden="true" />
               Concluir Tarefa
             </Button>
           </div>
