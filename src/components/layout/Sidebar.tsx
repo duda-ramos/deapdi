@@ -38,53 +38,53 @@ interface SidebarItem {
 }
 
 const sidebarItems: SidebarItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: <Home size={20} />, path: '/dashboard', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { id: 'profile', label: 'Meu Perfil', icon: <User size={20} />, path: '/profile', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { id: 'career', label: 'Trilha de Carreira', icon: <TrendingUp size={20} />, path: '/career', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { id: 'competencies', label: 'Competências', icon: <BarChart3 size={20} />, path: '/competencies', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { id: 'pdi', label: 'PDI', icon: <Target size={20} />, path: '/pdi', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { id: 'groups', label: 'Grupos de Ação', icon: <Users size={20} />, path: '/groups', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { id: 'mentorship', label: 'Mentoria', icon: <Users size={20} />, path: '/mentorship', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'dashboard', label: 'Dashboard', icon: <Home size={20} aria-hidden="true" />, path: '/dashboard', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'profile', label: 'Meu Perfil', icon: <User size={20} aria-hidden="true" />, path: '/profile', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'career', label: 'Trilha de Carreira', icon: <TrendingUp size={20} aria-hidden="true" />, path: '/career', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'competencies', label: 'Competências', icon: <BarChart3 size={20} aria-hidden="true" />, path: '/competencies', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'pdi', label: 'PDI', icon: <Target size={20} aria-hidden="true" />, path: '/pdi', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'groups', label: 'Grupos de Ação', icon: <Users size={20} aria-hidden="true" />, path: '/groups', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { id: 'mentorship', label: 'Mentoria', icon: <Users size={20} aria-hidden="true" />, path: '/mentorship', roles: ['admin', 'hr', 'manager', 'employee'] },
   { 
     id: 'mental-health', 
     label: 'Bem-estar', 
-    icon: <Brain size={20} />, 
+    icon: <Brain size={20} aria-hidden="true" />, 
     path: '/mental-health', 
     roles: ['admin', 'manager', 'employee'],
     subItems: [
-      { id: 'mental-health-record', label: 'Registro Psicológico', icon: <FileText size={16} />, path: '/mental-health/record', roles: ['admin', 'manager', 'employee'] },
-      { id: 'mental-health-analytics', label: 'Análises', icon: <BarChart3 size={16} />, path: '/mental-health/analytics', roles: ['admin', 'manager', 'employee'] },
-      { id: 'mental-health-forms', label: 'Formulários', icon: <ClipboardList size={16} />, path: '/mental-health/forms', roles: ['admin', 'manager', 'employee'] },
-      { id: 'mental-health-tasks', label: 'Tarefas', icon: <CheckSquare size={16} />, path: '/mental-health/tasks', roles: ['admin', 'manager', 'employee'] }
+      { id: 'mental-health-record', label: 'Registro Psicológico', icon: <FileText size={16} aria-hidden="true" />, path: '/mental-health/record', roles: ['admin', 'manager', 'employee'] },
+      { id: 'mental-health-analytics', label: 'Análises', icon: <BarChart3 size={16} aria-hidden="true" />, path: '/mental-health/analytics', roles: ['admin', 'manager', 'employee'] },
+      { id: 'mental-health-forms', label: 'Formulários', icon: <ClipboardList size={16} aria-hidden="true" />, path: '/mental-health/forms', roles: ['admin', 'manager', 'employee'] },
+      { id: 'mental-health-tasks', label: 'Tarefas', icon: <CheckSquare size={16} aria-hidden="true" />, path: '/mental-health/tasks', roles: ['admin', 'manager', 'employee'] }
     ]
   },
   { 
     id: 'wellness-admin', 
     label: 'Bem-estar', 
-    icon: <Brain size={20} />, 
+    icon: <Brain size={20} aria-hidden="true" />, 
     path: '/wellness-admin', 
     roles: ['admin']
   },
   { 
     id: 'management', 
     label: 'Gestão', 
-    icon: <Settings size={20} />, 
+    icon: <Settings size={20} aria-hidden="true" />, 
     path: '/management', 
     roles: ['admin', 'hr', 'manager'],
     subItems: [
-      { id: 'people-management', label: 'Gestão de Pessoas', icon: <Users size={16} />, path: '/people', roles: ['admin', 'hr'] },
-      { id: 'teams-management', label: 'Gestão de Times', icon: <Building size={16} />, path: '/teams', roles: ['admin', 'hr'] },
-      { id: 'career-management', label: 'Gestão de Trilhas', icon: <TrendingUp size={16} />, path: '/career-management', roles: ['admin', 'hr'] },
-      { id: 'evaluations-management', label: 'Gestão de Avaliações', icon: <ClipboardList size={16} />, path: '/evaluations', roles: ['admin', 'hr'] },
-      { id: 'manager-feedback', label: 'Feedback do Gestor', icon: <MessageSquare size={16} />, path: '/manager-feedback', roles: ['manager'] }
+      { id: 'people-management', label: 'Gestão de Pessoas', icon: <Users size={16} aria-hidden="true" />, path: '/people', roles: ['admin', 'hr'] },
+      { id: 'teams-management', label: 'Gestão de Times', icon: <Building size={16} aria-hidden="true" />, path: '/teams', roles: ['admin', 'hr'] },
+      { id: 'career-management', label: 'Gestão de Trilhas', icon: <TrendingUp size={16} aria-hidden="true" />, path: '/career-management', roles: ['admin', 'hr'] },
+      { id: 'evaluations-management', label: 'Gestão de Avaliações', icon: <ClipboardList size={16} aria-hidden="true" />, path: '/evaluations', roles: ['admin', 'hr'] },
+      { id: 'manager-feedback', label: 'Feedback do Gestor', icon: <MessageSquare size={16} aria-hidden="true" />, path: '/manager-feedback', roles: ['manager'] }
     ]
   },
-  { id: 'mental-health-admin', label: 'Portal do Psicólogo', icon: <Brain size={20} />, path: '/mental-health/admin', roles: ['hr'] },
-  { id: 'users', label: 'Criar Usuários', icon: <UserCog size={20} />, path: '/users', roles: ['admin', 'hr'] },
-  { id: 'hr', label: 'Área de RH', icon: <Heart size={20} />, path: '/hr', roles: ['admin', 'hr'] },
-  { id: 'hr-calendar', label: 'Calendário', icon: <Calendar size={20} />, path: '/hr-calendar', roles: ['admin', 'hr'] },
-  { id: 'admin', label: 'Administração', icon: <Settings size={20} />, path: '/admin', roles: ['admin'] },
-  { id: 'qa', label: 'Garantia de Qualidade', icon: <TestTube size={20} />, path: '/qa', roles: ['admin'] },
+  { id: 'mental-health-admin', label: 'Portal do Psicólogo', icon: <Brain size={20} aria-hidden="true" />, path: '/mental-health/admin', roles: ['hr'] },
+  { id: 'users', label: 'Criar Usuários', icon: <UserCog size={20} aria-hidden="true" />, path: '/users', roles: ['admin', 'hr'] },
+  { id: 'hr', label: 'Área de RH', icon: <Heart size={20} aria-hidden="true" />, path: '/hr', roles: ['admin', 'hr'] },
+  { id: 'hr-calendar', label: 'Calendário', icon: <Calendar size={20} aria-hidden="true" />, path: '/hr-calendar', roles: ['admin', 'hr'] },
+  { id: 'admin', label: 'Administração', icon: <Settings size={20} aria-hidden="true" />, path: '/admin', roles: ['admin'] },
+  { id: 'qa', label: 'Garantia de Qualidade', icon: <TestTube size={20} aria-hidden="true" />, path: '/qa', roles: ['admin'] },
 ];
 
 interface SidebarProps {
@@ -121,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
     <div className={`flex h-full min-h-0 w-full flex-col ${isMobile ? '' : 'px-4 pb-6'}`}>
       <div className={`${isMobile ? 'px-1' : 'px-2'} mb-6 flex shrink-0 items-center gap-3 pt-6`}>
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-ink shadow-soft">
-          <Trophy className="text-ink" size={22} />
+          <Trophy className="text-ink" size={22} aria-hidden="true" />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-ink">TalentFlow</p>
@@ -150,6 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
                     to={item.path}
                     className="flex flex-1 items-center gap-3 text-current no-underline"
                     onClick={() => onNavigate?.()}
+                    aria-current={isActive ? "page" : undefined}
                   >
                     <span
                       className={`flex h-8 w-8 items-center justify-center rounded-md ${
@@ -175,7 +176,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
                       animate={{ rotate: isExpanded ? 90 : 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <ChevronRight size={16} />
+                      <ChevronRight size={16} aria-hidden="true" />
                     </motion.div>
                   </button>
                 </motion.div>
@@ -184,6 +185,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
                   to={item.path}
                   className="block"
                   onClick={() => onNavigate?.()}
+                  aria-current={isActive ? "page" : undefined}
                 >
                   <motion.div
                     whileHover={{ x: 4 }}
@@ -214,33 +216,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <div className="ml-6 mt-1 space-y-1">
+                    <div className="ml-6 mt-1 space-y-1" role="list" aria-label={`Submenu de ${item.label}`}>
                       {item.subItems!.map((subItem) => {
                         const isSubActive = location.pathname === subItem.path;
                         return (
-                          <Link
-                            key={subItem.id}
-                            to={subItem.path}
-                            className="block"
-                            onClick={() => onNavigate?.()}
-                          >
-                            <motion.div
-                              whileHover={{ x: 4 }}
-                              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                                isSubActive
-                                  ? 'bg-primary/10 text-ink'
-                                  : 'text-muted hover:bg-slate-50'
-                              }`}
+                          <div key={subItem.id} role="listitem">
+                            <Link
+                              to={subItem.path}
+                              className="block"
+                              onClick={() => onNavigate?.()}
+                              aria-current={isSubActive ? "page" : undefined}
                             >
-                              <span className={`flex h-6 w-6 items-center justify-center rounded-md ${
-                                isSubActive ? 'bg-primary/20 text-ink' : 'bg-slate-100 text-muted'
-                              }`}
+                              <motion.div
+                                whileHover={{ x: 4 }}
+                                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                                  isSubActive
+                                    ? 'bg-primary/10 text-ink'
+                                    : 'text-muted hover:bg-slate-50'
+                                }`}
                               >
-                                {subItem.icon}
-                              </span>
-                              <span className="truncate">{subItem.label}</span>
-                            </motion.div>
-                          </Link>
+                                <span className={`flex h-6 w-6 items-center justify-center rounded-md ${
+                                  isSubActive ? 'bg-primary/20 text-ink' : 'bg-slate-100 text-muted'
+                                }`}
+                                >
+                                  {subItem.icon}
+                                </span>
+                                <span className="truncate">{subItem.label}</span>
+                              </motion.div>
+                            </Link>
+                          </div>
                         );
                       })}
                     </div>
