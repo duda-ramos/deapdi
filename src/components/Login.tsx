@@ -148,17 +148,20 @@ export const Login: React.FC = () => {
           {/* Logo */}
           <div className="mb-8 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-ink shadow-soft">
-              <Trophy size={32} />
+              <Trophy size={32} aria-hidden="true" />
             </div>
             <h1 className="text-2xl font-bold text-ink sm:text-3xl">TalentFlow</h1>
             <p className="mt-2 text-sm text-muted sm:text-base">Plataforma de Desenvolvimento de Colaboradores</p>
           </div>
 
           {/* Mode Toggle */}
-          <div className="mb-6 flex flex-wrap gap-2 rounded-lg bg-slate-100 p-1">
+          <div className="mb-6 flex flex-wrap gap-2 rounded-lg bg-slate-100 p-1" role="tablist" aria-label="Modo de autenticação">
             <button
+              id="tab-login"
+              role="tab"
+              aria-selected={!isSignUp}
+              aria-controls="panel-login"
               onClick={() => switchMode(false)}
-              aria-pressed={!isSignUp}
               className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                 !isSignUp
                   ? 'bg-white text-ink shadow-sm'
@@ -168,8 +171,11 @@ export const Login: React.FC = () => {
               Entrar
             </button>
             <button
+              id="tab-signup"
+              role="tab"
+              aria-selected={isSignUp}
+              aria-controls="panel-signup"
               onClick={() => switchMode(true)}
-              aria-pressed={isSignUp}
               className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                 isSignUp
                   ? 'bg-white text-ink shadow-sm'
@@ -185,7 +191,7 @@ export const Login: React.FC = () => {
             {/* Messages */}
             {error && (
               <div className="mb-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3" role="alert" aria-live="assertive">
-                <AlertCircle className="mt-0.5 text-rose-500" size={16} />
+                <AlertCircle className="mt-0.5 text-rose-500" size={16} aria-hidden="true" />
                 <span className="text-sm text-rose-700">{error}</span>
               </div>
             )}
@@ -198,13 +204,19 @@ export const Login: React.FC = () => {
 
             {!isSignUp ? (
               /* Login Form */
-              <form onSubmit={handleSignIn} className="space-y-6">
+              <form 
+                id="panel-login"
+                role="tabpanel"
+                aria-labelledby="tab-login"
+                onSubmit={handleSignIn} 
+                className="space-y-6"
+              >
                 <div>
                   <label className="mb-2 block text-sm font-medium text-ink">
                     Email
                   </label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={20} />
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={20} aria-hidden="true" />
                     <input
                       type="email"
                       value={loginForm.email}
@@ -212,6 +224,7 @@ export const Login: React.FC = () => {
                       className="w-full rounded-lg border border-slate-200 bg-white pl-11 pr-4 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                       placeholder="seu@email.com"
                       required
+                      aria-label="Email para login"
                     />
                   </div>
                 </div>
@@ -221,7 +234,7 @@ export const Login: React.FC = () => {
                     Senha
                   </label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={20} />
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={20} aria-hidden="true" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={loginForm.password}
@@ -229,6 +242,7 @@ export const Login: React.FC = () => {
                       className="w-full rounded-lg border border-slate-200 bg-white pl-11 pr-12 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                       placeholder="Sua senha"
                       required
+                      aria-label="Senha para login"
                     />
                     <button
                       type="button"
@@ -236,7 +250,7 @@ export const Login: React.FC = () => {
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition hover:text-ink"
                       aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
                     </button>
                   </div>
                 </div>
@@ -246,16 +260,23 @@ export const Login: React.FC = () => {
                   loading={isLoading}
                   className="w-full"
                   size="lg"
+                  aria-label="Entrar no sistema"
                 >
                   Entrar
                 </Button>
               </form>
             ) : (
               /* Signup Form */
-              <form onSubmit={handleSignUp} className="space-y-4">
+              <form 
+                id="panel-signup"
+                role="tabpanel"
+                aria-labelledby="tab-signup"
+                onSubmit={handleSignUp} 
+                className="space-y-4"
+              >
                 <div className="text-center mb-6">
                   <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/30 text-ink">
-                    <UserPlus size={22} />
+                    <UserPlus size={22} aria-hidden="true" />
                   </div>
                   <h3 className="text-lg font-semibold text-ink">Criar Nova Conta</h3>
                   <p className="text-sm text-muted">Preencha os dados para começar</p>
@@ -264,7 +285,7 @@ export const Login: React.FC = () => {
                 {/* Personal Info */}
                 <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
                   <h4 className="mb-3 flex items-center text-sm font-semibold text-ink">
-                    <User className="mr-2 text-muted" size={16} />
+                    <User className="mr-2 text-muted" size={16} aria-hidden="true" />
                     Informações Pessoais
                   </h4>
                   <div className="space-y-3">
@@ -280,7 +301,7 @@ export const Login: React.FC = () => {
                         Email
                       </label>
                       <div className="relative">
-                        <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+                        <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} aria-hidden="true" />
                         <input
                           type="email"
                           value={signupForm.email}
@@ -288,6 +309,7 @@ export const Login: React.FC = () => {
                           className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                           placeholder="seu@email.com"
                           required
+                          aria-label="Email para cadastro"
                         />
                       </div>
                     </div>
@@ -297,7 +319,7 @@ export const Login: React.FC = () => {
                 {/* Professional Info */}
                 <div className="rounded-lg border border-primary/30 bg-primary/10 p-4">
                   <h4 className="mb-3 flex items-center text-sm font-semibold text-ink">
-                    <Briefcase className="mr-2 text-muted" size={16} />
+                    <Briefcase className="mr-2 text-muted" size={16} aria-hidden="true" />
                     Informações Profissionais
                   </h4>
                   <div className="space-y-3">
@@ -321,7 +343,7 @@ export const Login: React.FC = () => {
                 {/* Password */}
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                   <h4 className="mb-3 flex items-center text-sm font-semibold text-ink">
-                    <Lock className="mr-2 text-amber-500" size={16} />
+                    <Lock className="mr-2 text-amber-500" size={16} aria-hidden="true" />
                     Credenciais de Acesso
                   </h4>
                   <div className="space-y-3">
@@ -330,7 +352,7 @@ export const Login: React.FC = () => {
                         Senha
                       </label>
                       <div className="relative">
-                        <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+                        <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} aria-hidden="true" />
                         <input
                           type={showPassword ? 'text' : 'password'}
                           value={signupForm.password}
@@ -338,6 +360,7 @@ export const Login: React.FC = () => {
                           className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-10 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                           placeholder="Mínimo 6 caracteres"
                           required
+                          aria-label="Senha para cadastro"
                         />
                         <button
                           type="button"
@@ -345,7 +368,7 @@ export const Login: React.FC = () => {
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition hover:text-ink"
                           aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                         >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
                         </button>
                       </div>
                     </div>
@@ -354,7 +377,7 @@ export const Login: React.FC = () => {
                         Confirmar Senha
                       </label>
                       <div className="relative">
-                        <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+                        <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} aria-hidden="true" />
                         <input
                           type={showPassword ? 'text' : 'password'}
                           value={signupForm.confirmPassword}
@@ -362,6 +385,7 @@ export const Login: React.FC = () => {
                           className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                           placeholder="Repita a senha"
                           required
+                          aria-label="Confirmar senha"
                         />
                       </div>
                     </div>
@@ -379,6 +403,7 @@ export const Login: React.FC = () => {
                   loading={isLoading}
                   className="w-full"
                   size="lg"
+                  aria-label="Criar nova conta no sistema"
                 >
                   Criar Conta
                 </Button>
