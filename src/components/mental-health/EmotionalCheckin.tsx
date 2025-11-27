@@ -54,9 +54,9 @@ export const EmotionalCheckin: React.FC<EmotionalCheckinProps> = ({
   };
 
   const getMoodIcon = (score: number) => {
-    if (score >= 8) return <Smile className="text-green-500" size={24} />;
-    if (score >= 6) return <Meh className="text-yellow-500" size={24} />;
-    return <Frown className="text-red-500" size={24} />;
+    if (score >= 8) return <Smile className="text-green-500" size={24} aria-hidden="true" />;
+    if (score >= 6) return <Meh className="text-yellow-500" size={24} aria-hidden="true" />;
+    return <Frown className="text-red-500" size={24} aria-hidden="true" />;
   };
 
   const getMoodColor = (score: number) => {
@@ -71,7 +71,8 @@ export const EmotionalCheckin: React.FC<EmotionalCheckinProps> = ({
     onChange: (value: number) => void,
     icon: React.ReactNode,
     lowLabel: string,
-    highLabel: string
+    highLabel: string,
+    ariaLabel: string
   ) => (
     <div className="space-y-3">
       <div className="flex items-center space-x-2">
@@ -80,7 +81,7 @@ export const EmotionalCheckin: React.FC<EmotionalCheckinProps> = ({
       </div>
       <div className="space-y-2">
         <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-500 w-16">{lowLabel}</span>
+          <span className="text-xs text-gray-500 w-16" aria-hidden="true">{lowLabel}</span>
           <input
             type="range"
             min="1"
@@ -88,11 +89,21 @@ export const EmotionalCheckin: React.FC<EmotionalCheckinProps> = ({
             value={value}
             onChange={(e) => onChange(parseInt(e.target.value))}
             className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            aria-label={ariaLabel}
+            aria-valuemin={1}
+            aria-valuemax={10}
+            aria-valuenow={value}
+            aria-valuetext={`${value} de 10`}
           />
-          <span className="text-xs text-gray-500 w-16 text-right">{highLabel}</span>
+          <span className="text-xs text-gray-500 w-16 text-right" aria-hidden="true">{highLabel}</span>
         </div>
         <div className="text-center">
-          <span className={`text-lg font-bold ${getMoodColor(value)}`}>
+          <span 
+            className={`text-lg font-bold ${getMoodColor(value)}`}
+            aria-live="polite"
+            aria-atomic="true"
+            role="status"
+          >
             {value}/10
           </span>
         </div>
@@ -104,7 +115,7 @@ export const EmotionalCheckin: React.FC<EmotionalCheckinProps> = ({
     <Card className="p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="text-center mb-6">
-          <Activity className="mx-auto mb-2 text-blue-500" size={32} />
+          <Activity className="mx-auto mb-2 text-blue-500" size={32} aria-hidden="true" />
           <h3 className="text-lg font-semibold text-gray-900">Check-in Emocional</h3>
           <p className="text-gray-600">
             Reserve um momento para avaliar como você está se sentindo hoje
@@ -118,34 +129,38 @@ export const EmotionalCheckin: React.FC<EmotionalCheckinProps> = ({
             (value) => setFormData({ ...formData, mood_rating: value }),
             getMoodIcon(formData.mood_rating),
             'Muito baixo',
-            'Excelente'
+            'Excelente',
+            'Nível de humor de 1 a 10, onde 1 é muito baixo e 10 é excelente'
           )}
 
           {renderScaleInput(
             'Qual seu nível de energia?',
             formData.energy_level,
             (value) => setFormData({ ...formData, energy_level: value }),
-            <Battery className="text-green-500" size={20} />,
+            <Battery className="text-green-500" size={20} aria-hidden="true" />,
             'Sem energia',
-            'Muito energizado'
+            'Muito energizado',
+            'Nível de energia de 1 a 10, onde 1 é muito baixa e 10 é muito alta'
           )}
 
           {renderScaleInput(
             'Como está seu nível de estresse?',
             formData.stress_level,
             (value) => setFormData({ ...formData, stress_level: value }),
-            <Zap className="text-orange-500" size={20} />,
+            <Zap className="text-orange-500" size={20} aria-hidden="true" />,
             'Muito relaxado',
-            'Muito estressado'
+            'Muito estressado',
+            'Nível de estresse de 1 a 10, onde 1 é muito baixo e 10 é muito alto'
           )}
 
           {renderScaleInput(
             'Como foi a qualidade do seu sono?',
             formData.sleep_quality,
             (value) => setFormData({ ...formData, sleep_quality: value }),
-            <Moon className="text-purple-500" size={20} />,
+            <Moon className="text-purple-500" size={20} aria-hidden="true" />,
             'Muito ruim',
-            'Excelente'
+            'Excelente',
+            'Qualidade do sono de 1 a 10, onde 1 é péssima e 10 é excelente'
           )}
         </div>
 
@@ -168,8 +183,8 @@ export const EmotionalCheckin: React.FC<EmotionalCheckinProps> = ({
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit" loading={submitting}>
-            <CheckCircle size={16} className="mr-2" />
+          <Button type="submit" loading={submitting} aria-label="Salvar check-in emocional">
+            <CheckCircle size={16} className="mr-2" aria-hidden="true" />
             Salvar Check-in
           </Button>
         </div>
