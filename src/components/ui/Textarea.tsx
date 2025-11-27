@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { sanitizeText } from '../../utils/security';
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -15,8 +15,14 @@ const TextareaComponent: React.FC<TextareaProps> = ({
   sanitize = false,
   className = '',
   onChange,
+  required,
   ...props
 }) => {
+  const generatedId = useId();
+  const fieldId = props.id || props.name || generatedId;
+  const errorId = `${fieldId}-error`;
+  const helperId = `${fieldId}-helper`;
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (!onChange) return;
     
@@ -42,23 +48,31 @@ const TextareaComponent: React.FC<TextareaProps> = ({
   return (
     <div className="space-y-1">
       {label && (
-        <label className="block text-sm font-medium text-gray-700">
+        <label htmlFor={fieldId} className="block text-sm font-medium text-gray-700">
           {label}
         </label>
       )}
       <textarea
+        id={fieldId}
         className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
           error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
         } ${className}`}
         rows={4}
         onChange={handleChange}
+        aria-invalid={error ? 'true' : 'false'}
+        aria-describedby={error ? errorId : helperText ? helperId : undefined}
+        aria-required={required ? 'true' : undefined}
         {...props}
       />
       {error && (
-        <p className="text-sm text-red-600">{error}</p>
+        <p id={errorId} className="text-sm text-red-600" role="alert">
+          {error}
+        </p>
       )}
       {helperText && !error && (
-        <p className="text-sm text-gray-500">{helperText}</p>
+        <p id={helperId} className="text-sm text-gray-500">
+          {helperText}
+        </p>
       )}
     </div>
   );

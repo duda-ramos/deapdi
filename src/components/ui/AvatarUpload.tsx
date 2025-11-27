@@ -100,23 +100,33 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      <div className="relative">
+      <div 
+        className="relative"
+        aria-busy={uploading}
+        aria-live="polite"
+      >
         <div
           className={`${sizeClasses[size]} rounded-full overflow-hidden bg-gray-200 flex items-center justify-center border-2 border-gray-300 relative group`}
+          role="img"
+          aria-label={displayUrl ? "Preview do avatar" : "Nenhum avatar carregado"}
         >
           {displayUrl ? (
             <img
               src={displayUrl}
-              alt="Avatar"
+              alt="Avatar do usuário"
               className="w-full h-full object-cover"
             />
           ) : (
-            <Camera size={iconSize} className="text-gray-400" />
+            <Camera size={iconSize} className="text-gray-400" aria-hidden="true" />
           )}
 
           {uploading && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-              <Loader size={iconSize} className="text-white animate-spin" />
+            <div 
+              className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+              role="status"
+              aria-label="Fazendo upload do avatar"
+            >
+              <Loader size={iconSize} className="text-white animate-spin" aria-hidden="true" />
             </div>
           )}
 
@@ -126,8 +136,9 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors"
                 type="button"
+                aria-label="Fazer upload de avatar"
               >
-                <Upload size={iconSize / 1.5} className="text-gray-700" />
+                <Upload size={iconSize / 1.5} className="text-gray-700" aria-hidden="true" />
               </button>
             </div>
           )}
@@ -138,8 +149,9 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
             onClick={handleRemove}
             className="absolute -top-1 -right-1 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
             type="button"
+            aria-label="Remover avatar"
           >
-            <X size={14} />
+            <X size={14} aria-hidden="true" />
           </button>
         )}
       </div>
@@ -150,6 +162,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
         accept="image/jpeg,image/png,image/webp,image/gif"
         onChange={handleFileSelect}
         className="hidden"
+        aria-label="Selecionar arquivo de imagem para avatar"
       />
 
       <div className="flex flex-col items-center space-y-2">
@@ -159,12 +172,13 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
           size="sm"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
+          aria-label={avatarUrl ? "Alterar avatar" : "Fazer upload de avatar"}
         >
-          <Upload size={16} className="mr-2" />
+          <Upload size={16} className="mr-2" aria-hidden="true" />
           {avatarUrl ? 'Alterar Avatar' : 'Upload Avatar'}
         </Button>
 
-        <p className="text-xs text-gray-500 text-center">
+        <p className="text-xs text-gray-500 text-center" aria-label="Formatos aceitos: JPEG, PNG, WebP ou GIF. Tamanho máximo: 2MB">
           JPEG, PNG, WebP ou GIF
           <br />
           Máximo 2MB

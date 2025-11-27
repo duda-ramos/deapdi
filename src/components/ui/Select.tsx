@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface SelectOption {
   value: string;
@@ -18,24 +18,28 @@ export const Select: React.FC<SelectProps> = ({
   options,
   placeholder,
   className = '',
+  required,
   ...props
 }) => {
-  const fieldId = props.id || props.name;
-  const errorId = fieldId ? `${fieldId}-error` : undefined;
+  const generatedId = useId();
+  const fieldId = props.id || props.name || generatedId;
+  const errorId = `${fieldId}-error`;
 
   return (
     <div className="space-y-1">
       {label && (
-        <label className="block text-sm font-medium text-ink">
+        <label htmlFor={fieldId} className="block text-sm font-medium text-ink">
           {label}
         </label>
       )}
       <select
+        id={fieldId}
         className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem] ${
           error ? 'border-rose-500 focus-visible:border-rose-500 focus-visible:ring-rose-400/60' : ''
         } ${className}`}
-        aria-invalid={error ? 'true' : undefined}
+        aria-invalid={error ? 'true' : 'false'}
         aria-describedby={error ? errorId : undefined}
+        aria-required={required ? 'true' : undefined}
         {...props}
       >
         {placeholder && (
@@ -48,7 +52,7 @@ export const Select: React.FC<SelectProps> = ({
         ))}
       </select>
       {error && (
-        <p id={errorId} className="text-xs text-rose-600">
+        <p id={errorId} className="text-xs text-rose-600" role="alert">
           {error}
         </p>
       )}
