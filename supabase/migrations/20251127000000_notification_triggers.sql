@@ -85,6 +85,7 @@ END $$;
 -- ============================================================================
 
 -- Função para verificar preferências de notificação
+DROP FUNCTION IF EXISTS check_notification_preference(uuid, text);
 CREATE OR REPLACE FUNCTION check_notification_preference(
   p_profile_id uuid,
   p_notification_type text
@@ -132,6 +133,7 @@ COMMENT ON FUNCTION check_notification_preference IS
 
 
 -- Função para criar notificação com verificação de preferências
+DROP FUNCTION IF EXISTS create_notification_if_enabled(uuid, text, text, text, text, uuid, text, jsonb);
 CREATE OR REPLACE FUNCTION create_notification_if_enabled(
   p_profile_id uuid,
   p_title text,
@@ -692,6 +694,7 @@ CREATE TRIGGER mentorship_session_cancelled_notification
 -- ============================================================================
 
 -- Função para limpar notificações antigas (executar periodicamente)
+DROP FUNCTION IF EXISTS cleanup_old_notifications();
 CREATE OR REPLACE FUNCTION cleanup_old_notifications() RETURNS void AS $$
 DECLARE
   deleted_count integer;
@@ -718,6 +721,7 @@ COMMENT ON FUNCTION cleanup_old_notifications IS
 
 
 -- Função para obter estatísticas de notificações
+DROP FUNCTION IF EXISTS get_notification_stats(uuid);
 CREATE OR REPLACE FUNCTION get_notification_stats(p_profile_id uuid)
 RETURNS TABLE (
   total_notifications bigint,
