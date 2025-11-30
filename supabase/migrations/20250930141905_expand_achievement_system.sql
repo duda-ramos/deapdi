@@ -84,7 +84,7 @@ BEGIN
     ),
     'wellnessCheckins', (
       SELECT COUNT(*) FROM emotional_checkins 
-      WHERE profile_id = p_profile_id
+      WHERE employee_id = p_profile_id
     )
   ) INTO v_stats;
 
@@ -196,7 +196,7 @@ BEGIN
       WHEN 'wellness_checkin' THEN
         SELECT COUNT(*) INTO v_count
         FROM emotional_checkins 
-        WHERE profile_id = p_profile_id;
+        WHERE employee_id = p_profile_id;
         
         IF (v_condition->>'count')::integer <= v_count THEN
           v_should_unlock := true;
@@ -318,7 +318,7 @@ CREATE TRIGGER check_action_group_achievements
 CREATE OR REPLACE FUNCTION trigger_check_wellness_achievements()
 RETURNS trigger AS $$
 BEGIN
-  PERFORM check_and_unlock_achievements(NEW.profile_id, 'wellness_checkin');
+  PERFORM check_and_unlock_achievements(NEW.employee_id, 'wellness_checkin');
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
