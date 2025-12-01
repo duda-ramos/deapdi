@@ -136,7 +136,31 @@ CREATE POLICY "Users can insert own preferences"
   WITH CHECK (profile_id = auth.uid());
 
 -- ============================================================================
--- STEP 3: DROP ALL CONFLICTING FUNCTIONS (to avoid signature conflicts)
+-- STEP 3: DROP ALL NOTIFICATION TRIGGERS FIRST (before functions)
+-- ============================================================================
+
+-- Must drop triggers BEFORE dropping functions they depend on
+DROP TRIGGER IF EXISTS pdi_status_notification ON pdis;
+DROP TRIGGER IF EXISTS task_assigned_notification ON tasks;
+DROP TRIGGER IF EXISTS achievement_unlocked_notification ON achievements;
+DROP TRIGGER IF EXISTS group_participant_added_notification ON action_group_participants;
+DROP TRIGGER IF EXISTS group_leader_promotion_notification ON action_group_participants;
+DROP TRIGGER IF EXISTS group_leader_promoted_notification ON action_group_participants;
+DROP TRIGGER IF EXISTS mentorship_request_notification ON mentorships;
+DROP TRIGGER IF EXISTS mentorship_accepted_notification ON mentorships;
+DROP TRIGGER IF EXISTS mentorship_session_scheduled_notification ON mentorship_sessions;
+DROP TRIGGER IF EXISTS mentorship_session_cancelled_notification ON mentorship_sessions;
+
+-- Also drop from mentorship_requests if it exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'mentorship_requests') THEN
+    DROP TRIGGER IF EXISTS mentorship_request_notification ON mentorship_requests;
+  END IF;
+END $$;
+
+-- ============================================================================
+-- STEP 4: DROP ALL CONFLICTING FUNCTIONS (now safe after triggers removed)
 -- ============================================================================
 
 -- Drop all variations of create_notification_if_enabled
@@ -148,36 +172,20 @@ DROP FUNCTION IF EXISTS create_notification_if_enabled(uuid, text, text, text, t
 -- Drop check_notification_preference function
 DROP FUNCTION IF EXISTS check_notification_preference(uuid, text);
 
--- Drop notify functions with variations
-DROP FUNCTION IF EXISTS notify_pdi_status_change();
-DROP FUNCTION IF EXISTS notify_task_assigned();
-DROP FUNCTION IF EXISTS notify_achievement_unlocked();
-DROP FUNCTION IF EXISTS notify_group_participant_added();
-DROP FUNCTION IF EXISTS notify_group_leader_promotion();
-DROP FUNCTION IF EXISTS notify_group_leader_promoted();
-DROP FUNCTION IF EXISTS notify_mentorship_request();
-DROP FUNCTION IF EXISTS notify_mentorship_accepted();
-DROP FUNCTION IF EXISTS notify_mentorship_session_scheduled();
-DROP FUNCTION IF EXISTS notify_mentorship_session_cancelled();
-DROP FUNCTION IF EXISTS send_deadline_reminders();
-DROP FUNCTION IF EXISTS cleanup_old_notifications();
-DROP FUNCTION IF EXISTS get_notification_stats(uuid);
-
--- ============================================================================
--- STEP 4: DROP ALL NOTIFICATION TRIGGERS
--- ============================================================================
-
-DROP TRIGGER IF EXISTS pdi_status_notification ON pdis;
-DROP TRIGGER IF EXISTS task_assigned_notification ON tasks;
-DROP TRIGGER IF EXISTS achievement_unlocked_notification ON achievements;
-DROP TRIGGER IF EXISTS group_participant_added_notification ON action_group_participants;
-DROP TRIGGER IF EXISTS group_leader_promotion_notification ON action_group_participants;
-DROP TRIGGER IF EXISTS group_leader_promoted_notification ON action_group_participants;
-DROP TRIGGER IF EXISTS mentorship_request_notification ON mentorships;
-DROP TRIGGER IF EXISTS mentorship_request_notification ON mentorship_requests;
-DROP TRIGGER IF EXISTS mentorship_accepted_notification ON mentorships;
-DROP TRIGGER IF EXISTS mentorship_session_scheduled_notification ON mentorship_sessions;
-DROP TRIGGER IF EXISTS mentorship_session_cancelled_notification ON mentorship_sessions;
+-- Drop notify functions with variations (use CASCADE as safety)
+DROP FUNCTION IF EXISTS notify_pdi_status_change() CASCADE;
+DROP FUNCTION IF EXISTS notify_task_assigned() CASCADE;
+DROP FUNCTION IF EXISTS notify_achievement_unlocked() CASCADE;
+DROP FUNCTION IF EXISTS notify_group_participant_added() CASCADE;
+DROP FUNCTION IF EXISTS notify_group_leader_promotion() CASCADE;
+DROP FUNCTION IF EXISTS notify_group_leader_promoted() CASCADE;
+DROP FUNCTION IF EXISTS notify_mentorship_request() CASCADE;
+DROP FUNCTION IF EXISTS notify_mentorship_accepted() CASCADE;
+DROP FUNCTION IF EXISTS notify_mentorship_session_scheduled() CASCADE;
+DROP FUNCTION IF EXISTS notify_mentorship_session_cancelled() CASCADE;
+DROP FUNCTION IF EXISTS send_deadline_reminders() CASCADE;
+DROP FUNCTION IF EXISTS cleanup_old_notifications() CASCADE;
+DROP FUNCTION IF EXISTS get_notification_stats(uuid) CASCADE;
 
 -- ============================================================================
 -- STEP 5: CREATE CORE HELPER FUNCTION (STANDARDIZED)
