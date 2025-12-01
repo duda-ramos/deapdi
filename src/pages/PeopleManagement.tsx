@@ -4,6 +4,7 @@ import { Plus, CreditCard as Edit, Trash2, Eye, UserCheck, UserX, Users, Buildin
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
 import { teamService } from '../services/teams';
+import { peopleManagementService } from '../services/peopleManagement';
 import { permissionService } from '../utils/permissions';
 import { Profile, UserRole } from '../types';
 import { Card } from '../components/ui/Card';
@@ -143,15 +144,15 @@ const PeopleManagement: React.FC = () => {
       let profilesData: Profile[] = [];
       
       if (userFilter.all) {
-        // Admin/HR can see all profiles
-        console.log('📊 PeopleManagement: Fetching all profiles (Admin/HR)');
-        profilesData = await databaseService.getProfiles();
+        // Admin/HR can see all profiles - use peopleManagementService for full details
+        console.log('📊 PeopleManagement: Fetching all profiles with details (Admin/HR)');
+        profilesData = await peopleManagementService.getProfilesWithDetails();
       } else if (userFilter.managerFilter) {
-        // Manager can see only their team - fetch all profiles and filter client-side
+        // Manager can see only their team - use filtered query
         console.log('📊 PeopleManagement: Fetching profiles for manager:', userFilter.managerFilter);
-        const allProfiles = await databaseService.getProfiles();
-        // Filter profiles where the manager_id matches the current user
-        profilesData = allProfiles.filter(p => p.manager_id === userFilter.managerFilter);
+        profilesData = await peopleManagementService.getProfilesWithDetails({ 
+          manager_id: userFilter.managerFilter 
+        });
       }
 
       console.log('📊 PeopleManagement: Fetching teams and managers...');
@@ -161,7 +162,7 @@ const PeopleManagement: React.FC = () => {
           console.error('⚠️ PeopleManagement: Error fetching teams:', err);
           return [];
         }),
-        databaseService.getProfiles({ role: 'manager' }).catch(err => {
+        peopleManagementService.getProfilesWithDetails({ role: 'manager' }).catch(err => {
           console.error('⚠️ PeopleManagement: Error fetching managers:', err);
           return [];
         })
