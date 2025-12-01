@@ -402,7 +402,8 @@ BEGIN
 END;
 $$;
 
--- Remover trigger existente e criar novo
+-- Garantir que nenhum trigger antigo fique preso na tabela errada
+DROP TRIGGER IF EXISTS mentorship_request_notification ON mentorships;
 DROP TRIGGER IF EXISTS mentorship_request_notification ON mentorship_requests;
 CREATE TRIGGER mentorship_request_notification
   AFTER INSERT ON mentorship_requests
