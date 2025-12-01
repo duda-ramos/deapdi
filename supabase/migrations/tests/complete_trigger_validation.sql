@@ -116,6 +116,17 @@ BEGIN
   -- Limpar notificações de teste anteriores
   DELETE FROM notifications WHERE title LIKE '%Teste%' OR title LIKE '%Test%';
   RAISE NOTICE '   ✓ Notificações de teste anteriores removidas';
+  
+  -- Garantir que usuário tem career_track (necessário para triggers de PDI)
+  IF NOT EXISTS (SELECT 1 FROM career_tracks WHERE profile_id = v_user1_id) THEN
+    INSERT INTO career_tracks (profile_id, current_stage, progress, points)
+    VALUES (v_user1_id, 'Junior', 0, 0)
+    ON CONFLICT (profile_id) DO NOTHING;
+    RAISE NOTICE '   ✓ Career track criado para usuário de teste';
+  ELSE
+    RAISE NOTICE '   ✓ Career track já existe para usuário de teste';
+  END IF;
+  
   RAISE NOTICE '';
 
   -- ========================================================================
@@ -527,16 +538,17 @@ BEGIN
     END IF;
 
     IF v_mentorship_id IS NULL THEN
+      -- Create mentorship with 'paused' status (enum only allows: active, completed, paused)
       INSERT INTO mentorships (mentor_id, mentee_id, status)
-      VALUES (v_user2_id, v_user1_id, 'pending')
+      VALUES (v_user2_id, v_user1_id, 'paused')
       RETURNING id INTO v_mentorship_id;
+    ELSE
+      -- Ensure existing mentorship is in paused state
+      UPDATE mentorships SET status = 'paused' WHERE id = v_mentorship_id;
     END IF;
 
     IF v_mentorship_id IS NOT NULL THEN
-      -- Mudar status para paused primeiro
-      UPDATE mentorships SET status = 'paused' WHERE id = v_mentorship_id;
-      
-      -- Aceitar mentoria
+      -- Aceitar mentoria (mudar de paused para active - dispara trigger)
       UPDATE mentorships SET status = 'active' WHERE id = v_mentorship_id;
       
       -- Verificar notificação para mentee
