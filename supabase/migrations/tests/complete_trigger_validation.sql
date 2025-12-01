@@ -119,9 +119,8 @@ BEGIN
   
   -- Garantir que usuário tem career_track (necessário para triggers de PDI)
   IF NOT EXISTS (SELECT 1 FROM career_tracks WHERE profile_id = v_user1_id) THEN
-    INSERT INTO career_tracks (profile_id, current_stage, progress, points)
-    VALUES (v_user1_id, 'Junior', 0, 0)
-    ON CONFLICT (profile_id) DO NOTHING;
+    INSERT INTO career_tracks (profile_id, profession, current_stage, progress)
+    VALUES (v_user1_id, 'Tecnologia', 'Junior', 0);
     RAISE NOTICE '   ✓ Career track criado para usuário de teste';
   ELSE
     RAISE NOTICE '   ✓ Career track já existe para usuário de teste';
