@@ -6,18 +6,45 @@ import './index.css';
 import { performance } from './utils/performance';
 import { memoryMonitor } from './utils/memoryMonitor';
 
+// Sentry Configuration
+const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
+const APP_ENV = import.meta.env.VITE_APP_ENV || 'development';
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';
+const IS_PRODUCTION = import.meta.env.PROD;
+const ENABLE_SENTRY_DEV = import.meta.env.VITE_SENTRY_DEBUG === 'true';
+
 // Initialize Sentry for error monitoring
-if (import.meta.env.VITE_SENTRY_DSN && import.meta.env.PROD) {
+// Runs in production always, or in development if VITE_SENTRY_DEBUG=true
+if (SENTRY_DSN && (IS_PRODUCTION || ENABLE_SENTRY_DEV)) {
   Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    environment: import.meta.env.NODE_ENV,
+    dsn: SENTRY_DSN,
+    
+    // Environment configuration
+    environment: APP_ENV,
+    release: `talentflow@${APP_VERSION}`,
+    
+    // Performance monitoring
     integrations: [
       Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration()
+      Sentry.replayIntegration({
+        maskAllText: false,
+        blockAllMedia: false,
+      })
     ],
-    tracesSampleRate: 0.1,
-    replaysSessionSampleRate: 0.1,
+    
+    // Sample rates - adjust based on traffic volume
+    // Production: 10% of transactions, Dev: 100%
+    tracesSampleRate: IS_PRODUCTION ? 0.1 : 1.0,
+    
+    // Session Replay sampling
+    // Capture 10% of sessions, but 100% of sessions with errors
+    replaysSessionSampleRate: IS_PRODUCTION ? 0.1 : 0.5,
     replaysOnErrorSampleRate: 1.0,
+    
+    // Enable debug mode in development for testing
+    debug: ENABLE_SENTRY_DEV,
+    
+    // Errors to ignore - common noise that doesn't need tracking
     ignoreErrors: [
       // Browser and WebContainer environment noise
       'ResizeObserver loop limit exceeded',
@@ -28,6 +55,7 @@ if (import.meta.env.VITE_SENTRY_DSN && import.meta.env.PROD) {
       'Failed to fetch',
       'NetworkError',
       'Network request failed',
+      'Load failed',
       // StackBlitz/WebContainer specific
       'blitz.js',
       'fetch.worker',
@@ -38,9 +66,23 @@ if (import.meta.env.VITE_SENTRY_DSN && import.meta.env.PROD) {
       'chrome-extension',
       'moz-extension',
       // Non-critical warnings
-      'Non-Error promise rejection captured'
+      'Non-Error promise rejection captured',
+      // CORS errors (usually from third-party scripts)
+      'Script error.',
+      'Script error'
     ],
-    beforeSend(event) {
+    
+    // URLs to ignore - third-party scripts
+    denyUrls: [
+      /extensions\//i,
+      /^chrome:\/\//i,
+      /^moz-extension:\/\//i,
+      /^safari-extension:\/\//i,
+      /googletagmanager\.com/i,
+      /google-analytics\.com/i,
+    ],
+    
+    beforeSend(event, hint) {
       // Filter out development and sandbox environment errors
       if (event.exception) {
         const error = event.exception.values?.[0];
@@ -63,9 +105,48 @@ if (import.meta.env.VITE_SENTRY_DSN && import.meta.env.PROD) {
         }
       }
 
+      // Add additional context
+      event.tags = {
+        ...event.tags,
+        app_version: APP_VERSION,
+        app_environment: APP_ENV,
+      };
+
       return event;
     }
   });
+  
+  // Set user context when available (can be updated later when user logs in)
+  Sentry.setTag('app.name', 'TalentFlow');
+  
+  // Log initialization in development
+  if (ENABLE_SENTRY_DEV) {
+    console.log('[Sentry] Initialized in debug mode', {
+      environment: APP_ENV,
+      release: `talentflow@${APP_VERSION}`,
+      dsn: SENTRY_DSN.substring(0, 30) + '...'
+    });
+  }
+}
+
+// Export Sentry test function for development
+export const testSentryError = () => {
+  if (!SENTRY_DSN) {
+    console.warn('[Sentry] DSN not configured. Cannot test error capture.');
+    return;
+  }
+  
+  try {
+    throw new Error('[Sentry Test] This is a test error from TalentFlow');
+  } catch (error) {
+    Sentry.captureException(error);
+    console.log('[Sentry] Test error sent successfully. Check your Sentry dashboard.');
+  }
+};
+
+// Expose to window for manual testing in browser console
+if (typeof window !== 'undefined') {
+  (window as any).testSentryError = testSentryError;
 }
 
 // Initialize Analytics
