@@ -13,12 +13,14 @@ import {
   Upload,
   Trash2,
   RefreshCw,
-  Target
+  Target,
+  TrendingUp
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
 import { MigrationManager } from '../components/admin/MigrationManager';
 import CompetencyManager from '../components/admin/CompetencyManager';
+import CareerTrackManager from '../components/admin/CareerTrackManager';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -53,6 +55,7 @@ const Administration: React.FC = () => {
     { id: 'database', label: 'Banco de Dados', icon: <Database size={16} /> },
     { id: 'migrations', label: 'Migrações', icon: <RefreshCw size={16} /> },
     { id: 'competencies', label: 'Competências', icon: <Target size={16} /> },
+    { id: 'careers', label: 'Trilhas de Carreira', icon: <TrendingUp size={16} /> },
     { id: 'security', label: 'Segurança', icon: <Shield size={16} /> },
     { id: 'notifications', label: 'Notificações', icon: <Bell size={16} /> },
     { id: 'appearance', label: 'Aparência', icon: <Palette size={16} /> }
@@ -381,6 +384,11 @@ const Administration: React.FC = () => {
       {/* Competencies Tab */}
       {selectedTab === 'competencies' && (
         <CompetencyManager />
+      )}
+
+      {/* Career Tracks Tab */}
+      {selectedTab === 'careers' && (
+        <CareerTrackManager />
       )}
 
       {/* Security Tab */}
