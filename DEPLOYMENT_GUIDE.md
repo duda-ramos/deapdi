@@ -417,6 +417,337 @@ npm run build:prod
 
 ---
 
+## 💾 FASE 7: BACKUP E DISASTER RECOVERY
+
+### 7.1 Configuração de Backup Automático (Supabase Dashboard)
+
+Acesse: **Project Settings → Database → Backups**
+
+#### Opção 1: Daily Backups (Todos os planos)
+
+| Configuração | Valor Recomendado |
+|--------------|-------------------|
+| **Status** | ✅ Enabled |
+| **Frequency** | Daily (automático) |
+| **Retention** | 7 dias (Free) / 30 dias (Pro) |
+| **Time** | ~03:00 UTC (baixo tráfego) |
+
+#### Opção 2: Point-in-Time Recovery (Apenas Pro/Enterprise)
+
+| Configuração | Valor Recomendado |
+|--------------|-------------------|
+| **Status** | ✅ Enabled |
+| **Retention** | 7 dias |
+| **Granularity** | Segundos |
+
+**Vantagens do PITR:**
+- Recuperação em qualquer ponto específico no tempo
+- Proteção contra erros humanos (DELETE acidental)
+- RPO (Recovery Point Objective) de segundos
+
+### 7.2 Verificar Status do Backup
+
+```bash
+# Via Supabase CLI
+supabase db dump --project-ref <seu-project-ref> > backup_manual_$(date +%Y%m%d).sql
+
+# Verificar tamanho e integridade
+ls -lh backup_manual_*.sql
+head -50 backup_manual_*.sql  # Verificar início do arquivo
+tail -50 backup_manual_*.sql  # Verificar fim do arquivo
+```
+
+**No Dashboard:**
+1. Vá em **Database → Backups**
+2. Verifique lista de backups disponíveis
+3. Confirme que o último backup foi concluído com sucesso
+4. Verifique o tamanho do backup (variação brusca pode indicar problema)
+
+### 7.3 Procedimento de Backup Manual
+
+#### Via Dashboard (Recomendado para usuários)
+
+```
+1. Acesse Supabase Dashboard
+2. Vá em Database → Backups
+3. Clique em "Create backup" (se disponível no seu plano)
+4. Aguarde conclusão
+5. Verifique na lista de backups
+```
+
+#### Via CLI (Recomendado para automação)
+
+```bash
+#!/bin/bash
+# Script: backup_supabase.sh
+
+# Configurações
+PROJECT_REF="seu-project-ref"
+BACKUP_DIR="./backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="${BACKUP_DIR}/talentflow_${DATE}.sql"
+
+# Criar diretório se não existir
+mkdir -p $BACKUP_DIR
+
+# Gerar dump
+echo "🔄 Iniciando backup do TalentFlow..."
+supabase db dump --project-ref $PROJECT_REF > $BACKUP_FILE
+
+# Verificar sucesso
+if [ $? -eq 0 ]; then
+    # Comprimir backup
+    gzip $BACKUP_FILE
+    echo "✅ Backup criado: ${BACKUP_FILE}.gz"
+    echo "📊 Tamanho: $(ls -lh ${BACKUP_FILE}.gz | awk '{print $5}')"
+    
+    # Manter apenas últimos 30 backups
+    ls -t ${BACKUP_DIR}/*.gz | tail -n +31 | xargs -r rm
+    echo "🧹 Backups antigos limpos"
+else
+    echo "❌ Erro ao criar backup!"
+    exit 1
+fi
+```
+
+#### Via SQL (Para tabelas específicas)
+
+```sql
+-- No SQL Editor do Supabase
+-- Exportar dados de tabelas críticas
+
+-- Exportar usuários
+COPY (SELECT * FROM user_profiles) TO STDOUT WITH CSV HEADER;
+
+-- Exportar PDIs
+COPY (SELECT * FROM individual_development_plans) TO STDOUT WITH CSV HEADER;
+
+-- Exportar competências
+COPY (SELECT * FROM competency_assessments) TO STDOUT WITH CSV HEADER;
+```
+
+### 7.4 Procedimento de Restore
+
+#### ⚠️ IMPORTANTE: Leia antes de executar!
+
+- Restore substitui dados atuais
+- Sempre faça backup antes de restore
+- Teste primeiro em ambiente de staging
+- Notifique a equipe antes de executar
+
+#### Restore via Dashboard (Point-in-Time Recovery)
+
+```
+1. Acesse Supabase Dashboard → Database → Backups
+2. Selecione o backup desejado OU
+3. Escolha "Point in time recovery" e selecione data/hora
+4. Clique em "Restore"
+5. Confirme a operação (digite o nome do projeto)
+6. Aguarde conclusão (pode levar minutos/horas dependendo do tamanho)
+7. Verifique logs em Project Settings → Logs
+8. Teste a aplicação após restore
+```
+
+#### Restore via CLI (Backup Manual)
+
+```bash
+#!/bin/bash
+# Script: restore_supabase.sh
+
+# ATENÇÃO: Este script apaga dados existentes!
+read -p "⚠️ Tem certeza que deseja restaurar? (digite 'SIM' para confirmar): " CONFIRM
+if [ "$CONFIRM" != "SIM" ]; then
+    echo "Operação cancelada."
+    exit 0
+fi
+
+# Configurações
+PROJECT_REF="seu-project-ref"
+BACKUP_FILE=$1
+
+if [ -z "$BACKUP_FILE" ]; then
+    echo "Uso: ./restore_supabase.sh <arquivo_backup.sql.gz>"
+    exit 1
+fi
+
+# Verificar se arquivo existe
+if [ ! -f "$BACKUP_FILE" ]; then
+    echo "❌ Arquivo não encontrado: $BACKUP_FILE"
+    exit 1
+fi
+
+echo "🔄 Iniciando restore de: $BACKUP_FILE"
+
+# Descomprimir se necessário
+if [[ $BACKUP_FILE == *.gz ]]; then
+    gunzip -k $BACKUP_FILE
+    BACKUP_FILE="${BACKUP_FILE%.gz}"
+fi
+
+# Executar restore
+# NOTA: Substitua pela conexão correta do seu projeto
+psql "postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres" < $BACKUP_FILE
+
+if [ $? -eq 0 ]; then
+    echo "✅ Restore concluído com sucesso!"
+else
+    echo "❌ Erro durante o restore!"
+    exit 1
+fi
+```
+
+#### Restore de Tabela Específica
+
+```sql
+-- Se você precisa restaurar apenas uma tabela específica
+-- Primeiro, faça backup da tabela atual
+
+CREATE TABLE user_profiles_backup AS SELECT * FROM user_profiles;
+
+-- Depois, restaure do backup (via CLI ou importação)
+-- E verifique integridade
+
+SELECT COUNT(*) FROM user_profiles;
+SELECT COUNT(*) FROM user_profiles_backup;
+```
+
+### 7.5 Validação do Backup
+
+Execute periodicamente (recomendado: semanalmente):
+
+```sql
+-- Script de validação de backup
+-- Execute no SQL Editor após restore em ambiente de teste
+
+-- 1. Verificar contagem de registros críticos
+SELECT 
+    'user_profiles' as tabela, 
+    COUNT(*) as registros 
+FROM user_profiles
+UNION ALL
+SELECT 'individual_development_plans', COUNT(*) FROM individual_development_plans
+UNION ALL
+SELECT 'competency_assessments', COUNT(*) FROM competency_assessments
+UNION ALL
+SELECT 'goals', COUNT(*) FROM goals
+UNION ALL
+SELECT 'notifications', COUNT(*) FROM notifications;
+
+-- 2. Verificar integridade referencial
+SELECT 
+    'PDIs sem dono' as problema,
+    COUNT(*) as quantidade
+FROM individual_development_plans idp
+WHERE NOT EXISTS (
+    SELECT 1 FROM user_profiles up WHERE up.id = idp.user_id
+)
+UNION ALL
+SELECT 'Goals sem PDI', COUNT(*)
+FROM goals g
+WHERE NOT EXISTS (
+    SELECT 1 FROM individual_development_plans idp WHERE idp.id = g.pdi_id
+);
+
+-- 3. Verificar RLS policies ativas
+SELECT 
+    schemaname,
+    tablename,
+    policyname,
+    cmd
+FROM pg_policies
+WHERE schemaname = 'public'
+ORDER BY tablename;
+
+-- 4. Verificar functions e triggers
+SELECT 
+    routine_name,
+    routine_type
+FROM information_schema.routines
+WHERE routine_schema = 'public';
+```
+
+### 7.6 Teste de Disaster Recovery (DR)
+
+**Frequência Recomendada:** Trimestral
+
+```markdown
+## Checklist de Teste DR
+
+### Preparação
+- [ ] Notificar equipe sobre teste planejado
+- [ ] Criar ambiente de teste isolado
+- [ ] Documentar estado atual do banco
+
+### Execução
+- [ ] Fazer backup manual antes do teste
+- [ ] Simular cenário de perda de dados
+- [ ] Executar procedimento de restore
+- [ ] Medir tempo total de recuperação (RTO)
+
+### Validação
+- [ ] Verificar integridade dos dados restaurados
+- [ ] Testar funcionalidades críticas da aplicação
+- [ ] Validar RLS policies funcionando
+- [ ] Verificar triggers e functions
+
+### Documentação
+- [ ] Registrar tempo de RTO real
+- [ ] Documentar problemas encontrados
+- [ ] Atualizar procedimentos se necessário
+- [ ] Compartilhar resultados com equipe
+```
+
+### 7.7 Cronograma de Backup Recomendado
+
+| Tipo de Backup | Frequência | Retenção | Responsável |
+|----------------|------------|----------|-------------|
+| **Automático (PITR)** | Contínuo | 7 dias | Supabase |
+| **Daily Backup** | Diário 03:00 UTC | 30 dias | Supabase |
+| **Manual Completo** | Semanal | 90 dias | DevOps |
+| **Antes de Deploy** | Cada deploy | 30 dias | DevOps |
+| **Antes de Migração** | Cada migração | 90 dias | DevOps |
+
+### 7.8 Alertas de Backup
+
+Configure no Supabase Dashboard ou via integração:
+
+```javascript
+// Exemplo de verificação via API (Node.js)
+// Adicione ao seu pipeline de CI/CD
+
+async function checkBackupStatus() {
+  const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+  const SUPABASE_ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
+  
+  const response = await fetch(
+    `https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/backups`,
+    {
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  const backups = await response.json();
+  const lastBackup = backups[0];
+  
+  // Verificar se último backup foi há menos de 25 horas
+  const backupAge = Date.now() - new Date(lastBackup.inserted_at).getTime();
+  const maxAge = 25 * 60 * 60 * 1000; // 25 horas
+  
+  if (backupAge > maxAge) {
+    console.error('⚠️ ALERTA: Último backup muito antigo!');
+    // Enviar notificação (Slack, email, etc.)
+    process.exit(1);
+  }
+  
+  console.log('✅ Backup status OK');
+}
+```
+
+---
+
 ## 📊 MÉTRICAS DE SUCESSO
 
 ### Primeira Hora
@@ -477,17 +808,37 @@ npm run build:prod
 
 Antes de considerar o deploy completo:
 
+### Configuração
 - [ ] Todas as variáveis de ambiente configuradas
 - [ ] Migrações aplicadas e validadas
 - [ ] RLS policies verificadas
-- [ ] Backup automático ativado
-- [ ] Monitoramento configurado (Sentry + Analytics)
+
+### Backup & Recovery
+- [ ] Daily Backup habilitado no Supabase
+- [ ] Point-in-Time Recovery habilitado (Pro plan)
+- [ ] Retention period configurado (30 dias recomendado)
+- [ ] Scripts de backup testados (`./scripts/backup-supabase.sh`)
+- [ ] Script de validação testado (`./scripts/validate-backup.sql`)
+- [ ] Procedimento de restore documentado e testado
+- [ ] Backup manual executado com sucesso
+
+### Monitoramento
+- [ ] Sentry configurado e testado
+- [ ] Google Analytics configurado
+- [ ] Alertas de erro configurados
+- [ ] Alertas de backup configurados
+
+### Validação
 - [ ] Smoke tests em produção passando
 - [ ] Performance aceitável (< 3s)
-- [ ] Alertas configurados
+- [ ] Login funcionando para todos os roles
+- [ ] Funcionalidades críticas testadas
+
+### Documentação
 - [ ] Documentação atualizada
 - [ ] Equipe notificada
 - [ ] Plano de rollback documentado
+- [ ] Contatos de emergência atualizados
 
 ---
 
