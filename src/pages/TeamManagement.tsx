@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { teamService, Team, TeamStats, CreateTeamData } from '../services/teams';
-import { databaseService } from '../services/database';
+import { peopleManagementService } from '../services/peopleManagement';
 import { permissionService } from '../utils/permissions';
 import { Profile } from '../types';
 import { Card } from '../components/ui/Card';
@@ -70,11 +70,33 @@ const TeamManagement: React.FC = () => {
       setLoading(true);
       setError('');
 
-      const [teamsData, profilesData, statsData] = await Promise.all([
+      // Use Promise.allSettled for better error handling - allows partial success
+      const results = await Promise.allSettled([
         teamService.getTeams(true), // Include inactive teams
-        databaseService.getProfiles(),
-        teamService.getTeamStats()
+        peopleManagementService.getProfilesWithDetails(), // Use consistent service
+        teamService.getTeamStats() // Already has fallback error handling
       ]);
+
+      // Extract results with fallbacks for failures
+      const teamsData = results[0].status === 'fulfilled' ? results[0].value : [];
+      const profilesData = results[1].status === 'fulfilled' ? results[1].value : [];
+      const statsData = results[2].status === 'fulfilled' ? results[2].value : {
+        total_teams: teamsData.length,
+        active_teams: teamsData.filter((t: Team) => t.status === 'active').length,
+        teams_without_manager: teamsData.filter((t: Team) => !t.manager_id).length,
+        average_team_size: teamsData.length > 0 
+          ? teamsData.reduce((sum: number, t: Team) => sum + (t.members?.length || 0), 0) / teamsData.length 
+          : 0,
+        largest_team_size: teamsData.reduce((max: number, t: Team) => Math.max(max, t.members?.length || 0), 0)
+      };
+
+      // Log any failures for debugging
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const serviceName = ['getTeams', 'getProfilesWithDetails', 'getTeamStats'][index];
+          console.error(`⚠️ TeamManagement: ${serviceName} failed:`, result.reason);
+        }
+      });
 
       setTeams(teamsData || []);
       setProfiles(profilesData || []);

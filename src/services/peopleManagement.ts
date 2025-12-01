@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { supabaseRequest } from './api';
 import { Profile, UserRole } from '../types';
+import { permissionService } from '../utils/permissions';
 
 export interface PeopleStats {
   total_employees: number;

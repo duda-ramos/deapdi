@@ -17,7 +17,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { databaseService } from '../services/database';
+import { peopleManagementService } from '../services/peopleManagement';
 import { MigrationManager } from '../components/admin/MigrationManager';
 import CompetencyManager from '../components/admin/CompetencyManager';
 import CareerTrackManager from '../components/admin/CareerTrackManager';
@@ -68,15 +68,33 @@ const Administration: React.FC = () => {
 
   const loadSystemStats = async () => {
     try {
-      const [profiles, pdis] = await Promise.all([
-        databaseService.getProfiles(),
+      // Use Promise.allSettled for robust error handling
+      const results = await Promise.allSettled([
+        peopleManagementService.getProfilesWithDetails(),
         supabase.from('pdis').select('id', { count: 'exact', head: true })
       ]);
 
+      // Extract profiles with fallback
+      const profiles = results[0].status === 'fulfilled' ? results[0].value : [];
+      
+      // Extract PDI count with proper error handling
+      let pdiCount = 0;
+      if (results[1].status === 'fulfilled') {
+        const pdisResult = results[1].value;
+        pdiCount = pdisResult.count ?? 0;
+      } else {
+        console.error('⚠️ Administration: Error fetching PDIs count:', results[1].reason);
+      }
+
+      // Log any failures for debugging
+      if (results[0].status === 'rejected') {
+        console.error('⚠️ Administration: Error fetching profiles:', results[0].reason);
+      }
+
       setSystemStats({
         totalUsers: profiles?.length || 0,
-        activeUsers: profiles?.filter(p => p.status === 'active').length || 0,
-        totalPDIs: pdis.count || 0,
+        activeUsers: profiles?.filter((p: any) => p.status === 'active').length || 0,
+        totalPDIs: pdiCount,
         systemUptime: '99.9%', // This would come from monitoring service
         lastBackup: new Date().toISOString().split('T')[0] + ' 03:00:00'
       });
