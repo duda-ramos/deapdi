@@ -377,7 +377,7 @@ BEGIN
   
   -- Verificar se tem campo topic (pode não existir em todas versões)
   BEGIN
-    EXECUTE 'SELECT topic FROM mentorships WHERE id = $1' INTO topic_info USING NEW.id;
+    EXECUTE 'SELECT topic FROM mentorship_requests WHERE id = $1' INTO topic_info USING NEW.id;
   EXCEPTION WHEN undefined_column THEN
     topic_info := NULL;
   END;
@@ -403,9 +403,9 @@ END;
 $$;
 
 -- Remover trigger existente e criar novo
-DROP TRIGGER IF EXISTS mentorship_request_notification ON mentorships;
+DROP TRIGGER IF EXISTS mentorship_request_notification ON mentorship_requests;
 CREATE TRIGGER mentorship_request_notification
-  AFTER INSERT ON mentorships
+  AFTER INSERT ON mentorship_requests
   FOR EACH ROW
   EXECUTE FUNCTION notify_mentorship_request();
 
@@ -684,7 +684,7 @@ COMMENT ON TRIGGER group_participant_added_notification ON action_group_particip
 COMMENT ON TRIGGER group_leader_promoted_notification ON action_group_participants IS 
   'Dispara notificação quando usuário é promovido a líder';
 
-COMMENT ON TRIGGER mentorship_request_notification ON mentorships IS 
+COMMENT ON TRIGGER mentorship_request_notification ON mentorship_requests IS
   'Dispara notificação quando mentoria é solicitada';
 
 COMMENT ON TRIGGER mentorship_accepted_notification ON mentorships IS 

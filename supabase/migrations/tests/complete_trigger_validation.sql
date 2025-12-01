@@ -73,6 +73,7 @@ DECLARE
   v_group_id uuid;
   v_task_id uuid;
   v_mentorship_id uuid;
+  v_request_id uuid;
   v_session_id uuid;
   v_participant_id uuid;
   v_notification_id uuid;
@@ -461,18 +462,19 @@ BEGIN
   BEGIN
     -- Verificar se já existe mentoria entre esses usuários
     DELETE FROM mentorships WHERE mentor_id = v_user2_id AND mentee_id = v_user1_id;
-    
-    -- Criar mentoria (simula solicitação)
-    INSERT INTO mentorships (mentor_id, mentee_id, status)
-    VALUES (v_user2_id, v_user1_id, 'active')
-    RETURNING id INTO v_mentorship_id;
-    
+    DELETE FROM mentorship_requests WHERE mentor_id = v_user2_id AND mentee_id = v_user1_id;
+
+    -- Criar solicitação de mentoria
+    INSERT INTO mentorship_requests (mentor_id, mentee_id, message)
+    VALUES (v_user2_id, v_user1_id, 'Solicitação gerada para teste de notificação')
+    RETURNING id INTO v_request_id;
+
     -- Verificar notificação para mentor
     SELECT id, title, type, category INTO v_notification_record
     FROM notifications
     WHERE profile_id = v_user2_id
     AND category = 'mentorship_request'
-    AND related_id = v_mentorship_id::text
+    AND related_id = v_request_id::text
     ORDER BY created_at DESC LIMIT 1;
     
     IF v_notification_record.id IS NOT NULL THEN
@@ -502,8 +504,21 @@ BEGIN
   RAISE NOTICE '══════════════════════════════════════════════════════════════';
   RAISE NOTICE 'TESTE 8: MENTORIA ACEITA';
   RAISE NOTICE '══════════════════════════════════════════════════════════════';
-  
+
   BEGIN
+    IF v_mentorship_id IS NULL THEN
+      SELECT id INTO v_mentorship_id
+      FROM mentorships
+      WHERE mentor_id = v_user2_id AND mentee_id = v_user1_id
+      LIMIT 1;
+    END IF;
+
+    IF v_mentorship_id IS NULL THEN
+      INSERT INTO mentorships (mentor_id, mentee_id, status)
+      VALUES (v_user2_id, v_user1_id, 'pending')
+      RETURNING id INTO v_mentorship_id;
+    END IF;
+
     IF v_mentorship_id IS NOT NULL THEN
       -- Mudar status para paused primeiro
       UPDATE mentorships SET status = 'paused' WHERE id = v_mentorship_id;
