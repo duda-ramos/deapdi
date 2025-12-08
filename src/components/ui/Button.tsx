@@ -4,6 +4,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
+  /** Texto contextual para exibir durante loading (ex: "Salvando...", "Enviando...") */
+  loadingText?: string;
   children: React.ReactNode;
 }
 
@@ -11,6 +13,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   variant = 'primary',
   size = 'md',
   loading = false,
+  loadingText,
   children,
   className = '',
   ...props
@@ -31,6 +34,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
     lg: 'px-5 py-3 text-base min-h-[3.25rem]'
   };
 
+  // Determine loading text
+  const displayLoadingText = loadingText || 'Carregando…';
+
   return (
     <button
       ref={ref}
@@ -41,8 +47,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
     >
       {loading ? (
         <span className="flex items-center gap-2">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-transparent border-t-current" aria-hidden />
-          <span className="text-sm font-medium">Carregando…</span>
+          <span 
+            className="h-4 w-4 animate-spin rounded-full border-2 border-transparent border-t-current" 
+            aria-hidden="true" 
+          />
+          <span className="text-sm font-medium">{displayLoadingText}</span>
         </span>
       ) : (
         children

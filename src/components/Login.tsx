@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
+import { validationMessages, getSupabaseErrorMessage } from '../lib/errorMessages';
 
 export const Login: React.FC = () => {
   const { signIn, signUp } = useAuth();
@@ -53,7 +54,8 @@ export const Login: React.FC = () => {
       console.log('✅ Login: Sign in successful');
     } catch (err: any) {
       console.error('❌ Login: Sign in failed:', err);
-      setError(err.message || 'Erro ao fazer login. Tente novamente.');
+      const { message } = getSupabaseErrorMessage(err.message || '');
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -64,24 +66,24 @@ export const Login: React.FC = () => {
     setError('');
     setSuccess('');
 
-    // Validation
+    // Validation with improved messages
     if (signupForm.password !== signupForm.confirmPassword) {
-      setError('As senhas não coincidem');
+      setError(validationMessages.password.mismatch);
       return;
     }
 
     if (signupForm.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+      setError(validationMessages.password.tooShort);
       return;
     }
 
     if (!signupForm.name.trim()) {
-      setError('Nome é obrigatório');
+      setError(validationMessages.name.required);
       return;
     }
 
     if (!signupForm.position.trim()) {
-      setError('Cargo é obrigatório');
+      setError(validationMessages.required('seu cargo'));
       return;
     }
 
@@ -112,7 +114,8 @@ export const Login: React.FC = () => {
 
     } catch (err: any) {
       console.error('❌ Login: Sign up failed:', err);
-      setError(err.message || 'Erro ao criar conta. Tente novamente.');
+      const { message } = getSupabaseErrorMessage(err.message || '');
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -258,6 +261,7 @@ export const Login: React.FC = () => {
                 <Button
                   type="submit"
                   loading={isLoading}
+                  loadingText="Entrando..."
                   className="w-full"
                   size="lg"
                   aria-label="Entrar no sistema"
@@ -401,6 +405,7 @@ export const Login: React.FC = () => {
                 <Button
                   type="submit"
                   loading={isLoading}
+                  loadingText="Criando conta..."
                   className="w-full"
                   size="lg"
                   aria-label="Criar nova conta no sistema"
