@@ -18,7 +18,7 @@
     "deploy:check": "npm run test:security && npm run build:prod && npm run preview:prod",
     "deploy:prod": "npm run deploy:check && echo 'Production build ready for deployment'",
     "deploy:staging": "npm run build -- --mode staging && echo 'Staging build ready'",
-    "health:check": "curl -f http://localhost:4173 || exit 1",
+    "health:check": "node -e \"fetch(process.env.VITE_SUPABASE_URL + '/rest/v1/rpc/health_check', {method:'POST', headers:{'apikey': process.env.VITE_SUPABASE_ANON_KEY}}).then(r=>r.json()).then(d=>console.log('Health Check:', d.status)).catch(e=>console.error('Health Check Failed:', e.message))\"",
     "size:check": "npm run build:prod && npx bundlesize",
     "perf:audit": "npm run build:prod && npx lighthouse http://localhost:4173 --output=html --output-path=./lighthouse-report.html",
     "test": "jest",

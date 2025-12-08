@@ -1,847 +1,384 @@
-# Guia de Deploy e Configuração - TalentFlow v1.0
+# TalentFlow - Guia de Deployment
 
-**Data:** 30 de Setembro de 2025
-**Versão:** 1.0.0
-
----
-
-## 📋 PRÉ-REQUISITOS
-
-### Contas Necessárias
-- [ ] Conta Supabase (Pro recomendado para produção)
-- [ ] Conta Sentry (para monitoramento de erros)
-- [ ] Conta Google Analytics (para analytics)
-- [ ] Domínio configurado (opcional, mas recomendado)
-- [ ] Certificado SSL (automático com Vercel/Netlify)
-
-### Ferramentas Locais
-- [ ] Node.js 18+ instalado
-- [ ] npm ou yarn instalado
-- [ ] Git configurado
-- [ ] Acesso ao repositório do projeto
+## Índice
+1. [Visão Geral](#visão-geral)
+2. [Ambientes](#ambientes)
+3. [Pré-requisitos](#pré-requisitos)
+4. [Deploy em Staging](#deploy-em-staging)
+5. [Deploy em Produção](#deploy-em-produção)
+6. [Rollback Procedures](#rollback-procedures)
+7. [Health Checks](#health-checks)
+8. [Monitoramento](#monitoramento)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🔧 FASE 1: CONFIGURAÇÃO DO SUPABASE
+## Visão Geral
 
-### 1.1 Criar Projeto de Produção
+O TalentFlow utiliza uma arquitetura de deploy baseada em:
+- **Frontend**: React SPA hospedada em Vercel/Netlify
+- **Backend**: Supabase (PostgreSQL + Auth + Realtime)
+- **Monitoramento**: Sentry (erros) + Google Analytics (uso)
 
-1. Acesse https://app.supabase.com
-2. Clique em "New Project"
-3. Preencha:
-   - **Name:** TalentFlow Production
-   - **Database Password:** (gere uma senha forte)
-   - **Region:** Escolha a mais próxima dos usuários
-   - **Pricing Plan:** Pro (recomendado)
-4. Aguarde a criação (2-3 minutos)
+### Fluxo de Deploy
 
-### 1.2 Configurar Backup e Recovery
-
-1. No projeto, vá em **Settings → Database**
-2. Em **Backups**:
-   - Enable **Daily Backups**
-   - Set **Retention Period:** 30 days
-3. Em **Point in Time Recovery**:
-   - Enable **PITR** (apenas Pro plan)
-   - Configura retenção: 7 dias
-
-### 1.3 Aplicar Migrações
-
-**IMPORTANTE:** Aplique as migrações na ordem correta!
-
-```bash
-# 1. Clone o repositório (se ainda não fez)
-git clone <seu-repositorio>
-cd talentflow
-
-# 2. Instale Supabase CLI
-npm install -g supabase
-
-# 3. Login no Supabase
-supabase login
-
-# 4. Link ao projeto
-supabase link --project-ref <seu-project-ref>
-
-# 5. Aplique todas as migrações
-supabase db push
-
-# 6. Verifique se aplicou corretamente
-supabase db remote commit list
+```
+Local Dev → Staging (validação) → Production
 ```
 
-**Migrações Críticas:**
-- ✅ Todas as migrações em `supabase/migrations/`
-- ✅ Especialmente: `20250930140232_complete_rls_consolidation.sql`
-- ✅ E: `20250930150000_create_rpc_functions.sql`
+---
 
-### 1.4 Validar RLS
+## Ambientes
 
-Execute o script de validação no SQL Editor do Supabase:
+| Ambiente | URL | Supabase Project | Sentry Environment |
+|----------|-----|------------------|-------------------|
+| Development | http://localhost:5173 | Local/Dev | development |
+| Staging | https://talentflow-staging.vercel.app | talentflow-staging | staging |
+| Production | https://talentflow.app | talentflow-prod | production |
+
+---
+
+## Pré-requisitos
+
+### Ferramentas Necessárias
+- Node.js >= 18.x
+- npm >= 9.x
+- Git
+- Vercel CLI (`npm i -g vercel`) ou Netlify CLI
+- Supabase CLI (opcional, para migrations)
+
+### Acessos Necessários
+- [ ] Repositório Git
+- [ ] Projeto Supabase (staging e production)
+- [ ] Conta Vercel/Netlify
+- [ ] Projeto Sentry
+- [ ] Google Analytics
+
+---
+
+## Deploy em Staging
+
+### 1. Preparar o Build
 
 ```bash
-# Copie o conteúdo de RLS_VALIDATION_SCRIPT.sql
-# Cole no SQL Editor do Supabase
-# Execute e verifique se todos os testes passam
+# Verificar se está na branch correta
+git checkout develop
+
+# Atualizar dependências
+npm ci
+
+# Rodar testes
+npm run test
+
+# Build para staging
+npm run build -- --mode staging
+
+# Preview local
+npm run preview -- --mode staging
 ```
 
-Resultados esperados:
-- ✅ 42/42 tabelas com RLS habilitado
-- ✅ 0 políticas com recursão
-- ✅ JWT sync function ativa
-- ✅ Trigger de sincronização ativo
+### 2. Configurar Variáveis de Ambiente
 
-### 1.5 Obter Credenciais
+No Vercel/Netlify, configure as variáveis do arquivo `.env.staging`:
 
-1. Vá em **Settings → API**
-2. Copie:
-   - **Project URL** (VITE_SUPABASE_URL)
-   - **Project API Key (anon, public)** (VITE_SUPABASE_ANON_KEY)
-
----
-
-## 🔐 FASE 2: CONFIGURAÇÃO DE MONITORAMENTO
-
-### 2.1 Configurar Sentry
-
-1. Acesse https://sentry.io
-2. Crie um novo projeto:
-   - **Platform:** React
-   - **Project Name:** talentflow-production
-3. Copie o **DSN** fornecido
-4. Em **Settings → Alerts**:
-   - Configure alertas para erros críticos
-   - Configure notificações por email/Slack
-
-### 2.2 Configurar Google Analytics
-
-1. Acesse https://analytics.google.com
-2. Crie uma propriedade:
-   - **Property Name:** TalentFlow
-   - **Industry:** Human Resources
-   - **Time Zone:** Seu fuso horário
-3. Crie um Web Data Stream
-4. Copie o **Measurement ID** (formato: G-XXXXXXXXXX)
-
----
-
-## 🌍 FASE 3: CONFIGURAÇÃO DE AMBIENTE
-
-### 3.1 Configurar Variáveis de Ambiente
-
-Edite o arquivo `.env.production`:
-
-```env
-# Supabase (OBRIGATÓRIO)
-VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui
-
-# Environment
-NODE_ENV=production
-
-# Monitoramento (OBRIGATÓRIO)
-VITE_SENTRY_DSN=https://seu-dsn@sentry.io/projeto
-VITE_ANALYTICS_ID=G-XXXXXXXXXX
-
-# Feature Flags
+```
+VITE_SUPABASE_URL=https://staging-project.supabase.co
+VITE_SUPABASE_ANON_KEY=staging_anon_key
+VITE_APP_ENV=staging
+VITE_SENTRY_DSN=https://...@sentry.io/staging
+VITE_GA_MEASUREMENT_ID=G-STAGING0000
 VITE_ENABLE_ANALYTICS=true
-VITE_ENABLE_ERROR_REPORTING=true
-
-# API Configuration
-VITE_API_TIMEOUT=30000
-VITE_MAX_FILE_SIZE=5242880
-
-# Security
-VITE_RATE_LIMIT_REQUESTS=100
-VITE_RATE_LIMIT_WINDOW=60000
-
-# Application
-VITE_APP_NAME=TalentFlow
-VITE_APP_VERSION=1.0.0
-VITE_APP_ENV=production
-
-# Custom Domain (opcional)
-VITE_APP_DOMAIN=https://talentflow.suaempresa.com
+VITE_ENABLE_DEBUG=true
 ```
 
-### 3.2 Validar Configuração
-
-```bash
-# Verifique se todas as variáveis estão definidas
-cat .env.production | grep "VITE_"
-
-# Não deve haver valores de exemplo (your-project, G-XXXXXXXXXX, etc)
-```
-
----
-
-## 🏗️ FASE 4: BUILD E TESTES
-
-### 4.1 Instalar Dependências
-
-```bash
-# Limpe node_modules e cache
-rm -rf node_modules package-lock.json
-npm cache clean --force
-
-# Instale dependências
-npm install
-
-# Verifique vulnerabilidades
-npm audit
-npm audit fix
-```
-
-### 4.2 Executar Linting e Type Check
-
-```bash
-# Lint
-npm run lint
-
-# Se houver erros, corrija:
-npm run lint:fix
-
-# Type check
-npm run type-check
-```
-
-### 4.3 Executar Testes
-
-```bash
-# Testes unitários
-npm run test:unit
-
-# Testes de integração
-npm run test:integration
-
-# Testes E2E (certifique-se de que o Supabase está configurado)
-npm run test:e2e
-
-# Todos os testes
-npm run test:all
-
-# Cobertura
-npm run test:coverage
-```
-
-**Critério de Sucesso:**
-- ✅ Todos os testes passando
-- ✅ Cobertura ≥ 70%
-
-### 4.4 Build de Produção
-
-```bash
-# Build completo com validações
-npm run build:prod
-
-# Verifique o tamanho do bundle
-npm run size:check
-
-# Analise o bundle (opcional)
-npm run build:analyze
-```
-
-**Critérios de Sucesso:**
-- ✅ Build sem erros
-- ✅ Bundle size aceitável
-- ✅ Sem warnings críticos
-
-### 4.5 Testar Localmente
-
-```bash
-# Preview do build de produção
-npm run preview:prod
-
-# Abra http://localhost:4173
-# Teste funcionalidades críticas:
-# - Login
-# - Criação de PDI
-# - Visualização de perfil
-# - Notificações
-```
-
----
-
-## 🚀 FASE 5: DEPLOY
-
-### Opção A: Vercel (Recomendado)
-
-```bash
-# 1. Instale Vercel CLI
-npm install -g vercel
-
-# 2. Login
-vercel login
-
-# 3. Deploy
-vercel --prod
-
-# 4. Configure variáveis de ambiente na UI
-# Vá em Project Settings → Environment Variables
-# Adicione todas as variáveis do .env.production
-```
-
-### Opção B: Netlify
-
-```bash
-# 1. Instale Netlify CLI
-npm install -g netlify-cli
-
-# 2. Login
-netlify login
-
-# 3. Inicialize
-netlify init
-
-# 4. Deploy
-netlify deploy --prod
-
-# 5. Configure variáveis de ambiente
-netlify env:set VITE_SUPABASE_URL "sua-url"
-netlify env:set VITE_SUPABASE_ANON_KEY "sua-chave"
-# ... repita para todas as variáveis
-```
-
-### Opção C: Manual (Servidor Próprio)
-
-```bash
-# 1. Build
-npm run build:prod
-
-# 2. Os arquivos estáticos estão em dist/
-# 3. Configure seu servidor web (nginx/apache) para servir dist/
-# 4. Configure redirecionamentos para SPA:
-#    Todas as rotas → index.html
-
-# Exemplo nginx:
-# location / {
-#   try_files $uri $uri/ /index.html;
-# }
-```
-
----
-
-## ✅ FASE 6: PÓS-DEPLOY
-
-### 6.1 Smoke Tests em Produção
-
-Execute estes testes manualmente após deploy:
-
-#### Teste 1: Login
-- [ ] Abra a URL de produção
-- [ ] Faça login com credenciais de teste
-- [ ] Verifique se redireciona para dashboard
-- [ ] Logout
-
-#### Teste 2: Criação de Dados
-- [ ] Crie um novo PDI
-- [ ] Verifique se salva no banco
-- [ ] Verifique se notificação aparece
-- [ ] Delete o PDI de teste
-
-#### Teste 3: Permissões
-- [ ] Login como employee
-- [ ] Tente acessar /admin (deve bloquear)
-- [ ] Login como admin
-- [ ] Acesse /admin (deve permitir)
-
-#### Teste 4: Performance
-- [ ] Abra DevTools → Network
-- [ ] Recarregue a página
-- [ ] Verifique tempo de carregamento < 3s
-- [ ] Verifique Core Web Vitals (Lighthouse)
-
-### 6.2 Configurar Alertas
-
-#### Sentry
-- [ ] Configure alerta para > 10 erros/hora
-- [ ] Configure alerta para erros críticos (500)
-- [ ] Teste enviando um erro proposital
-
-#### Google Analytics
-- [ ] Verifique se eventos estão sendo registrados
-- [ ] Configure funil de conversão (login → PDI criado)
-
-### 6.3 Monitoramento de Banco de Dados
-
-No Supabase:
-- [ ] Vá em **Database → Performance**
-- [ ] Configure alertas para:
-  - CPU > 80%
-  - Memória > 80%
-  - Conexões > 90%
-- [ ] Configure notificações por email
-
-### 6.4 Documentação
-
-- [ ] Atualize README.md com URL de produção
-- [ ] Documente processo de rollback
-- [ ] Crie runbook para problemas comuns
-- [ ] Compartilhe credenciais com equipe (use vault)
-
----
-
-## 🔄 ROLLBACK (Em Caso de Problemas)
-
-### Rollback Rápido (Vercel/Netlify)
+### 3. Deploy
 
 ```bash
 # Vercel
-vercel rollback <deployment-url>
+vercel --env-file .env.staging
 
 # Netlify
-netlify rollback
+netlify deploy --build --context staging
 ```
 
-### Rollback Manual
+### 4. Validação Pós-Deploy
 
-```bash
-# 1. Faça checkout da versão anterior
-git checkout <commit-anterior>
-
-# 2. Build e deploy novamente
-npm run build:prod
-# ... siga processo de deploy
-```
-
-### Rollback de Banco de Dados
-
-**ATENÇÃO:** Só faça se absolutamente necessário!
-
-```bash
-# 1. No Supabase, vá em Database → Backups
-# 2. Selecione o backup anterior ao deploy
-# 3. Clique em "Restore"
-# 4. Aguarde confirmação (pode levar alguns minutos)
-```
+Execute o checklist de smoke tests:
+- [ ] Aplicação carrega sem erros
+- [ ] Login funciona (todos os perfis)
+- [ ] Dashboard principal renderiza
+- [ ] Criar PDI de teste
+- [ ] Verificar notificações
+- [ ] Console sem erros críticos
 
 ---
 
-## 💾 FASE 7: BACKUP E DISASTER RECOVERY
+## Deploy em Produção
 
-### 7.1 Configuração de Backup Automático (Supabase Dashboard)
+### 1. Checklist Pré-Deploy
 
-Acesse: **Project Settings → Database → Backups**
+- [ ] Todos os testes passando
+- [ ] Staging validado e aprovado
+- [ ] Migrations do Supabase aplicadas
+- [ ] Backup do banco de produção realizado
+- [ ] Janela de manutenção comunicada (se aplicável)
 
-#### Opção 1: Daily Backups (Todos os planos)
-
-| Configuração | Valor Recomendado |
-|--------------|-------------------|
-| **Status** | ✅ Enabled |
-| **Frequency** | Daily (automático) |
-| **Retention** | 7 dias (Free) / 30 dias (Pro) |
-| **Time** | ~03:00 UTC (baixo tráfego) |
-
-#### Opção 2: Point-in-Time Recovery (Apenas Pro/Enterprise)
-
-| Configuração | Valor Recomendado |
-|--------------|-------------------|
-| **Status** | ✅ Enabled |
-| **Retention** | 7 dias |
-| **Granularity** | Segundos |
-
-**Vantagens do PITR:**
-- Recuperação em qualquer ponto específico no tempo
-- Proteção contra erros humanos (DELETE acidental)
-- RPO (Recovery Point Objective) de segundos
-
-### 7.2 Verificar Status do Backup
+### 2. Preparar o Build
 
 ```bash
-# Via Supabase CLI
-supabase db dump --project-ref <seu-project-ref> > backup_manual_$(date +%Y%m%d).sql
+# Garantir branch main atualizada
+git checkout main
+git pull origin main
 
-# Verificar tamanho e integridade
-ls -lh backup_manual_*.sql
-head -50 backup_manual_*.sql  # Verificar início do arquivo
-tail -50 backup_manual_*.sql  # Verificar fim do arquivo
+# Build de produção
+npm run build:prod
+
+# Verificar bundle size
+npm run size:check
 ```
 
-**No Dashboard:**
-1. Vá em **Database → Backups**
-2. Verifique lista de backups disponíveis
-3. Confirme que o último backup foi concluído com sucesso
-4. Verifique o tamanho do backup (variação brusca pode indicar problema)
-
-### 7.3 Procedimento de Backup Manual
-
-#### Via Dashboard (Recomendado para usuários)
-
-```
-1. Acesse Supabase Dashboard
-2. Vá em Database → Backups
-3. Clique em "Create backup" (se disponível no seu plano)
-4. Aguarde conclusão
-5. Verifique na lista de backups
-```
-
-#### Via CLI (Recomendado para automação)
+### 3. Aplicar Migrations (se houver)
 
 ```bash
-#!/bin/bash
-# Script: backup_supabase.sh
+# Conectar ao Supabase production
+supabase link --project-ref <production-project-ref>
 
-# Configurações
-PROJECT_REF="seu-project-ref"
-BACKUP_DIR="./backups"
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="${BACKUP_DIR}/talentflow_${DATE}.sql"
-
-# Criar diretório se não existir
-mkdir -p $BACKUP_DIR
-
-# Gerar dump
-echo "🔄 Iniciando backup do TalentFlow..."
-supabase db dump --project-ref $PROJECT_REF > $BACKUP_FILE
-
-# Verificar sucesso
-if [ $? -eq 0 ]; then
-    # Comprimir backup
-    gzip $BACKUP_FILE
-    echo "✅ Backup criado: ${BACKUP_FILE}.gz"
-    echo "📊 Tamanho: $(ls -lh ${BACKUP_FILE}.gz | awk '{print $5}')"
-    
-    # Manter apenas últimos 30 backups
-    ls -t ${BACKUP_DIR}/*.gz | tail -n +31 | xargs -r rm
-    echo "🧹 Backups antigos limpos"
-else
-    echo "❌ Erro ao criar backup!"
-    exit 1
-fi
+# Aplicar migrations
+supabase db push
 ```
 
-#### Via SQL (Para tabelas específicas)
-
-```sql
--- No SQL Editor do Supabase
--- Exportar dados de tabelas críticas
-
--- Exportar usuários
-COPY (SELECT * FROM user_profiles) TO STDOUT WITH CSV HEADER;
-
--- Exportar PDIs
-COPY (SELECT * FROM individual_development_plans) TO STDOUT WITH CSV HEADER;
-
--- Exportar competências
-COPY (SELECT * FROM competency_assessments) TO STDOUT WITH CSV HEADER;
-```
-
-### 7.4 Procedimento de Restore
-
-#### ⚠️ IMPORTANTE: Leia antes de executar!
-
-- Restore substitui dados atuais
-- Sempre faça backup antes de restore
-- Teste primeiro em ambiente de staging
-- Notifique a equipe antes de executar
-
-#### Restore via Dashboard (Point-in-Time Recovery)
-
-```
-1. Acesse Supabase Dashboard → Database → Backups
-2. Selecione o backup desejado OU
-3. Escolha "Point in time recovery" e selecione data/hora
-4. Clique em "Restore"
-5. Confirme a operação (digite o nome do projeto)
-6. Aguarde conclusão (pode levar minutos/horas dependendo do tamanho)
-7. Verifique logs em Project Settings → Logs
-8. Teste a aplicação após restore
-```
-
-#### Restore via CLI (Backup Manual)
+### 4. Deploy
 
 ```bash
-#!/bin/bash
-# Script: restore_supabase.sh
+# Vercel (production)
+vercel --prod
 
-# ATENÇÃO: Este script apaga dados existentes!
-read -p "⚠️ Tem certeza que deseja restaurar? (digite 'SIM' para confirmar): " CONFIRM
-if [ "$CONFIRM" != "SIM" ]; then
-    echo "Operação cancelada."
-    exit 0
-fi
-
-# Configurações
-PROJECT_REF="seu-project-ref"
-BACKUP_FILE=$1
-
-if [ -z "$BACKUP_FILE" ]; then
-    echo "Uso: ./restore_supabase.sh <arquivo_backup.sql.gz>"
-    exit 1
-fi
-
-# Verificar se arquivo existe
-if [ ! -f "$BACKUP_FILE" ]; then
-    echo "❌ Arquivo não encontrado: $BACKUP_FILE"
-    exit 1
-fi
-
-echo "🔄 Iniciando restore de: $BACKUP_FILE"
-
-# Descomprimir se necessário
-if [[ $BACKUP_FILE == *.gz ]]; then
-    gunzip -k $BACKUP_FILE
-    BACKUP_FILE="${BACKUP_FILE%.gz}"
-fi
-
-# Executar restore
-# NOTA: Substitua pela conexão correta do seu projeto
-psql "postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres" < $BACKUP_FILE
-
-if [ $? -eq 0 ]; then
-    echo "✅ Restore concluído com sucesso!"
-else
-    echo "❌ Erro durante o restore!"
-    exit 1
-fi
+# Netlify (production)
+netlify deploy --prod
 ```
 
-#### Restore de Tabela Específica
+### 5. Validação Pós-Deploy
+
+- [ ] Health check passando
+- [ ] Login com usuário real
+- [ ] Funcionalidades críticas testadas
+- [ ] Sentry recebendo eventos
+- [ ] Google Analytics ativo
+
+---
+
+## Rollback Procedures
+
+### Critérios para Rollback
+
+Execute rollback imediatamente se:
+1. Taxa de erro > 10% no Sentry
+2. Funcionalidade crítica quebrada (login, PDI, dashboard)
+3. Problemas de performance graves (LCP > 4s)
+4. Dados corrompidos ou inacessíveis
+
+### Rollback do Frontend (Vercel)
+
+```bash
+# Listar deployments anteriores
+vercel ls
+
+# Reverter para deploy anterior
+vercel rollback [deployment-url]
+
+# Ou via Dashboard:
+# 1. Acesse vercel.com/dashboard
+# 2. Selecione o projeto
+# 3. Vá em "Deployments"
+# 4. Encontre o deploy estável anterior
+# 5. Clique em "..." → "Promote to Production"
+```
+
+### Rollback do Frontend (Netlify)
+
+```bash
+# Via CLI
+netlify rollback
+
+# Ou via Dashboard:
+# 1. Acesse app.netlify.com
+# 2. Selecione o site
+# 3. Vá em "Deploys"
+# 4. Encontre o deploy estável
+# 5. Clique em "Publish deploy"
+```
+
+### Rollback de Migrations (Supabase)
+
+⚠️ **CUIDADO**: Rollback de migrations pode causar perda de dados!
 
 ```sql
--- Se você precisa restaurar apenas uma tabela específica
--- Primeiro, faça backup da tabela atual
+-- 1. Identificar a migration problemática
+SELECT * FROM supabase_migrations.schema_migrations 
+ORDER BY version DESC LIMIT 5;
 
-CREATE TABLE user_profiles_backup AS SELECT * FROM user_profiles;
+-- 2. Se a migration tiver script de rollback:
+-- Execute o script de rollback manualmente
 
--- Depois, restaure do backup (via CLI ou importação)
--- E verifique integridade
-
-SELECT COUNT(*) FROM user_profiles;
-SELECT COUNT(*) FROM user_profiles_backup;
+-- 3. Se não houver script de rollback:
+-- Restaure backup do banco de dados
 ```
 
-### 7.5 Validação do Backup
+### Rollback de Banco de Dados (Backup Completo)
 
-Execute periodicamente (recomendado: semanalmente):
+```bash
+# 1. Acesse Supabase Dashboard
+# 2. Settings → Database → Backups
+# 3. Selecione o backup antes do problema
+# 4. Clique em "Restore"
 
-```sql
--- Script de validação de backup
--- Execute no SQL Editor após restore em ambiente de teste
-
--- 1. Verificar contagem de registros críticos
-SELECT 
-    'user_profiles' as tabela, 
-    COUNT(*) as registros 
-FROM user_profiles
-UNION ALL
-SELECT 'individual_development_plans', COUNT(*) FROM individual_development_plans
-UNION ALL
-SELECT 'competency_assessments', COUNT(*) FROM competency_assessments
-UNION ALL
-SELECT 'goals', COUNT(*) FROM goals
-UNION ALL
-SELECT 'notifications', COUNT(*) FROM notifications;
-
--- 2. Verificar integridade referencial
-SELECT 
-    'PDIs sem dono' as problema,
-    COUNT(*) as quantidade
-FROM individual_development_plans idp
-WHERE NOT EXISTS (
-    SELECT 1 FROM user_profiles up WHERE up.id = idp.user_id
-)
-UNION ALL
-SELECT 'Goals sem PDI', COUNT(*)
-FROM goals g
-WHERE NOT EXISTS (
-    SELECT 1 FROM individual_development_plans idp WHERE idp.id = g.pdi_id
-);
-
--- 3. Verificar RLS policies ativas
-SELECT 
-    schemaname,
-    tablename,
-    policyname,
-    cmd
-FROM pg_policies
-WHERE schemaname = 'public'
-ORDER BY tablename;
-
--- 4. Verificar functions e triggers
-SELECT 
-    routine_name,
-    routine_type
-FROM information_schema.routines
-WHERE routine_schema = 'public';
+# ⚠️ ATENÇÃO: Isso substituirá todos os dados atuais!
 ```
 
-### 7.6 Teste de Disaster Recovery (DR)
+### Rollback via Git
 
-**Frequência Recomendada:** Trimestral
+```bash
+# Identificar commit problemático
+git log --oneline -10
 
-```markdown
-## Checklist de Teste DR
+# Reverter commit específico
+git revert <commit-hash>
 
-### Preparação
-- [ ] Notificar equipe sobre teste planejado
-- [ ] Criar ambiente de teste isolado
-- [ ] Documentar estado atual do banco
+# Ou reverter para commit estável
+git reset --hard <commit-hash>
 
-### Execução
-- [ ] Fazer backup manual antes do teste
-- [ ] Simular cenário de perda de dados
-- [ ] Executar procedimento de restore
-- [ ] Medir tempo total de recuperação (RTO)
-
-### Validação
-- [ ] Verificar integridade dos dados restaurados
-- [ ] Testar funcionalidades críticas da aplicação
-- [ ] Validar RLS policies funcionando
-- [ ] Verificar triggers e functions
-
-### Documentação
-- [ ] Registrar tempo de RTO real
-- [ ] Documentar problemas encontrados
-- [ ] Atualizar procedimentos se necessário
-- [ ] Compartilhar resultados com equipe
+# Deploy da versão revertida
+npm run build:prod
+vercel --prod
 ```
 
-### 7.7 Cronograma de Backup Recomendado
+### Checklist Pós-Rollback
 
-| Tipo de Backup | Frequência | Retenção | Responsável |
-|----------------|------------|----------|-------------|
-| **Automático (PITR)** | Contínuo | 7 dias | Supabase |
-| **Daily Backup** | Diário 03:00 UTC | 30 dias | Supabase |
-| **Manual Completo** | Semanal | 90 dias | DevOps |
-| **Antes de Deploy** | Cada deploy | 30 dias | DevOps |
-| **Antes de Migração** | Cada migração | 90 dias | DevOps |
+- [ ] Confirmar que versão anterior está no ar
+- [ ] Verificar que erro foi resolvido
+- [ ] Comunicar stakeholders sobre rollback
+- [ ] Criar issue para investigar causa raiz
+- [ ] Documentar lições aprendidas
 
-### 7.8 Alertas de Backup
+---
 
-Configure no Supabase Dashboard ou via integração:
+## Health Checks
 
-```javascript
-// Exemplo de verificação via API (Node.js)
-// Adicione ao seu pipeline de CI/CD
+### Endpoint de Health Check
 
-async function checkBackupStatus() {
-  const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
-  const SUPABASE_ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
-  
-  const response = await fetch(
-    `https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/backups`,
-    {
-      headers: {
-        'Authorization': `Bearer ${SUPABASE_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
+```bash
+# Via Supabase RPC
+curl -X POST 'https://your-project.supabase.co/rest/v1/rpc/health_check' \
+  -H "apikey: YOUR_ANON_KEY" \
+  -H "Content-Type: application/json"
+```
+
+Resposta esperada:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "version": "1.0.0",
+  "checks": {
+    "database": {
+      "connected": true,
+      "latency_ms": 5
     }
-  );
-  
-  const backups = await response.json();
-  const lastBackup = backups[0];
-  
-  // Verificar se último backup foi há menos de 25 horas
-  const backupAge = Date.now() - new Date(lastBackup.inserted_at).getTime();
-  const maxAge = 25 * 60 * 60 * 1000; // 25 horas
-  
-  if (backupAge > maxAge) {
-    console.error('⚠️ ALERTA: Último backup muito antigo!');
-    // Enviar notificação (Slack, email, etc.)
-    process.exit(1);
   }
-  
-  console.log('✅ Backup status OK');
 }
 ```
 
----
+### Configurar UptimeRobot
 
-## 📊 MÉTRICAS DE SUCESSO
+1. Acesse [uptimerobot.com](https://uptimerobot.com)
+2. Crie novo monitor HTTP(s)
+3. Configure:
+   - URL: `https://your-project.supabase.co/rest/v1/rpc/health_check`
+   - Interval: 5 minutos
+   - Keyword: `"status":"healthy"`
+   - Headers: `apikey: YOUR_ANON_KEY`
+4. Configure alertas por email/Slack
 
-### Primeira Hora
-- [ ] 0 erros críticos no Sentry
-- [ ] Tempo de carregamento < 3s
-- [ ] Login funcionando para todos os papéis
+### Script Local de Health Check
 
-### Primeiro Dia
-- [ ] 95% uptime
-- [ ] Funcionalidades críticas operacionais
-- [ ] Performance dentro dos limites
-- [ ] Usuários conseguem completar fluxos principais
-
-### Primeira Semana
-- [ ] Feedback positivo dos usuários
-- [ ] Métricas de engajamento positivas
-- [ ] Nenhum bug crítico reportado
-- [ ] Performance estável
+```bash
+npm run health:check
+```
 
 ---
 
-## 🆘 TROUBLESHOOTING
+## Monitoramento
 
-### Erro: "Not authenticated"
-**Causa:** Variáveis de ambiente incorretas
-**Solução:** Verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
+### Sentry Dashboard
 
-### Erro: "RLS Policy Violation"
-**Causa:** Políticas RLS muito restritivas ou JWT não sincronizado
-**Solução:** Execute RLS_VALIDATION_SCRIPT.sql e verifique logs
+- URL: https://sentry.io/organizations/your-org/projects/talentflow/
+- Verificar:
+  - Issues não resolvidas
+  - Trend de erros
+  - Performance issues
 
-### Performance Ruim
-**Causa:** Bundle muito grande ou queries ineficientes
-**Solução:**
-- Execute `npm run build:analyze`
-- Verifique queries no Supabase Performance tab
-- Adicione índices se necessário
+### Google Analytics
 
-### Notificações Não Funcionam
-**Causa:** Subscrição real-time não conectada
-**Solução:**
-- Verifique console do browser
-- Verifique se Realtime está habilitado no Supabase
-- Verifique RLS policies na tabela notifications
+- URL: https://analytics.google.com
+- Verificar:
+  - Usuários ativos
+  - Eventos trackados
+  - Conversões (PDIs criados, etc.)
 
----
+### Supabase Dashboard
 
-## 📞 CONTATOS DE EMERGÊNCIA
-
-**DevOps:** [email]
-**DBA:** [email]
-**Product Owner:** [email]
-**Suporte Supabase:** https://supabase.com/support
+- URL: https://supabase.com/dashboard/project/your-project
+- Verificar:
+  - Database health
+  - API requests
+  - Storage usage
 
 ---
 
-## ✅ CHECKLIST FINAL
+## Troubleshooting
 
-Antes de considerar o deploy completo:
+### Deploy falha no Vercel
 
-### Configuração
-- [ ] Todas as variáveis de ambiente configuradas
-- [ ] Migrações aplicadas e validadas
-- [ ] RLS policies verificadas
+```bash
+# Verificar logs
+vercel logs
 
-### Backup & Recovery
-- [ ] Daily Backup habilitado no Supabase
-- [ ] Point-in-Time Recovery habilitado (Pro plan)
-- [ ] Retention period configurado (30 dias recomendado)
-- [ ] Scripts de backup testados (`./scripts/backup-supabase.sh`)
-- [ ] Script de validação testado (`./scripts/validate-backup.sql`)
-- [ ] Procedimento de restore documentado e testado
-- [ ] Backup manual executado com sucesso
+# Build local para debug
+npm run build:prod 2>&1 | tee build.log
+```
 
-### Monitoramento
-- [ ] Sentry configurado e testado
-- [ ] Google Analytics configurado
-- [ ] Alertas de erro configurados
-- [ ] Alertas de backup configurados
+### Migrations não aplicam
 
-### Validação
-- [ ] Smoke tests em produção passando
-- [ ] Performance aceitável (< 3s)
-- [ ] Login funcionando para todos os roles
-- [ ] Funcionalidades críticas testadas
+```bash
+# Verificar status
+supabase db status
 
-### Documentação
-- [ ] Documentação atualizada
-- [ ] Equipe notificada
-- [ ] Plano de rollback documentado
-- [ ] Contatos de emergência atualizados
+# Resetar migrations (⚠️ apenas desenvolvimento!)
+supabase db reset
+```
+
+### Sentry não recebe eventos
+
+1. Verificar se VITE_SENTRY_DSN está configurado
+2. Testar manualmente: `window.testSentryError()` no console
+3. Verificar CSP headers
 
 ---
 
-**Data de Criação:** 30 de Setembro de 2025
-**Próxima Revisão:** Após primeiro deploy
-**Versão do Guia:** 1.0
+## Contatos de Suporte
+
+| Papel | Nome | Contato |
+|-------|------|---------|
+| Tech Lead | - | tech-lead@empresa.com |
+| DevOps | - | devops@empresa.com |
+| DBA | - | dba@empresa.com |
+
+### Canais de Comunicação
+
+- Slack: #talentflow-deploy
+- PagerDuty: talentflow-critical
+- Email: suporte@talentflow.app
+
+---
+
+*Última atualização: Dezembro 2024*
