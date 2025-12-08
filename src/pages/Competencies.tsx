@@ -151,41 +151,46 @@ const Competencies: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Competências</h1>
-          <p className="text-gray-600 mt-1">Avalie e acompanhe o desenvolvimento de habilidades</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Competências</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Avalie e acompanhe o desenvolvimento de habilidades</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           {editingMode === 'view' && (
             <>
               <Button
                 variant="secondary"
                 onClick={() => setEditingMode('self')}
+                className="flex-1 sm:flex-none"
               >
                 <User size={16} className="mr-2" />
-                Autoavaliação
+                <span className="hidden sm:inline">Autoavaliação</span>
+                <span className="sm:hidden">Auto</span>
               </Button>
               {canEditManager && (
                 <Button
                   variant="secondary"
                   onClick={() => setEditingMode('manager')}
+                  className="flex-1 sm:flex-none"
                 >
                   <Users size={16} className="mr-2" />
-                  Avaliação Gestor
+                  <span className="hidden sm:inline">Avaliação Gestor</span>
+                  <span className="sm:hidden">Gestor</span>
                 </Button>
               )}
             </>
           )}
           {editingMode !== 'view' && (
             <>
-              <Button onClick={handleSave} loading={saving}>
+              <Button onClick={handleSave} loading={saving} className="flex-1 sm:flex-none">
                 <Save size={16} className="mr-2" />
                 Salvar
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setEditingMode('view')}
+                className="flex-1 sm:flex-none"
               >
                 <Eye size={16} className="mr-2" />
                 Visualizar

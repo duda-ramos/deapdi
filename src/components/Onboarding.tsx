@@ -874,33 +874,34 @@ export const Onboarding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-2 sm:p-4">
       <div className="max-w-4xl w-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           {/* Progress Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Configuração Inicial</h1>
-            <p className="text-gray-600">Complete seu perfil para começar a usar o TalentFlow</p>
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Configuração Inicial</h1>
+            <p className="text-sm sm:text-base text-gray-600">Complete seu perfil para começar a usar o TalentFlow</p>
           </div>
 
           {/* Progress Steps */}
-          <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center justify-center mb-8 overflow-x-auto px-4">
             {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+              <div key={step.id} className="flex items-center flex-shrink-0">
+                <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 text-sm sm:text-base ${
                   currentStep > step.id 
                     ? 'bg-green-500 border-green-500 text-white' 
                     : currentStep === step.id
                       ? 'bg-blue-500 border-blue-500 text-white'
                       : 'bg-white border-gray-300 text-gray-400'
                 }`}>
-                  {currentStep > step.id ? <Check size={20} /> : step.id}
+                  {currentStep > step.id ? <Check size={16} className="sm:hidden" /> : null}
+                  {currentStep > step.id ? <Check size={20} className="hidden sm:block" /> : step.id}
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`w-16 h-0.5 mx-2 ${
+                  <div className={`w-8 sm:w-16 h-0.5 mx-1 sm:mx-2 ${
                     currentStep > step.id ? 'bg-green-500' : 'bg-gray-300'
                   }`} />
                 )}
@@ -924,7 +925,7 @@ export const Onboarding: React.FC = () => {
           </div>
 
           {/* Form Content */}
-          <Card className="p-8 mb-8">
+          <Card className="p-4 sm:p-8 mb-6 sm:mb-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}

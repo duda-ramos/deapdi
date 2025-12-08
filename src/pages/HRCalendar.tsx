@@ -224,30 +224,33 @@ const HRCalendar: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Calendar className="mr-3 text-blue-500" size={28} />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+            <Calendar className="mr-2 sm:mr-3 text-blue-500" size={24} />
             Calendário RH
           </h1>
-          <p className="text-gray-600 mt-1">Gestão de eventos, férias e ausências</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Gestão de eventos, férias e ausências</p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
             onClick={() => setShowExportModal(true)}
+            className="flex-1 sm:flex-none"
           >
             <Download size={16} className="mr-2" />
-            Exportar
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
-          <Button onClick={() => setShowRequestModal(true)}>
+          <Button onClick={() => setShowRequestModal(true)} className="flex-1 sm:flex-none">
             <Plus size={16} className="mr-2" />
-            Nova Solicitação
+            <span className="hidden sm:inline">Nova Solicitação</span>
+            <span className="sm:hidden">Solicitar</span>
           </Button>
           {canManageCalendar && (
-            <Button onClick={() => setShowEventModal(true)}>
+            <Button onClick={() => setShowEventModal(true)} className="flex-1 sm:flex-none">
               <Plus size={16} className="mr-2" />
-              Novo Evento
+              <span className="hidden sm:inline">Novo Evento</span>
+              <span className="sm:hidden">Evento</span>
             </Button>
           )}
         </div>
@@ -255,7 +258,7 @@ const HRCalendar: React.FC = () => {
 
       {/* Calendar Stats */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           <Card className="p-4">
             <div className="flex items-center">
               <div className="w-3 h-3 rounded-full bg-blue-500 mr-3" />

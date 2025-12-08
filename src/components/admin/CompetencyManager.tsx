@@ -614,25 +614,25 @@ const CompetencyManager: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestão de Competências</h2>
-          <p className="text-gray-600 mt-1">Gerencie o catálogo de competências da organização</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Gestão de Competências</h2>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Gerencie o catálogo de competências da organização</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" onClick={() => setShowCategoryModal(true)}>
+          <Button variant="ghost" onClick={() => setShowCategoryModal(true)} className="flex-1 sm:flex-none">
             <Tag size={16} className="mr-2" />
-            Categorias
+            <span className="hidden sm:inline">Categorias</span>
           </Button>
-          <Button variant="ghost" onClick={() => fileInputRef.current?.click()}>
+          <Button variant="ghost" onClick={() => fileInputRef.current?.click()} className="flex-1 sm:flex-none">
             <Upload size={16} className="mr-2" />
-            Importar
+            <span className="hidden sm:inline">Importar</span>
           </Button>
-          <Button variant="ghost" onClick={handleExport} disabled={filteredCompetencies.length === 0}>
+          <Button variant="ghost" onClick={handleExport} disabled={filteredCompetencies.length === 0} className="flex-1 sm:flex-none">
             <Download size={16} className="mr-2" />
-            Exportar
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
-          <Button onClick={() => handleOpenModal()}>
+          <Button onClick={() => handleOpenModal()} className="w-full sm:w-auto">
             <Plus size={16} className="mr-2" />
             Nova Competência
           </Button>
@@ -647,7 +647,7 @@ const CompetencyManager: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
