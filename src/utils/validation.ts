@@ -1,4 +1,5 @@
 import { isValidEmail, isValidPassword } from './security';
+import { validationMessages } from '../lib/errorMessages';
 
 export interface ValidationRule {
   required?: boolean;
@@ -12,15 +13,31 @@ export interface ValidationSchema {
   [key: string]: ValidationRule;
 }
 
+// Mapeamento de campos para labels amigáveis
+const fieldLabels: Record<string, string> = {
+  email: 'seu e-mail',
+  password: 'sua senha',
+  confirmPassword: 'a confirmação de senha',
+  name: 'seu nome',
+  title: 'o título',
+  description: 'a descrição',
+  deadline: 'a data limite',
+  phone: 'seu telefone',
+  cpf: 'seu CPF',
+  position: 'seu cargo',
+  level: 'seu nível',
+};
+
 export const validate = (data: Record<string, any>, schema: ValidationSchema): Record<string, string> => {
   const errors: Record<string, string> = {};
 
   Object.entries(schema).forEach(([field, rules]) => {
     const value = data[field];
+    const label = fieldLabels[field] || field;
 
     // Required validation
     if (rules.required && (!value || (typeof value === 'string' && !value.trim()))) {
-      errors[field] = 'Este campo é obrigatório';
+      errors[field] = validationMessages.required(label);
       return;
     }
 
@@ -30,19 +47,19 @@ export const validate = (data: Record<string, any>, schema: ValidationSchema): R
     // String length validations
     if (typeof value === 'string') {
       if (rules.minLength && value.length < rules.minLength) {
-        errors[field] = `Deve ter pelo menos ${rules.minLength} caracteres`;
+        errors[field] = validationMessages.text.tooShort(rules.minLength);
         return;
       }
 
       if (rules.maxLength && value.length > rules.maxLength) {
-        errors[field] = `Deve ter no máximo ${rules.maxLength} caracteres`;
+        errors[field] = validationMessages.text.tooLong(rules.maxLength);
         return;
       }
     }
 
     // Pattern validation
     if (rules.pattern && typeof value === 'string' && !rules.pattern.test(value)) {
-      errors[field] = 'Formato inválido';
+      errors[field] = `Verifique o formato de ${label}`;
       return;
     }
 
@@ -64,11 +81,34 @@ export const validationSchemas = {
   login: {
     email: {
       required: true,
-      custom: (value: string) => !isValidEmail(value) ? 'Email inválido' : null
+      custom: (value: string) => !isValidEmail(value) ? validationMessages.email.invalid : null
     },
     password: {
       required: true,
-      custom: (value: string) => !isValidPassword(value) ? 'Senha deve ter pelo menos 6 caracteres' : null
+      custom: (value: string) => !isValidPassword(value) ? validationMessages.password.tooShort : null
+    }
+  },
+
+  signup: {
+    name: {
+      required: true,
+      minLength: 2,
+      maxLength: 100
+    },
+    email: {
+      required: true,
+      custom: (value: string) => !isValidEmail(value) ? validationMessages.email.invalid : null
+    },
+    password: {
+      required: true,
+      custom: (value: string) => !isValidPassword(value) ? validationMessages.password.tooShort : null
+    },
+    confirmPassword: {
+      required: true,
+    },
+    position: {
+      required: true,
+      minLength: 2
     }
   },
 
@@ -102,7 +142,7 @@ export const validationSchemas = {
       custom: (value: string) => {
         const date = new Date(value);
         const today = new Date();
-        return date <= today ? 'A data deve ser futura' : null;
+        return date <= today ? validationMessages.date.past : null;
       }
     }
   },
@@ -123,7 +163,7 @@ export const validationSchemas = {
       custom: (value: string) => {
         const date = new Date(value);
         const today = new Date();
-        return date <= today ? 'A data deve ser futura' : null;
+        return date <= today ? validationMessages.date.past : null;
       }
     }
   }

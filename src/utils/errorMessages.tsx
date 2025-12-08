@@ -1,5 +1,9 @@
 import React from 'react';
-import { AlertCircle, RefreshCw, Settings, Wifi } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { getSupabaseErrorMessage, ErrorMessageConfig } from '../lib/errorMessages';
+
+// Re-export all error messages from centralized location
+export * from '../lib/errorMessages';
 
 export interface ErrorAction {
   label: string;
@@ -7,221 +11,155 @@ export interface ErrorAction {
   variant?: 'primary' | 'secondary';
 }
 
+/**
+ * Legacy function for backward compatibility
+ * Use getSupabaseErrorMessage from lib/errorMessages.ts for new code
+ */
 export const getErrorMessage = (error: string): { message: string; actions: ErrorAction[] } => {
-  // Supabase specific errors
-  if (error.includes('Invalid Refresh Token') || error.includes('refresh_token_not_found')) {
-    return {
-      message: 'Sua sessão expirou. Por favor, faça login novamente.',
-      actions: [
-        {
-          label: 'Fazer Login',
-          action: () => window.location.href = '/login',
-          variant: 'primary'
+  const errorConfig = getSupabaseErrorMessage(error);
+  
+  // Convert new format to legacy format
+  const actions: ErrorAction[] = [];
+  
+  if (errorConfig.action) {
+    actions.push({
+      label: errorConfig.action.label,
+      action: errorConfig.action.onClick || (() => {
+        if (errorConfig.action?.href) {
+          window.location.href = errorConfig.action.href;
+        } else {
+          window.location.reload();
         }
-      ]
-    };
+      }),
+      variant: 'primary',
+    });
+  } else {
+    // Default retry action
+    actions.push({
+      label: 'Tentar Novamente',
+      action: () => window.location.reload(),
+      variant: 'primary',
+    });
   }
-
-  if (error.includes('Invalid login credentials')) {
-    return {
-      message: 'Email ou senha incorretos. Verifique suas credenciais e tente novamente.',
-      actions: [
-        {
-          label: 'Tentar Novamente',
-          action: () => window.location.reload(),
-          variant: 'primary'
-        }
-      ]
-    };
+  
+  // Add secondary action for navigation
+  if (!error.includes('login') && !error.includes('credentials')) {
+    actions.push({
+      label: 'Voltar ao Dashboard',
+      action: () => window.location.href = '/dashboard',
+      variant: 'secondary',
+    });
   }
-
-  if (error.includes('User already registered')) {
-    return {
-      message: 'Este email já está cadastrado. Tente fazer login ou use outro email.',
-      actions: [
-        {
-          label: 'Ir para Login',
-          action: () => window.location.href = '/login',
-          variant: 'primary'
-        }
-      ]
-    };
-  }
-
-  if (error.includes('email_not_confirmed')) {
-    return {
-      message: 'Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.',
-      actions: [
-        {
-          label: 'Reenviar Email',
-          action: () => console.log('Reenviar email de confirmação'),
-          variant: 'secondary'
-        }
-      ]
-    };
-  }
-
-  if (error.includes('signup_disabled')) {
-    return {
-      message: 'O cadastro de novos usuários está temporariamente desabilitado. Entre em contato com o administrador.',
-      actions: [
-        {
-          label: 'Contatar Suporte',
-          action: () => window.open('mailto:admin@empresa.com'),
-          variant: 'primary'
-        }
-      ]
-    };
-  }
-
-  // Permission errors
-  if (error.includes('permission') || error.includes('unauthorized') || error.includes('42501')) {
-    return {
-      message: 'Você não tem permissão para realizar esta ação. Entre em contato com seu gestor.',
-      actions: [
-        {
-          label: 'Voltar',
-          action: () => window.history.back(),
-          variant: 'secondary'
-        }
-      ]
-    };
-  }
-
-  // Duplicate entry errors
-  if (error.includes('23505') || error.includes('duplicate')) {
-    return {
-      message: 'Este registro já existe. Verifique os dados e tente novamente.',
-      actions: [
-        {
-          label: 'Tentar Novamente',
-          action: () => window.location.reload(),
-          variant: 'primary'
-        }
-      ]
-    };
-  }
-
-  // Network errors
-  if (error.includes('Failed to fetch') || error.includes('network') || error.includes('timeout')) {
-    return {
-      message: 'Problema de conexão com a internet. Verifique sua conexão e tente novamente.',
-      actions: [
-        {
-          label: 'Tentar Novamente',
-          action: () => window.location.reload(),
-          variant: 'primary'
-        },
-        {
-          label: 'Verificar Conexão',
-          action: () => window.open('https://www.google.com', '_blank'),
-          variant: 'secondary'
-        }
-      ]
-    };
-  }
-
-  // Validation errors
-  if (error.includes('validation') || error.includes('invalid')) {
-    return {
-      message: 'Os dados fornecidos são inválidos. Verifique as informações e tente novamente.',
-      actions: [
-        {
-          label: 'Corrigir Dados',
-          action: () => window.history.back(),
-          variant: 'primary'
-        }
-      ]
-    };
-  }
-
-  // Rate limiting
-  if (error.includes('rate limit') || error.includes('too many requests')) {
-    return {
-      message: 'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.',
-      actions: [
-        {
-          label: 'Aguardar e Tentar',
-          action: () => setTimeout(() => window.location.reload(), 60000),
-          variant: 'primary'
-        }
-      ]
-    };
-  }
-
-  // Database connection errors
-  if (error.includes('connection') || error.includes('database')) {
-    return {
-      message: 'Problema temporário com o banco de dados. Nossa equipe foi notificada.',
-      actions: [
-        {
-          label: 'Tentar Novamente',
-          action: () => window.location.reload(),
-          variant: 'primary'
-        },
-        {
-          label: 'Contatar Suporte',
-          action: () => window.open('mailto:suporte@empresa.com'),
-          variant: 'secondary'
-        }
-      ]
-    };
-  }
-
-  // Generic fallback
+  
   return {
-    message: 'Ocorreu um erro inesperado. Nossa equipe foi notificada automaticamente.',
-    actions: [
-      {
-        label: 'Tentar Novamente',
-        action: () => window.location.reload(),
-        variant: 'primary'
-      },
-      {
-        label: 'Voltar ao Dashboard',
-        action: () => window.location.href = '/dashboard',
-        variant: 'secondary'
-      }
-    ]
+    message: errorConfig.suggestion 
+      ? `${errorConfig.message}. ${errorConfig.suggestion}` 
+      : errorConfig.message,
+    actions,
   };
 };
 
-export const ErrorMessage: React.FC<{ 
-  error: string; 
+export interface ErrorMessageProps {
+  /** Error string or message to display */
+  error: string;
+  /** Callback for retry action */
   onRetry?: () => void;
+  /** Additional CSS classes */
   className?: string;
-}> = ({ error, onRetry, className = '' }) => {
-  const { message, actions } = getErrorMessage(error);
+  /** Show suggestion text if available */
+  showSuggestion?: boolean;
+  /** Variant styling */
+  variant?: 'error' | 'warning' | 'info';
+}
+
+export const ErrorMessage: React.FC<ErrorMessageProps> = ({ 
+  error, 
+  onRetry, 
+  className = '',
+  showSuggestion = true,
+  variant = 'error',
+}) => {
+  const errorConfig = getSupabaseErrorMessage(error);
+  
+  const variantStyles = {
+    error: {
+      container: 'bg-rose-50 border-rose-200',
+      icon: 'text-rose-500',
+      title: 'text-rose-800',
+      suggestion: 'text-rose-600',
+      primaryBtn: 'bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500',
+      secondaryBtn: 'bg-rose-100 text-rose-700 hover:bg-rose-200',
+    },
+    warning: {
+      container: 'bg-amber-50 border-amber-200',
+      icon: 'text-amber-500',
+      title: 'text-amber-800',
+      suggestion: 'text-amber-600',
+      primaryBtn: 'bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500',
+      secondaryBtn: 'bg-amber-100 text-amber-700 hover:bg-amber-200',
+    },
+    info: {
+      container: 'bg-blue-50 border-blue-200',
+      icon: 'text-blue-500',
+      title: 'text-blue-800',
+      suggestion: 'text-blue-600',
+      primaryBtn: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+      secondaryBtn: 'bg-blue-100 text-blue-700 hover:bg-blue-200',
+    },
+  };
+
+  const styles = variantStyles[variant];
 
   return (
-    <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`}>
+    <div 
+      className={`${styles.container} border rounded-lg p-4 ${className}`}
+      role="alert"
+      aria-live="polite"
+    >
       <div className="flex items-start space-x-3">
-        <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
+        <AlertCircle 
+          className={`${styles.icon} flex-shrink-0 mt-0.5`} 
+          size={20} 
+          aria-hidden="true"
+        />
         <div className="flex-1">
-          <p className="text-red-800 font-medium mb-2">{message}</p>
-          <div className="flex flex-wrap gap-2">
+          <p className={`${styles.title} font-medium`}>
+            {errorConfig.message}
+          </p>
+          
+          {showSuggestion && errorConfig.suggestion && (
+            <p className={`${styles.suggestion} text-sm mt-1`}>
+              {errorConfig.suggestion}
+            </p>
+          )}
+          
+          <div className="flex flex-wrap gap-2 mt-3">
             {onRetry && (
               <button
+                type="button"
                 onClick={onRetry}
-                className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm hover:bg-red-200 transition-colors"
+                className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${styles.secondaryBtn}`}
               >
-                <RefreshCw size={14} className="mr-1" />
+                <RefreshCw size={14} className="mr-1.5" aria-hidden="true" />
                 Tentar Novamente
               </button>
             )}
-            {actions.map((action, index) => (
+            
+            {errorConfig.action && (
               <button
-                key={index}
-                onClick={action.action}
-                className={`inline-flex items-center px-3 py-1 rounded-md text-sm transition-colors ${
-                  action.variant === 'primary'
-                    ? 'bg-red-600 text-white hover:bg-red-700'
-                    : 'bg-red-100 text-red-700 hover:bg-red-200'
-                }`}
+                type="button"
+                onClick={() => {
+                  if (errorConfig.action?.onClick) {
+                    errorConfig.action.onClick();
+                  } else if (errorConfig.action?.href) {
+                    window.location.href = errorConfig.action.href;
+                  }
+                }}
+                className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${styles.primaryBtn}`}
               >
-                {action.label}
+                {errorConfig.action.label}
               </button>
-            ))}
+            )}
           </div>
         </div>
       </div>
