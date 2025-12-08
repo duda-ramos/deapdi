@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Plus,
@@ -31,6 +31,7 @@ import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
 import { Modal } from '../ui/Modal';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 interface TherapeuticTask {
   id: string;
@@ -64,6 +65,9 @@ const TaskManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [activeTaskIndex, setActiveTaskIndex] = useState(-1);
+  const taskRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [taskForm, setTaskForm] = useState({
     title: '',
@@ -79,6 +83,101 @@ const TaskManager: React.FC = () => {
     notes: '',
     effectiveness_rating: 5
   });
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts({
+    enabled: !showCreateModal && !showCompleteModal,
+    shortcuts: [
+      {
+        key: 'n',
+        ctrlOrCmd: true,
+        callback: () => {
+          if (user?.role === 'hr') {
+            setShowCreateModal(true);
+          }
+        },
+        description: 'Create new task'
+      },
+      {
+        key: 'k',
+        ctrlOrCmd: true,
+        callback: () => {
+          searchInputRef.current?.focus();
+        },
+        description: 'Focus search'
+      },
+      {
+        key: '/',
+        callback: () => {
+          searchInputRef.current?.focus();
+        },
+        description: 'Focus search'
+      }
+    ]
+  });
+
+  // Handle keyboard navigation in task grid
+  const handleTaskKeyDown = useCallback((event: React.KeyboardEvent, index: number, task: TherapeuticTask, totalItems: number) => {
+    const cols = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 768 ? 2 : 1;
+    
+    switch (event.key) {
+      case 'ArrowRight':
+        event.preventDefault();
+        if (index < totalItems - 1) {
+          const nextIndex = index + 1;
+          setActiveTaskIndex(nextIndex);
+          taskRefs.current[nextIndex]?.focus();
+        }
+        break;
+      case 'ArrowLeft':
+        event.preventDefault();
+        if (index > 0) {
+          const prevIndex = index - 1;
+          setActiveTaskIndex(prevIndex);
+          taskRefs.current[prevIndex]?.focus();
+        }
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        if (index + cols < totalItems) {
+          const nextIndex = index + cols;
+          setActiveTaskIndex(nextIndex);
+          taskRefs.current[nextIndex]?.focus();
+        }
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        if (index - cols >= 0) {
+          const prevIndex = index - cols;
+          setActiveTaskIndex(prevIndex);
+          taskRefs.current[prevIndex]?.focus();
+        }
+        break;
+      case 'Home':
+        event.preventDefault();
+        setActiveTaskIndex(0);
+        taskRefs.current[0]?.focus();
+        break;
+      case 'End':
+        event.preventDefault();
+        const lastIndex = totalItems - 1;
+        setActiveTaskIndex(lastIndex);
+        taskRefs.current[lastIndex]?.focus();
+        break;
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        if (task.status === 'pending') {
+          handleStartTask(task.id);
+        } else if (task.status === 'in_progress') {
+          setSelectedTask(task);
+          setShowCompleteModal(true);
+        }
+        break;
+      default:
+        break;
+    }
+  }, []);
 
   // Memoized handlers to prevent input focus loss
   const handleTaskFormChange = React.useCallback((field: keyof typeof taskForm, value: any) => {
@@ -267,12 +366,19 @@ const TaskManager: React.FC = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} aria-hidden="true" />
             <input
+              ref={searchInputRef}
               type="text"
-              placeholder="Buscar tarefas..."
+              placeholder="Buscar tarefas... (Ctrl+K ou /)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.currentTarget.blur();
+                  setSearchTerm('');
+                }
+              }}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              aria-label="Buscar tarefas por título ou descrição"
+              aria-label="Buscar tarefas por título ou descrição. Use Ctrl+K ou barra para focar"
             />
           </div>
           <Select
@@ -312,14 +418,23 @@ const TaskManager: React.FC = () => {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Lista de tarefas de bem-estar">
-          {filteredTasks.map((task) => (
+        <div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+          role="grid" 
+          aria-label="Lista de tarefas de bem-estar"
+        >
+          {filteredTasks.map((task, index) => (
             <motion.div
               key={task.id}
+              ref={(el) => { taskRefs.current[index] = el; }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: filteredTasks.indexOf(task) * 0.1 }}
-              role="listitem"
+              transition={{ delay: index * 0.1 }}
+              role="gridcell"
+              tabIndex={index === 0 ? 0 : -1}
+              onKeyDown={(e) => handleTaskKeyDown(e, index, task, filteredTasks.length)}
+              onFocus={() => setActiveTaskIndex(index)}
+              className={`outline-none ${activeTaskIndex === index ? 'ring-2 ring-blue-500 ring-offset-2 rounded-lg' : ''}`}
             >
               <Card className="p-6 hover:shadow-lg transition-shadow" role="article" aria-label={`Tarefa: ${task.title}`}>
                 <div className="flex items-start justify-between mb-4">

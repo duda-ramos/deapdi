@@ -54,7 +54,7 @@ const TextareaComponent: React.FC<TextareaProps> = ({
       )}
       <textarea
         id={fieldId}
-        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
+        className={`w-full px-3 py-2 border border-gray-300 rounded-lg placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
           error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
         } ${className}`}
         rows={4}

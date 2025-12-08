@@ -53,7 +53,7 @@ const InputComponent: React.FC<InputProps> = ({
       )}
       <input
         id={fieldId}
-        className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem] ${
+        className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-ink shadow-sm transition placeholder:text-gray-500 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem] ${
           error ? 'border-rose-500 focus-visible:border-rose-500 focus-visible:ring-rose-400/60' : ''
         } ${className}`}
         onChange={handleChange}

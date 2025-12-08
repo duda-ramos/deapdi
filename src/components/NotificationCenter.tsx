@@ -25,6 +25,7 @@ import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Modal } from './ui/Modal';
 import { Card } from './ui/Card';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 export const NotificationCenter: React.FC = () => {
   const { user } = useAuth();
@@ -39,6 +40,77 @@ export const NotificationCenter: React.FC = () => {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const maxReconnectAttempts = 5;
   const subscriptionRef = useRef<any>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const bellButtonRef = useRef<HTMLButtonElement>(null);
+  const [activeNotificationIndex, setActiveNotificationIndex] = useState(-1);
+  const notificationRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Keyboard shortcuts for the notification panel
+  useKeyboardShortcuts({
+    enabled: isOpen,
+    shortcuts: [
+      {
+        key: 'Escape',
+        callback: () => {
+          setIsOpen(false);
+          bellButtonRef.current?.focus();
+        },
+        description: 'Close notification panel'
+      }
+    ]
+  });
+
+  // Handle keyboard navigation within the notification list
+  const handleNotificationKeyDown = useCallback((event: React.KeyboardEvent, index: number) => {
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        if (index < notifications.length - 1) {
+          setActiveNotificationIndex(index + 1);
+          notificationRefs.current[index + 1]?.focus();
+        }
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        if (index > 0) {
+          setActiveNotificationIndex(index - 1);
+          notificationRefs.current[index - 1]?.focus();
+        }
+        break;
+      case 'Home':
+        event.preventDefault();
+        setActiveNotificationIndex(0);
+        notificationRefs.current[0]?.focus();
+        break;
+      case 'End': {
+        event.preventDefault();
+        const lastIndex = notifications.length - 1;
+        setActiveNotificationIndex(lastIndex);
+        notificationRefs.current[lastIndex]?.focus();
+        break;
+      }
+      case 'Enter':
+      case ' ': {
+        event.preventDefault();
+        const notification = notifications[index];
+        if (notification && !notification.read) {
+          handleMarkAsRead(notification.id);
+        }
+        break;
+      }
+      case 'Delete':
+      case 'Backspace': {
+        event.preventDefault();
+        const notifToDelete = notifications[index];
+        if (notifToDelete) {
+          handleDelete(notifToDelete.id);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }, [notifications]);
 
   // Memoize functions to prevent unnecessary re-renders
   const loadNotifications = useCallback(async () => {
@@ -333,9 +405,16 @@ export const NotificationCenter: React.FC = () => {
     <div className="relative">
       {/* Notification Bell */}
       <button
+        ref={bellButtonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-        aria-label="Centro de notificações"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }
+        }}
+        className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        aria-label={`Centro de notificações${unreadCount > 0 ? `, ${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : ''}`}
         aria-expanded={isOpen}
         aria-controls="notification-panel"
         aria-haspopup="true"
@@ -375,13 +454,16 @@ export const NotificationCenter: React.FC = () => {
             
             {/* Panel */}
             <motion.div
+              ref={panelRef}
               id="notification-panel"
               initial={{ opacity: 0, scale: 0.95, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               className="absolute right-0 top-12 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden"
-              role="region"
+              role="dialog"
+              aria-modal="true"
               aria-label="Painel de notificações"
+              tabIndex={-1}
             >
               {/* Header */}
               <div className="p-4 border-b border-gray-200">
@@ -473,16 +555,21 @@ export const NotificationCenter: React.FC = () => {
                     <p>Nenhuma notificação</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100" role="list" aria-label="Lista de notificações">
-                    {notifications.map((notification) => (
+                  <div className="divide-y divide-gray-100" role="listbox" aria-label="Lista de notificações">
+                    {notifications.map((notification, index) => (
                       <motion.div
                         key={notification.id}
+                        ref={(el) => { notificationRefs.current[index] = el; }}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className={`p-4 hover:bg-gray-50 transition-colors ${
+                        className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${
                           !notification.read ? 'bg-blue-50' : ''
-                        }`}
-                        role="listitem"
+                        } ${activeNotificationIndex === index ? 'ring-2 ring-inset ring-blue-500' : ''}`}
+                        role="option"
+                        aria-selected={activeNotificationIndex === index}
+                        tabIndex={index === 0 ? 0 : -1}
+                        onKeyDown={(e) => handleNotificationKeyDown(e, index)}
+                        onFocus={() => setActiveNotificationIndex(index)}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="flex-shrink-0 mt-1">

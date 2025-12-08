@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -96,6 +96,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
   const { user } = useAuth();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [focusedSubIndex, setFocusedSubIndex] = useState(-1);
+  const menuRefs = useRef<(HTMLElement | null)[]>([]);
+  const subMenuRefs = useRef<Map<string, (HTMLElement | null)[]>>(new Map());
 
   const filteredItems = sidebarItems.filter(item =>
     user && item.roles.includes(user.role)
@@ -117,6 +121,120 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
     );
   };
 
+  // Handle keyboard navigation for main menu items
+  const handleMenuKeyDown = useCallback((event: React.KeyboardEvent, index: number, item: SidebarItem) => {
+    const hasSubItems = item.subItems && item.subItems.length > 0;
+    const isExpanded = expandedItems.includes(item.id);
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        if (index < filteredItems.length - 1) {
+          setFocusedIndex(index + 1);
+          setFocusedSubIndex(-1);
+          menuRefs.current[index + 1]?.focus();
+        }
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        if (index > 0) {
+          setFocusedIndex(index - 1);
+          setFocusedSubIndex(-1);
+          menuRefs.current[index - 1]?.focus();
+        }
+        break;
+      case 'ArrowRight':
+        if (hasSubItems && !isExpanded) {
+          event.preventDefault();
+          toggleExpanded(item.id);
+        } else if (hasSubItems && isExpanded) {
+          // Move focus to first submenu item
+          event.preventDefault();
+          setFocusedSubIndex(0);
+          const subRefs = subMenuRefs.current.get(item.id);
+          if (subRefs && subRefs[0]) {
+            subRefs[0].focus();
+          }
+        }
+        break;
+      case 'ArrowLeft':
+        if (hasSubItems && isExpanded) {
+          event.preventDefault();
+          toggleExpanded(item.id);
+        }
+        break;
+      case 'Home':
+        event.preventDefault();
+        setFocusedIndex(0);
+        menuRefs.current[0]?.focus();
+        break;
+      case 'End':
+        event.preventDefault();
+        const lastIndex = filteredItems.length - 1;
+        setFocusedIndex(lastIndex);
+        menuRefs.current[lastIndex]?.focus();
+        break;
+      case 'Enter':
+      case ' ':
+        if (hasSubItems) {
+          event.preventDefault();
+          toggleExpanded(item.id);
+        }
+        // For non-submenu items, let the click handler work
+        break;
+      default:
+        break;
+    }
+  }, [expandedItems, filteredItems.length]);
+
+  // Handle keyboard navigation for submenu items
+  const handleSubMenuKeyDown = useCallback((
+    event: React.KeyboardEvent, 
+    parentItem: SidebarItem, 
+    subIndex: number, 
+    parentIndex: number
+  ) => {
+    const subItems = parentItem.subItems || [];
+    const subRefs = subMenuRefs.current.get(parentItem.id) || [];
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        if (subIndex < subItems.length - 1) {
+          setFocusedSubIndex(subIndex + 1);
+          subRefs[subIndex + 1]?.focus();
+        } else {
+          // Move to next main menu item
+          if (parentIndex < filteredItems.length - 1) {
+            setFocusedIndex(parentIndex + 1);
+            setFocusedSubIndex(-1);
+            menuRefs.current[parentIndex + 1]?.focus();
+          }
+        }
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        if (subIndex > 0) {
+          setFocusedSubIndex(subIndex - 1);
+          subRefs[subIndex - 1]?.focus();
+        } else {
+          // Move focus back to parent
+          setFocusedSubIndex(-1);
+          menuRefs.current[parentIndex]?.focus();
+        }
+        break;
+      case 'ArrowLeft':
+      case 'Escape':
+        event.preventDefault();
+        toggleExpanded(parentItem.id);
+        setFocusedSubIndex(-1);
+        menuRefs.current[parentIndex]?.focus();
+        break;
+      default:
+        break;
+    }
+  }, [filteredItems.length]);
+
   return (
     <div className={`flex h-full min-h-0 w-full flex-col ${isMobile ? '' : 'px-4 pb-6'}`}>
       <div className={`${isMobile ? 'px-1' : 'px-2'} mb-6 flex shrink-0 items-center gap-3 pt-6`}>
@@ -129,28 +247,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto pr-1" aria-label="Principal">
-        {filteredItems.map((item) => {
+      <nav className="flex-1 space-y-1 overflow-y-auto pr-1" aria-label="Principal" role="menubar">
+        {filteredItems.map((item, index) => {
           const isActive = isItemActive(item);
           const isExpanded = expandedItems.includes(item.id);
           const hasSubItems = item.subItems && item.subItems.length > 0;
 
           return (
-            <div key={item.id}>
+            <div key={item.id} role="none">
               {hasSubItems ? (
                 <motion.div
+                  ref={(el) => { menuRefs.current[index] = el; }}
                   whileHover={{ x: 4 }}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset ${
                     isActive
                       ? 'bg-primary/15 text-ink shadow-inner'
                       : 'text-muted hover:bg-slate-100'
                   }`}
+                  role="menuitem"
+                  tabIndex={index === 0 ? 0 : -1}
+                  aria-haspopup="true"
+                  aria-expanded={isExpanded}
+                  onKeyDown={(e) => handleMenuKeyDown(e, index, item)}
+                  onFocus={() => setFocusedIndex(index)}
                 >
                   <Link
                     to={item.path}
                     className="flex flex-1 items-center gap-3 text-current no-underline"
                     onClick={() => onNavigate?.()}
                     aria-current={isActive ? "page" : undefined}
+                    tabIndex={-1}
                   >
                     <span
                       className={`flex h-8 w-8 items-center justify-center rounded-md ${
@@ -170,7 +296,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
                     }}
                     aria-label={isExpanded ? 'Recolher subitens' : 'Expandir subitens'}
                     aria-expanded={isExpanded}
-                    className="flex h-8 w-8 items-center justify-center rounded-md text-current hover:bg-slate-200 focus:outline-none"
+                    tabIndex={-1}
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-current hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <motion.div
                       animate={{ rotate: isExpanded ? 90 : 0 }}
@@ -182,14 +309,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
                 </motion.div>
               ) : (
                 <Link
+                  ref={(el) => { menuRefs.current[index] = el; }}
                   to={item.path}
-                  className="block"
+                  className="block focus:outline-none"
                   onClick={() => onNavigate?.()}
                   aria-current={isActive ? "page" : undefined}
+                  role="menuitem"
+                  tabIndex={index === 0 ? 0 : -1}
+                  onKeyDown={(e) => handleMenuKeyDown(e, index, item)}
+                  onFocus={() => setFocusedIndex(index)}
                 >
                   <motion.div
                     whileHover={{ x: 4 }}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset ${
                       isActive
                         ? 'bg-primary/15 text-ink shadow-inner'
                         : 'text-muted hover:bg-slate-100'
@@ -216,20 +348,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, isMobile = false }
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <div className="ml-6 mt-1 space-y-1" role="list" aria-label={`Submenu de ${item.label}`}>
-                      {item.subItems!.map((subItem) => {
+                    <div 
+                      className="ml-6 mt-1 space-y-1" 
+                      role="menu" 
+                      aria-label={`Submenu de ${item.label}`}
+                    >
+                      {item.subItems!.map((subItem, subIndex) => {
                         const isSubActive = location.pathname === subItem.path;
+                        // Initialize sub refs for this parent
+                        if (!subMenuRefs.current.has(item.id)) {
+                          subMenuRefs.current.set(item.id, []);
+                        }
                         return (
-                          <div key={subItem.id} role="listitem">
+                          <div key={subItem.id} role="none">
                             <Link
+                              ref={(el) => {
+                                const refs = subMenuRefs.current.get(item.id) || [];
+                                refs[subIndex] = el;
+                                subMenuRefs.current.set(item.id, refs);
+                              }}
                               to={subItem.path}
-                              className="block"
+                              className="block focus:outline-none"
                               onClick={() => onNavigate?.()}
                               aria-current={isSubActive ? "page" : undefined}
+                              role="menuitem"
+                              tabIndex={-1}
+                              onKeyDown={(e) => handleSubMenuKeyDown(e, item, subIndex, index)}
+                              onFocus={() => setFocusedSubIndex(subIndex)}
                             >
                               <motion.div
                                 whileHover={{ x: 4 }}
-                                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset ${
                                   isSubActive
                                     ? 'bg-primary/10 text-ink'
                                     : 'text-muted hover:bg-slate-50'
