@@ -62,8 +62,8 @@ const HRArea: React.FC = () => {
           .from('pdis')
           .select(`
             *,
-            profile:profiles!profile_id(name, position),
-            mentor:profiles!mentor_id(name)
+            profile:profiles!pdis_profile_id_fkey(name, position),
+            mentor:profiles!pdis_mentor_id_fkey(name)
           `)
           .eq('status', 'completed')
           .order('created_at', { ascending: false })

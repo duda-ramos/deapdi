@@ -105,25 +105,23 @@ const PeopleManagement: React.FC = () => {
     manager_id: ''
   });
 
-  // Memoize permissions and userFilter to prevent infinite loops
+  // Memoize permissions to prevent infinite loops
   const permissions = useMemo(() => 
     user ? permissionService.getUserPermissions(user.role) : null,
     [user?.role]
   );
   
+  // Memoize userFilter to prevent infinite loops
   const userFilter = useMemo(() => 
     user ? permissionService.getVisibleUserFilter(user) : null,
     [user?.id, user?.role]
   );
 
-  // Load data only once when component mounts and user is available
-  useEffect(() => {
-    if (user && permissions?.canManageTeam) {
-      loadData();
-    }
-  }, [user?.id, user?.role, permissions?.canManageTeam, userFilter?.all, userFilter?.managerFilter]);
+  // Track if data has been loaded to prevent multiple calls
+  const hasLoadedRef = useRef(false);
 
-  const loadData = useCallback(async () => {
+  // Internal load function
+  const loadDataInternal = useCallback(async () => {
     if (!user || !userFilter) {
       console.warn('⚠️ PeopleManagement: Cannot load data - user or userFilter missing');
       return;
@@ -184,7 +182,20 @@ const PeopleManagement: React.FC = () => {
       isLoadingRef.current = false;
       setLoading(false);
     }
-  }, [user?.id, user?.role, userFilter?.all, userFilter?.managerFilter]);
+  }, [user, userFilter]);
+
+  // Load data only once when component mounts and user is available
+  useEffect(() => {
+    if (user && permissions?.canManageTeam && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadDataInternal();
+    }
+  }, [user?.id, permissions?.canManageTeam, loadDataInternal]);
+
+  // Function to reload data after updates
+  const reloadData = useCallback(() => {
+    loadDataInternal();
+  }, [loadDataInternal]);
 
   const applyFilters = useCallback(() => {
     let filtered = profiles;
@@ -276,7 +287,7 @@ const PeopleManagement: React.FC = () => {
         formation: ''
       });
       
-      loadData();
+      reloadData();
     } catch (error) {
       console.error('Error creating user:', error);
       setError(error instanceof Error ? error.message : 'Erro ao criar usuário');
@@ -319,7 +330,7 @@ const PeopleManagement: React.FC = () => {
 
       setShowEditModal(false);
       setSelectedProfile(null);
-      loadData();
+      reloadData();
     } catch (error) {
       console.error('Error updating profile:', error);
       setError(error instanceof Error ? error.message : 'Erro ao atualizar perfil');
@@ -364,7 +375,7 @@ const PeopleManagement: React.FC = () => {
       setShowBulkModal(false);
       setSelectedProfiles([]);
       setBulkAction({ action: '', team_id: '', status: '', role: '', manager_id: '' });
-      loadData();
+      reloadData();
     } catch (error) {
       console.error('Error performing bulk action:', error);
       setError(error instanceof Error ? error.message : 'Erro ao executar ação em massa');
@@ -376,7 +387,7 @@ const PeopleManagement: React.FC = () => {
       for (const memberId of memberIds) {
         await databaseService.updateProfile(memberId, { team_id: toTeamId });
       }
-      loadData();
+      reloadData();
     } catch (error) {
       console.error('Error transferring team members:', error);
       setError(error instanceof Error ? error.message : 'Erro ao transferir membros');
@@ -627,7 +638,7 @@ const PeopleManagement: React.FC = () => {
             onClick={() => {
               databaseService.updateProfile(row.id, {
                 status: row.status === 'active' ? 'inactive' : 'active'
-              }).then(() => loadData());
+              }).then(() => reloadData());
             }}
             title={row.status === 'active' ? 'Desativar' : 'Ativar'}
           >
@@ -667,7 +678,7 @@ const PeopleManagement: React.FC = () => {
             }
           </p>
         </div>
-        <ErrorMessage error={error} onRetry={loadData} />
+        <ErrorMessage error={error} onRetry={reloadData} />
       </div>
     );
   }
