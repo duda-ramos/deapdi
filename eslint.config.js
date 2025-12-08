@@ -29,6 +29,9 @@ export default tseslint.config(
         varsIgnorePattern: '^_'
       }],
       '@typescript-eslint/no-namespace': 'off',
+      // Disable problematic rule that has compatibility issues with eslint 9.x
+      '@typescript-eslint/no-unused-expressions': 'off',
+      'no-unused-expressions': 'off',
     },
   }
 );

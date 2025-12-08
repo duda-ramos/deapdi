@@ -18,7 +18,7 @@
     "deploy:check": "npm run test:security && npm run build:prod && npm run preview:prod",
     "deploy:prod": "npm run deploy:check && echo 'Production build ready for deployment'",
     "deploy:staging": "npm run build -- --mode staging && echo 'Staging build ready'",
-    "health:check": "curl -f http://localhost:4173 || exit 1",
+    "health:check": "node scripts/health-check.js",
     "size:check": "npm run build:prod && npx bundlesize",
     "perf:audit": "npm run build:prod && npx lighthouse http://localhost:4173 --output=html --output-path=./lighthouse-report.html",
     "test": "jest",
