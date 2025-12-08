@@ -32,6 +32,9 @@ export const Modal: React.FC<ModalProps> = ({
     xl: 'max-w-4xl'
   };
 
+  // Mobile fullscreen classes
+  const mobileClasses = 'fixed inset-0 sm:relative sm:inset-auto rounded-none sm:rounded-xl h-full sm:h-auto';
+
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const titleId = ariaLabelledby ?? useId();
@@ -133,20 +136,20 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto sm:overflow-y-visible">
+          <div className="flex min-h-screen sm:min-h-0 sm:items-center sm:justify-center sm:p-4 sm:pt-20">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50"
+              className="hidden sm:block fixed inset-0 bg-black bg-opacity-50"
               onClick={onClose}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className={`relative bg-white rounded-xl shadow-xl ${sizes[size]} w-full`}
+              className={`relative bg-white shadow-xl w-full ${mobileClasses} ${sizes[size]} sm:max-h-[90vh] overflow-hidden flex flex-col`}
               role="dialog"
               aria-modal="true"
               aria-labelledby={titleId}
@@ -154,10 +157,10 @@ export const Modal: React.FC<ModalProps> = ({
               tabIndex={-1}
               ref={modalRef}
             >
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
                 <h3
                   id={titleId}
-                  className="text-lg font-semibold text-gray-900"
+                  className="text-lg font-semibold text-gray-900 truncate pr-4"
                 >
                   {title}
                 </h3>
@@ -166,14 +169,14 @@ export const Modal: React.FC<ModalProps> = ({
                   variant="ghost"
                   size="sm"
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 flex-shrink-0"
                   aria-label="Fechar modal"
                 >
                   <X size={20} aria-hidden="true" />
                 </Button>
               </div>
               <div
-                className="p-6"
+                className="p-4 sm:p-6 overflow-y-auto flex-1"
                 id={contentId}
               >
                 {children}

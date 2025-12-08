@@ -685,37 +685,39 @@ const PeopleManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             {permissions.canManageAllUsers ? 'Gestão de Pessoas' : 'Minha Equipe'}
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             {permissions.canManageAllUsers 
               ? 'Gerencie todos os colaboradores da organização'
               : 'Gerencie sua equipe direta'
             }
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap gap-2">
           {selectedProfiles.length > 0 && (
             <Button
               variant="secondary"
               onClick={() => setShowBulkModal(true)}
+              className="flex-1 sm:flex-none"
             >
               <MoreHorizontal size={16} className="mr-2" />
-              Ações em Massa ({selectedProfiles.length})
+              <span className="hidden sm:inline">Ações em Massa</span> ({selectedProfiles.length})
             </Button>
           )}
           {permissions.canManageAllUsers && (
             <>
-              <Button variant="secondary" onClick={exportData}>
+              <Button variant="secondary" onClick={exportData} className="flex-1 sm:flex-none">
                 <Download size={16} className="mr-2" />
-                Exportar
+                <span className="hidden sm:inline">Exportar</span>
               </Button>
-              <Button onClick={() => setShowCreateModal(true)}>
+              <Button onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto">
                 <Plus size={16} className="mr-2" />
-                Novo Colaborador
+                <span className="hidden sm:inline">Novo Colaborador</span>
+                <span className="sm:hidden">Novo</span>
               </Button>
             </>
           )}
@@ -723,7 +725,7 @@ const PeopleManagement: React.FC = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <Card className="p-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-blue-500 mr-3" />
@@ -794,7 +796,7 @@ const PeopleManagement: React.FC = () => {
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input

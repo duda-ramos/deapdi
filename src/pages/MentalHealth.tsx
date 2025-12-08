@@ -225,16 +225,16 @@ const MentalHealth: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Heart className="mr-3 text-pink-500" size={28} />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+            <Heart className="mr-2 sm:mr-3 text-pink-500" size={24} />
             Bem-estar Psicológico
           </h1>
-          <p className="text-gray-600 mt-1">Cuide da sua saúde mental e bem-estar</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Cuide da sua saúde mental e bem-estar</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button onClick={() => setShowRequestModal(true)} variant="secondary">
+        <div className="flex items-center">
+          <Button onClick={() => setShowRequestModal(true)} variant="secondary" className="w-full sm:w-auto">
             <Calendar size={16} className="mr-2" />
             Solicitar Sessão
           </Button>

@@ -459,7 +459,7 @@ export const NotificationCenter: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              className="absolute right-0 top-12 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden"
+              className="fixed inset-x-4 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-12 w-auto sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[80vh] sm:max-h-96 overflow-hidden"
               role="dialog"
               aria-modal="true"
               aria-label="Painel de notificações"
