@@ -33,12 +33,16 @@ export const analytics = {
    */
   init() {
     const analyticsId = getAnalyticsId();
+    
+    // Debug logging in development mode
+    if (import.meta.env.DEV) {
+      console.log('[Analytics] Init called with ID:', analyticsId || '(none)', '- skipping (dev mode)');
+    }
+    
+    // Only initialize in production with a valid analytics ID
     if (!analyticsId || !import.meta.env.PROD) return;
 
     // GA4 script is already loaded in main.tsx
-    if (import.meta.env.DEV) {
-      console.log('[Analytics] Initialized with ID:', analyticsId);
-    }
   },
 
   /**
