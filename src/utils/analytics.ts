@@ -269,24 +269,23 @@ export const analytics = {
   }
 };
 
-// Export individual functions for convenience
-export const {
-  init: initAnalytics,
-  trackPageView,
-  trackEvent,
-  trackAuth,
-  trackUserAction,
-  trackPDI,
-  trackActionCompletion,
-  trackCompetencyEvaluation,
-  trackMentorship,
-  trackEmotionalCheckin,
-  trackWellnessResource,
-  trackAchievement,
-  trackFeatureUsage,
-  trackSearch,
-  trackPerformance,
-  trackError,
-  trackTiming,
-  setUserProperties
-} = analytics;
+// Export individual functions with proper `this` binding
+// Methods that use `this.trackEvent()` internally must be bound to preserve context
+export const initAnalytics = analytics.init.bind(analytics);
+export const trackPageView = analytics.trackPageView.bind(analytics);
+export const trackEvent = analytics.trackEvent.bind(analytics);
+export const trackAuth = analytics.trackAuth.bind(analytics);
+export const trackUserAction = analytics.trackUserAction.bind(analytics);
+export const trackPDI = analytics.trackPDI.bind(analytics);
+export const trackActionCompletion = analytics.trackActionCompletion.bind(analytics);
+export const trackCompetencyEvaluation = analytics.trackCompetencyEvaluation.bind(analytics);
+export const trackMentorship = analytics.trackMentorship.bind(analytics);
+export const trackEmotionalCheckin = analytics.trackEmotionalCheckin.bind(analytics);
+export const trackWellnessResource = analytics.trackWellnessResource.bind(analytics);
+export const trackAchievement = analytics.trackAchievement.bind(analytics);
+export const trackFeatureUsage = analytics.trackFeatureUsage.bind(analytics);
+export const trackSearch = analytics.trackSearch.bind(analytics);
+export const trackPerformance = analytics.trackPerformance.bind(analytics);
+export const trackError = analytics.trackError.bind(analytics);
+export const trackTiming = analytics.trackTiming.bind(analytics);
+export const setUserProperties = analytics.setUserProperties.bind(analytics);
