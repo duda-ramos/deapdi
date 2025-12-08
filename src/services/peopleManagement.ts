@@ -52,8 +52,7 @@ export const peopleManagementService = {
       .select(`
         *,
         team:teams(id, name, manager_id),
-        manager:profiles!manager_id(id, name, position),
-        direct_reports:profiles!manager_id(id, name, position, status)
+        manager:profiles!profiles_manager_id_fkey(id, name, position)
       `);
 
     if (filters?.role) query = query.eq('role', filters.role);
@@ -79,7 +78,6 @@ export const peopleManagementService = {
   async getProfileDetails(profileId: string): Promise<Profile & {
     team?: any;
     manager?: Profile;
-    direct_reports?: Profile[];
     pdis_count?: number;
     competencies_count?: number;
   }> {
@@ -90,8 +88,7 @@ export const peopleManagementService = {
       .select(`
         *,
         team:teams(id, name, manager_id),
-        manager:profiles!manager_id(id, name, position, email),
-        direct_reports:profiles!manager_id(id, name, position, status)
+        manager:profiles!profiles_manager_id_fkey(id, name, position, email)
       `)
       .eq('id', profileId)
       .single(), 'getProfileDetails');

@@ -25,7 +25,7 @@ export const databaseService = {
       .from('profiles')
       .select(`
         *,
-        team:teams!profiles_team_id_fkey(name),
+        team:teams(name),
         manager:profiles!profiles_manager_id_fkey(name)
       `);
 

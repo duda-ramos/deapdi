@@ -74,8 +74,8 @@ export const mentorshipService = {
       .from('mentorships')
       .select(`
         *,
-        mentor:profiles!mentor_id(id, name, position, avatar_url, email),
-        mentee:profiles!mentee_id(id, name, position, avatar_url, email)
+        mentor:profiles!mentorships_mentor_id_fkey(id, name, position, avatar_url, email),
+        mentee:profiles!mentorships_mentee_id_fkey(id, name, position, avatar_url, email)
       `);
 
     if (role === 'mentor') {
@@ -326,7 +326,7 @@ export const mentorshipService = {
       .from('mentor_ratings')
       .select(`
         *,
-        mentee:profiles!mentee_id(name, avatar_url),
+        mentee:profiles!mentor_ratings_mentee_id_fkey(name, avatar_url),
         session:mentorship_sessions(session_date, topics_discussed)
       `)
       .eq('mentor_id', mentorId)

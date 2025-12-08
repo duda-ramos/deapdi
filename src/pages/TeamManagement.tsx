@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -59,14 +59,25 @@ const TeamManagement: React.FC = () => {
     memberIds: [] as string[]
   });
 
-  useEffect(() => {
-    if (user && permissionService.canCreateTeams(user.role)) {
-      loadData();
-    }
-  }, [user]);
+  // Track if data has been loaded to prevent multiple calls
+  const isLoadingRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
-  const loadData = async () => {
+  // Internal load data function
+  const loadDataInternal = useCallback(async () => {
+    if (!user) {
+      console.warn('⚠️ TeamManagement: Cannot load data - user missing');
+      return;
+    }
+
+    // Prevent multiple simultaneous calls
+    if (isLoadingRef.current) {
+      console.warn('⚠️ TeamManagement: Already loading, skipping duplicate call');
+      return;
+    }
+
     try {
+      isLoadingRef.current = true;
       setLoading(true);
       setError('');
 
@@ -105,9 +116,23 @@ const TeamManagement: React.FC = () => {
       console.error('Error loading team data:', error);
       setError(error instanceof Error ? error.message : 'Erro ao carregar dados dos times');
     } finally {
+      isLoadingRef.current = false;
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  // Load data only once when component mounts and user is available
+  useEffect(() => {
+    if (user && permissionService.canCreateTeams(user.role) && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadDataInternal();
+    }
+  }, [user?.id, user?.role, loadDataInternal]);
+
+  // Function to reload data after updates
+  const reloadData = useCallback(() => {
+    loadDataInternal();
+  }, [loadDataInternal]);
 
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +157,7 @@ const TeamManagement: React.FC = () => {
         status: 'active'
       });
       
-      loadData();
+      reloadData();
     } catch (error) {
       console.error('Error creating team:', error);
       setError(error instanceof Error ? error.message : 'Erro ao criar time');
@@ -157,7 +182,7 @@ const TeamManagement: React.FC = () => {
       
       setShowEditModal(false);
       setSelectedTeam(null);
-      loadData();
+      reloadData();
     } catch (error) {
       console.error('Error updating team:', error);
       setError(error instanceof Error ? error.message : 'Erro ao atualizar time');
@@ -174,7 +199,7 @@ const TeamManagement: React.FC = () => {
 
       if (confirm(`Tem certeza que deseja excluir o time "${team.name}"?`)) {
         await teamService.deleteTeam(team.id);
-        loadData();
+        reloadData();
       }
     } catch (error) {
       console.error('Error deleting team:', error);
@@ -196,7 +221,7 @@ const TeamManagement: React.FC = () => {
       });
       setSelectedMembers([]);
       
-      loadData();
+      reloadData();
     } catch (error) {
       console.error('Error transferring members:', error);
       setError(error instanceof Error ? error.message : 'Erro ao transferir membros');
@@ -340,7 +365,7 @@ const TeamManagement: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Times</h1>
           <p className="text-gray-600 mt-1">Gerencie a estrutura organizacional</p>
         </div>
-        <ErrorMessage error={error} onRetry={loadData} />
+        <ErrorMessage error={error} onRetry={reloadData} />
       </div>
     );
   }

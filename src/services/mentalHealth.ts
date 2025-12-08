@@ -328,8 +328,8 @@ export const mentalHealthService = {
         .from('psychology_sessions')
         .select(`
           *,
-          employee:profiles!employee_id(id, name, avatar_url, position),
-          psychologist:profiles!psychologist_id(id, name, avatar_url, position)
+          employee:profiles!psychology_sessions_employee_id_fkey(id, name, avatar_url, position),
+          psychologist:profiles!psychology_sessions_psychologist_id_fkey(id, name, avatar_url, position)
         `);
 
       if (employeeId) {
@@ -375,8 +375,8 @@ export const mentalHealthService = {
       .from('session_requests')
       .select(`
         *,
-        employee:profiles!employee_id(id, name, avatar_url, position, email),
-        psychologist:profiles!assigned_psychologist(id, name, avatar_url)
+        employee:profiles!session_requests_employee_id_fkey(id, name, avatar_url, position, email),
+        psychologist:profiles!session_requests_assigned_psychologist_fkey(id, name, avatar_url)
       `);
 
     if (psychologistId) {
@@ -463,8 +463,8 @@ export const mentalHealthService = {
         .select(`
           *,
           form:psychological_forms(title, form_type),
-          employee:profiles!employee_id(id, name, avatar_url),
-          reviewer:profiles!reviewed_by(id, name)
+          employee:profiles!form_responses_employee_id_fkey(id, name, avatar_url),
+          reviewer:profiles!form_responses_reviewed_by_fkey(id, name)
         `);
 
       if (employeeId) {
@@ -666,7 +666,7 @@ export const mentalHealthService = {
       .from('mental_health_alerts')
       .select(`
         *,
-        employee:profiles!employee_id(id, name, avatar_url, position)
+        employee:profiles!mental_health_alerts_employee_id_fkey(id, name, avatar_url, position)
       `);
 
     if (!acknowledged) {
@@ -962,8 +962,8 @@ export const mentalHealthService = {
       .select(`
         *,
         form:psychological_forms(title, form_type),
-        employee:profiles!employee_id(name, avatar_url),
-        reviewer:profiles!reviewed_by(name, avatar_url)
+        employee:profiles!form_responses_employee_id_fkey(name, avatar_url),
+        reviewer:profiles!form_responses_reviewed_by_fkey(name, avatar_url)
       `);
 
     if (employeeId) {
