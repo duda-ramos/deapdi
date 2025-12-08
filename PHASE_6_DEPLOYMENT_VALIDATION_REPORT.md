@@ -126,30 +126,30 @@ npm test
 
 **Domínio DeaDesign (10 usuários):**
 
-| Role | Nome | Email | Equipe |
-|------|------|-------|--------|
-| **Admin** | Ana Paula Nemoto | anapaula@deadesign.com.br | Gestão |
-| **HR** | Alexia Sobreira | alexia@deadesign.com.br | Gestão |
-| **Manager** | Nathalia Fujii | nathalia@deadesign.com.br | Design |
-| **Manager** | Silvia Kanayama | silvia@deadesign.com.br | Projetos |
-| **Employee** | Maria Eduarda Ramos | mariaeduarda@deadesign.com.br | Gestão |
-| **Employee** | Roberto Fagaraz | roberto@deadesign.com.br | Design |
-| **Employee** | Julia Rissin | julia@deadesign.com.br | Projetos |
-| **Employee** | Pedro Oliveira | pedro@deadesign.com.br | Projetos |
-| **Employee** | Lucila Muranaka | lucila@deadesign.com.br | Projetos |
-| **Employee** | Juliana Hobo | juliana@deadesign.com.br | Projetos |
+| Role | Nome | Equipe |
+|------|------|--------|
+| **Admin** | Ana Paula Nemoto | Gestão |
+| **HR** | Alexia Sobreira | Gestão |
+| **Manager** | Nathalia Fujii | Design |
+| **Manager** | Silvia Kanayama | Projetos |
+| **Employee** | Maria Eduarda Ramos | Gestão |
+| **Employee** | Roberto Fagaraz | Design |
+| **Employee** | Julia Rissin | Projetos |
+| **Employee** | Pedro Oliveira | Projetos |
+| **Employee** | Lucila Muranaka | Projetos |
+| **Employee** | Juliana Hobo | Projetos |
 
-**Senha padrão:** `DEA@pdi`
+**Credenciais:** Obter via canal seguro (não armazenar em repositório)
 
 ### 📋 Cenários UAT Críticos
 
 #### Cenário 1: Ciclo Completo de PDI ⭐ CRÍTICO
 ```
-1. Login como colaborador (julia@deadesign.com.br)
+1. Login como colaborador (obter credenciais via canal seguro)
 2. Criar novo PDI com título, descrição e prazo
 3. Iniciar o PDI (status "em progresso")
 4. Marcar PDI como concluído
-5. Login como gestor (silvia@deadesign.com.br)
+5. Login como gestor (obter credenciais via canal seguro)
 6. Validar o PDI concluído
 7. Verificar se pontos foram atribuídos
 ```

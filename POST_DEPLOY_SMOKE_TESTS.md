@@ -29,8 +29,8 @@ URL de Produção: ____________________
 
 ### 1.2 Login com Admin
 ```
-Email: anapaula@deadesign.com.br
-Senha: DEA@pdi
+Email: [Obter credenciais via canal seguro - ver documentação interna]
+Senha: [Obter credenciais via canal seguro]
 ```
 
 | Verificação | Status |
@@ -42,8 +42,8 @@ Senha: DEA@pdi
 
 ### 1.3 Login com HR
 ```
-Email: alexia@deadesign.com.br
-Senha: DEA@pdi
+Email: [Obter credenciais via canal seguro - ver documentação interna]
+Senha: [Obter credenciais via canal seguro]
 ```
 
 | Verificação | Status |
@@ -54,8 +54,8 @@ Senha: DEA@pdi
 
 ### 1.4 Login com Manager
 ```
-Email: silvia@deadesign.com.br
-Senha: DEA@pdi
+Email: [Obter credenciais via canal seguro - ver documentação interna]
+Senha: [Obter credenciais via canal seguro]
 ```
 
 | Verificação | Status |
@@ -66,8 +66,8 @@ Senha: DEA@pdi
 
 ### 1.5 Login com Employee
 ```
-Email: julia@deadesign.com.br
-Senha: DEA@pdi
+Email: [Obter credenciais via canal seguro - ver documentação interna]
+Senha: [Obter credenciais via canal seguro]
 ```
 
 | Verificação | Status |
@@ -80,7 +80,7 @@ Senha: DEA@pdi
 
 ## 🧪 TESTE 2: CRIAÇÃO DE PDI (3 min)
 
-**Usuário:** julia@deadesign.com.br (Employee)
+**Usuário:** Employee (obter credenciais via canal seguro)
 
 ### 2.1 Criar Novo PDI
 1. Navegar para `Desenvolvimento` → `Meu PDI`
@@ -112,7 +112,7 @@ Senha: DEA@pdi
 
 ## 🧪 TESTE 3: CRIAÇÃO DE TAREFA (3 min)
 
-**Usuário:** silvia@deadesign.com.br (Manager)
+**Usuário:** Manager (obter credenciais via canal seguro)
 
 ### 3.1 Criar Grupo de Ação
 1. Navegar para `Grupos de Ação`
@@ -164,7 +164,7 @@ Senha: DEA@pdi
 | [ ] Lista de competências visível | ⬜ |
 
 ### 4.3 Dashboard de Saúde Mental (HR)
-**Usuário:** alexia@deadesign.com.br
+**Usuário:** HR (obter credenciais via canal seguro)
 
 1. Navegar para `Saúde Mental`
 
