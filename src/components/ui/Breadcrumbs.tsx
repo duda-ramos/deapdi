@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, Home, MoreHorizontal } from 'lucide-react';
 
 export interface BreadcrumbItem {
@@ -93,7 +93,6 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
   separator,
 }) => {
   const location = useLocation();
-  const params = useParams();
 
   // Gerar items automaticamente a partir da rota se não foram fornecidos
   const items = useMemo((): BreadcrumbItem[] => {
@@ -268,7 +267,6 @@ interface UseBreadcrumbsOptions {
 
 export function useBreadcrumbs(options: UseBreadcrumbsOptions = {}): BreadcrumbItem[] {
   const location = useLocation();
-  const params = useParams();
 
   return useMemo(() => {
     if (options.customItems && options.customItems.length > 0) {

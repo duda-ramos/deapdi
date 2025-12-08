@@ -1,5 +1,5 @@
 import { isValidEmail, isValidPassword } from './security';
-import { validationMessages, getFieldValidationMessage } from '../lib/errorMessages';
+import { validationMessages } from '../lib/errorMessages';
 
 export interface ValidationRule {
   required?: boolean;
