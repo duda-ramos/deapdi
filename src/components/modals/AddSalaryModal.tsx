@@ -7,6 +7,7 @@ import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
+import { getAvatarUrl, handleImageError } from '../../utils/images';
 
 interface AddSalaryModalProps {
   isOpen: boolean;
@@ -161,9 +162,10 @@ export const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
             <div className="mt-3 p-3 bg-white rounded-lg border">
               <div className="flex items-center space-x-3">
                 <img
-                  src={selectedProfile.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=48&h=48&fit=crop&crop=face'}
+                  src={getAvatarUrl(selectedProfile.avatar_url, selectedProfile.name)}
                   alt={selectedProfile.name}
                   className="w-10 h-10 rounded-full object-cover"
+                  onError={(e) => handleImageError(e, selectedProfile.name)}
                 />
                 <div>
                   <p className="font-medium text-gray-900">{selectedProfile.name}</p>

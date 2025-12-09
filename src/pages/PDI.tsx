@@ -22,7 +22,6 @@ const PDI: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedPDI, setSelectedPDI] = useState<PDIType | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -123,12 +122,13 @@ const PDI: React.FC = () => {
 
           // Check for career progression after PDI completion
           if (newStatus === 'validated') {
+            const currentUserId = user.id;
             setTimeout(async () => {
               try {
                 const { careerTrackService } = await import('../services/careerTrack');
-                await careerTrackService.checkProgression(user.id);
-              } catch (error) {
-                console.error('Error checking career progression:', error);
+                await careerTrackService.checkProgression(currentUserId);
+              } catch (progressError) {
+                console.error('Error checking career progression:', progressError);
               }
             }, 1500);
           }
@@ -138,6 +138,7 @@ const PDI: React.FC = () => {
       loadPDIs();
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao atualizar status do PDI');
     }
   };
 

@@ -22,6 +22,7 @@ import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { getAvatarUrl, handleImageError, DEFAULT_AVATAR_PLACEHOLDER } from '../utils/images';
 
 interface Subordinate {
   id: string;
@@ -77,19 +78,19 @@ const ManagerFeedbackForm: React.FC = () => {
           id: '1',
           name: 'João Silva',
           position: 'Desenvolvedor Pleno',
-          avatar_url: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'
+          avatar_url: undefined
         },
         {
           id: '2',
           name: 'Maria Santos',
           position: 'Designer UX/UI',
-          avatar_url: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?w=150&h=150&fit=crop&crop=face'
+          avatar_url: undefined
         },
         {
           id: '3',
           name: 'Pedro Costa',
           position: 'Analista de Qualidade',
-          avatar_url: 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?w=150&h=150&fit=crop&crop=face'
+          avatar_url: undefined
         }
       ];
 
@@ -304,9 +305,10 @@ const ManagerFeedbackForm: React.FC = () => {
               >
                 <div className="flex items-center space-x-3">
                   <img
-                    src={subordinate.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+                    src={getAvatarUrl(subordinate.avatar_url, subordinate.name)}
                     alt={subordinate.name}
                     className="w-10 h-10 rounded-full object-cover"
+                    onError={(e) => handleImageError(e, subordinate.name)}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">{subordinate.name}</p>
@@ -332,9 +334,10 @@ const ManagerFeedbackForm: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
               <img
-                src={currentSubordinateData.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+                src={getAvatarUrl(currentSubordinateData.avatar_url, currentSubordinateData.name)}
                 alt={currentSubordinateData.name}
                 className="w-12 h-12 rounded-full object-cover"
+                onError={(e) => handleImageError(e, currentSubordinateData.name)}
               />
               <div>
                 <h3 className="text-xl font-semibold text-gray-900">{currentSubordinateData.name}</h3>

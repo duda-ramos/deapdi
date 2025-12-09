@@ -3,6 +3,7 @@ import { LogOut, Menu, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
 import { NotificationCenter } from '../NotificationCenter';
+import { getAvatarUrl, handleImageError } from '../../utils/images';
 
 interface HeaderProps {
   onOpenMenu?: () => void;
@@ -52,9 +53,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMenu }) => {
 
             <div className="flex items-center gap-3">
               <img
-                src={user?.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+                src={getAvatarUrl(user?.avatar_url, user?.name)}
                 alt={user?.name}
                 className="h-10 w-10 rounded-full object-cover"
+                onError={(e) => handleImageError(e, user?.name)}
               />
               <Button
                 variant="ghost"

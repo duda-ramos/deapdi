@@ -7,6 +7,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { LoadingScreen } from '../ui/LoadingScreen';
+import { getAvatarUrl, handleImageError } from '../../utils/images';
 
 interface OrgNode {
   profile: Profile;
@@ -95,9 +96,10 @@ export const OrganizationalChart: React.FC<OrganizationalChartProps> = ({
               )}
               
               <img
-                src={profile.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=40&h=40&fit=crop&crop=face'}
+                src={getAvatarUrl(profile.avatar_url, profile.name)}
                 alt={profile.name}
                 className="w-10 h-10 rounded-full object-cover"
+                onError={(e) => handleImageError(e, profile.name)}
               />
               
               <div>
@@ -257,9 +259,10 @@ export const OrganizationalChart: React.FC<OrganizationalChartProps> = ({
                 <Card key={member.id} className="p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-center space-x-3">
                     <img
-                      src={member.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=40&h=40&fit=crop&crop=face'}
+                      src={getAvatarUrl(member.avatar_url, member.name)}
                       alt={member.name}
                       className="w-10 h-10 rounded-full object-cover"
+                      onError={(e) => handleImageError(e, member.name)}
                     />
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900">{member.name}</h4>

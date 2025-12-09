@@ -42,6 +42,7 @@ import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
+import { getAvatarUrl, handleImageError } from '../utils/images';
 import { Table } from '../components/ui/Table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
@@ -208,9 +209,10 @@ const MentalHealthAdmin: React.FC = () => {
       render: (value: any) => (
         <div className="flex items-center space-x-2">
           <img
-            src={value?.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face'}
+            src={getAvatarUrl(value?.avatar_url, value?.name)}
             alt={value?.name}
             className="w-8 h-8 rounded-full object-cover"
+            onError={(e) => handleImageError(e, value?.name)}
           />
           <span className="font-medium">{value?.name}</span>
         </div>
@@ -271,9 +273,10 @@ const MentalHealthAdmin: React.FC = () => {
       render: (value: any) => (
         <div className="flex items-center space-x-2">
           <img
-            src={value?.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face'}
+            src={getAvatarUrl(value?.avatar_url, value?.name)}
             alt={value?.name}
             className="w-8 h-8 rounded-full object-cover"
+            onError={(e) => handleImageError(e, value?.name)}
           />
           <span className="font-medium">{value?.name}</span>
         </div>

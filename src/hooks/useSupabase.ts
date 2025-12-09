@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -18,38 +18,55 @@ export function useSupabaseQuery<T>(
     error: null
   });
 
+  // Memoize the query function to prevent unnecessary re-renders
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const memoizedDeps = useMemo(() => dependencies, [...dependencies]);
+
+  const fetchData = useCallback(async () => {
+    // Check if Supabase is available
+    if (!supabase) {
+      setState({
+        data: null,
+        loading: false,
+        error: { message: 'Supabase not available', details: '', hint: '', code: 'SUPABASE_UNAVAILABLE' } as PostgrestError
+      });
+      return;
+    }
+
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      const result = await query();
+      
+      setState({
+        data: result.data,
+        loading: false,
+        error: result.error
+      });
+    } catch (error) {
+      setState({
+        data: null,
+        loading: false,
+        error: error as PostgrestError
+      });
+    }
+  }, [query]);
+
   useEffect(() => {
     let mounted = true;
 
-    const fetchData = async () => {
-      try {
-        setState(prev => ({ ...prev, loading: true, error: null }));
-        const result = await query();
-        
-        if (mounted) {
-          setState({
-            data: result.data,
-            loading: false,
-            error: result.error
-          });
-        }
-      } catch (error) {
-        if (mounted) {
-          setState({
-            data: null,
-            loading: false,
-            error: error as PostgrestError
-          });
-        }
+    const doFetch = async () => {
+      if (mounted) {
+        await fetchData();
       }
     };
 
-    fetchData();
+    doFetch();
 
     return () => {
       mounted = false;
     };
-  }, dependencies);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchData, memoizedDeps]);
 
   return state;
 }
@@ -106,6 +123,14 @@ export function useSupabaseSubscription<T>(
     let subscription: any;
 
     const setupSubscription = () => {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('useSupabaseSubscription: Supabase not available');
+        setError(new Error('Supabase not available'));
+        setLoading(false);
+        return;
+      }
+
       try {
         const channel = supabase
           .channel(`${table}_changes`)
@@ -136,7 +161,7 @@ export function useSupabaseSubscription<T>(
     setupSubscription();
 
     return () => {
-      if (subscription) {
+      if (subscription && supabase) {
         supabase.removeChannel(subscription);
       }
     };

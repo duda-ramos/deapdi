@@ -1,4 +1,16 @@
 import { apiRateLimiter } from '../utils/security';
+import { PostgrestError } from '@supabase/supabase-js';
+
+/**
+ * Type for Supabase operation errors
+ */
+export interface SupabaseOperationError {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+  name?: string;
+}
 
 /**
  * Enhanced fetch wrapper with rate limiting and error handling
@@ -66,7 +78,7 @@ export const apiRequest = async (
  * Supabase request wrapper with enhanced error handling
  */
 export const supabaseRequest = async <T>(
-  operation: () => Promise<{ data: T | null; error: any }>,
+  operation: () => Promise<{ data: T | null; error: PostgrestError | SupabaseOperationError | null }>,
   context: string
 ): Promise<T> => {
   try {

@@ -1190,7 +1190,7 @@ export const mentalHealthService = {
       const [checkins, sessions, responses] = await Promise.all([
         this.getEmotionalCheckins(employeeId, 7),
         this.getSessions(employeeId),
-        this.getFormSubmissions({ targetUser: employeeId })
+        this.getFormResponses(employeeId)
       ]);
 
       // Calculate wellness trend based on recent checkins

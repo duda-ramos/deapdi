@@ -44,6 +44,7 @@ export const NotificationCenter: React.FC = () => {
   const bellButtonRef = useRef<HTMLButtonElement>(null);
   const [activeNotificationIndex, setActiveNotificationIndex] = useState(-1);
   const notificationRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Keyboard shortcuts for the notification panel
   useKeyboardShortcuts({
@@ -194,6 +195,12 @@ export const NotificationCenter: React.FC = () => {
     notificationService.requestBrowserPermission();
 
     return () => {
+      // Clean up reconnect timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      
       // Clean up subscription
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
@@ -205,7 +212,8 @@ export const NotificationCenter: React.FC = () => {
       unsubscribe();
       memoryMonitor.logMemoryUsage('NotificationCenter', 'Component unmounted - cleanup complete');
     };
-  }, [user, loadNotifications, loadPreferences, loadStats, reconnectAttempts]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loadNotifications, loadPreferences, loadStats]);
 
   /**
    * Configures the real-time notification subscription.
@@ -256,7 +264,12 @@ export const NotificationCenter: React.FC = () => {
               const delay = Math.pow(2, reconnectAttempts) * 1000;
               console.log(`🔔 NotificationCenter: Reconnecting in ${delay}ms...`);
               
-              setTimeout(() => {
+              // Clear any existing timeout before setting a new one
+              if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+              }
+              
+              reconnectTimeoutRef.current = setTimeout(() => {
                 setReconnectAttempts(prev => prev + 1);
               }, delay);
             }
