@@ -16,6 +16,7 @@ import { Badge } from '../ui/Badge';
 import { ProgressBar } from '../ui/ProgressBar';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
+import { getAvatarUrl, handleImageError } from '../../utils/images';
 
 interface TeamInsightsProps {
   teamId: string;
@@ -177,9 +178,10 @@ export const TeamInsights: React.FC<TeamInsightsProps> = ({ teamId, teamName }) 
             >
               <div className="flex items-center space-x-3 mb-3">
                 <img
-                  src={member.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=40&h=40&fit=crop&crop=face'}
+                  src={getAvatarUrl(member.avatar_url, member.name)}
                   alt={member.name}
                   className="w-10 h-10 rounded-full object-cover"
+                  onError={(e) => handleImageError(e, member.name)}
                 />
                 <div>
                   <h4 className="font-medium text-gray-900">{member.name}</h4>

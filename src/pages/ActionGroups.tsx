@@ -15,6 +15,7 @@ import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { getAvatarUrl, handleImageError } from '../utils/images';
 
 const createInitialGroupForm = (): CreateGroupData => ({
   title: '',
@@ -567,9 +568,10 @@ const ActionGroups: React.FC = () => {
                     className="rounded"
                   />
                   <img
-                    src={profile.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face'}
+                    src={getAvatarUrl(profile.avatar_url, profile.name)}
                     alt={profile.name}
                     className="w-8 h-8 rounded-full object-cover"
+                    onError={(e) => handleImageError(e, profile.name)}
                   />
                   <div>
                     <span className="text-sm font-medium">{profile.name}</span>
@@ -746,9 +748,10 @@ const ActionGroups: React.FC = () => {
                       <div key={participant.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                         <div className="flex items-center space-x-2">
                           <img
-                            src={participant.profile?.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face'}
+                            src={getAvatarUrl(participant.profile?.avatar_url, participant.profile?.name)}
                             alt={participant.profile?.name}
                             className="w-6 h-6 rounded-full object-cover"
+                            onError={(e) => handleImageError(e, participant.profile?.name)}
                           />
                           <div>
                             <span className="text-sm font-medium">
@@ -789,9 +792,10 @@ const ActionGroups: React.FC = () => {
                     <div key={contribution.profile_id} className="p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center space-x-3 mb-2">
                         <img
-                          src={contribution.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face'}
+                          src={getAvatarUrl(contribution.avatar_url, contribution.name)}
                           alt={contribution.name}
                           className="w-8 h-8 rounded-full object-cover"
+                          onError={(e) => handleImageError(e, contribution.name)}
                         />
                         <div>
                           <span className="font-medium text-gray-900">{contribution.name}</span>

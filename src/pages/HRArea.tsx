@@ -26,6 +26,7 @@ import { Table } from '../components/ui/Table';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { AddSalaryModal } from '../components/modals/AddSalaryModal';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { getAvatarUrl, handleImageError } from '../utils/images';
 
 type CompetencyGapChartData = {
   competency: string;
@@ -196,9 +197,10 @@ const HRArea: React.FC = () => {
       render: (value: string, row: Profile) => (
         <div className="flex items-center space-x-3">
           <img
-            src={row.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+            src={getAvatarUrl(row.avatar_url, value)}
             alt={value}
             className="w-8 h-8 rounded-full object-cover"
+            onError={(e) => handleImageError(e, value)}
           />
           <span className="font-medium">{value}</span>
         </div>
@@ -483,9 +485,10 @@ const HRArea: React.FC = () => {
                           {index + 1}
                         </div>
                         <img
-                          src={profile.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+                          src={getAvatarUrl(profile.avatar_url, profile.name)}
                           alt={profile.name}
                           className="w-8 h-8 rounded-full object-cover"
+                          onError={(e) => handleImageError(e, profile.name)}
                         />
                         <div>
                           <p className="font-medium text-gray-900">{profile.name}</p>

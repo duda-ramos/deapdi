@@ -12,6 +12,7 @@ import { Textarea } from '../components/ui/Textarea';
 import { Badge } from '../components/ui/Badge';
 import { Timeline } from '../components/ui/Timeline';
 import { AvatarUpload } from '../components/ui/AvatarUpload';
+import { getAvatarUrl, handleImageError } from '../utils/images';
 
 const Profile: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -190,9 +191,10 @@ const Profile: React.FC = () => {
             ) : (
               <div className="relative inline-block mb-4">
                 <img
-                  src={user.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+                  src={getAvatarUrl(user.avatar_url, user.name)}
                   alt={user.name}
                   className="w-32 h-32 rounded-full object-cover mx-auto"
+                  onError={(e) => handleImageError(e, user.name)}
                 />
                 <div className={`absolute bottom-2 right-2 w-6 h-6 rounded-full border-2 border-white ${
                   user.status === 'active' ? 'bg-green-500' : 'bg-gray-400'

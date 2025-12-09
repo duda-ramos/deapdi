@@ -28,6 +28,7 @@ import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { getAvatarUrl, handleImageError } from '../utils/images';
 
 const createInitialRequestForm = () => ({
   mentorId: '',
@@ -372,9 +373,10 @@ const Mentorship: React.FC = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <img
-                      src={mentorship.mentor?.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+                      src={getAvatarUrl(mentorship.mentor?.avatar_url, mentorship.mentor?.name)}
                       alt={mentorship.mentor?.name}
                       className="w-12 h-12 rounded-full object-cover"
+                      onError={(e) => handleImageError(e, mentorship.mentor?.name)}
                     />
                     <div>
                       <h3 className="font-semibold text-gray-900">
@@ -448,9 +450,10 @@ const Mentorship: React.FC = () => {
             <div key={mentor.id} className="p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center space-x-3 mb-3">
                 <img
-                  src={mentor.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+                  src={getAvatarUrl(mentor.avatar_url, mentor.name)}
                   alt={mentor.name}
                   className="w-10 h-10 rounded-full object-cover"
+                  onError={(e) => handleImageError(e, mentor.name)}
                 />
                 <div>
                   <h4 className="font-medium text-gray-900">{mentor.name}</h4>
@@ -638,9 +641,10 @@ const Mentorship: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <img
-                    src={selectedMentorship.mentor?.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+                    src={getAvatarUrl(selectedMentorship.mentor?.avatar_url, selectedMentorship.mentor?.name)}
                     alt={selectedMentorship.mentor?.name}
                     className="w-12 h-12 rounded-full object-cover"
+                    onError={(e) => handleImageError(e, selectedMentorship.mentor?.name)}
                   />
                   <div>
                     <h3 className="font-semibold text-gray-900">

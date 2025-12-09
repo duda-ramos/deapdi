@@ -13,6 +13,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Textarea } from '../components/ui/Textarea';
+import { getAvatarUrl, handleImageError } from '../utils/images';
 
 interface UserFormData {
   email: string;
@@ -166,9 +167,10 @@ const UserManagement: React.FC = () => {
       render: (value: string, row: Profile) => (
         <div className="flex items-center space-x-3">
           <img
-            src={row.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=150&h=150&fit=crop&crop=face'}
+            src={getAvatarUrl(row.avatar_url, value)}
             alt={value}
             className="w-8 h-8 rounded-full object-cover"
+            onError={(e) => handleImageError(e, value)}
           />
           <span className="font-medium">{value}</span>
         </div>

@@ -12,10 +12,10 @@
 |------------|-------------|------------|
 | 🔴 Crítico | 3 | 3 ✅ |
 | 🟠 Médio | 5 | 5 ✅ |
-| 🟡 Baixo | 6 | 5 ✅ |
-| **Total** | **14** | **13** |
+| 🟡 Baixo | 6 | 6 ✅ |
+| **Total** | **14** | **14** |
 
-> **Nota:** O bug #11 (Hardcoded Fallback Image URLs) não foi corrigido pois requer a adição de assets locais, o que está fora do escopo desta correção.
+> ✅ **Todos os bugs foram corrigidos com sucesso!**
 
 ---
 
@@ -142,14 +142,30 @@
 
 ---
 
-## 🚫 Bugs Não Corrigidos
+## ✅ Bug #11: Hardcoded Fallback Image URLs - CORRIGIDO
+**Arquivos:** 13 arquivos atualizados
 
-### Bug #11: Hardcoded Fallback Image URLs
-**Arquivos:** Múltiplos componentes
+**Solução implementada:**
+1. Criado novo utilitário `src/utils/images.ts` com:
+   - `getAvatarUrl()` - Retorna URL do avatar ou gera avatar com iniciais
+   - `handleImageError()` - Handler para erro de carregamento de imagem
+   - `generateInitialsAvatar()` - Gera avatar SVG com iniciais do nome
+   - `DEFAULT_AVATAR_PLACEHOLDER` - Placeholder SVG padrão
 
-**Motivo:** Requer adição de assets de imagem locais, o que está fora do escopo desta correção de código. Recomenda-se:
-1. Adicionar uma imagem de fallback local em `/public/images/avatar-placeholder.png`
-2. Substituir as URLs externas por referências locais
+2. Atualizados 13 arquivos para usar o novo utilitário:
+   - `src/pages/ActionGroups.tsx`
+   - `src/pages/HRArea.tsx`
+   - `src/pages/TeamManagement.tsx`
+   - `src/pages/PeopleManagement.tsx`
+   - `src/pages/Profile.tsx`
+   - `src/pages/MentalHealthAdmin.tsx`
+   - `src/pages/ManagerFeedbackForm.tsx`
+   - `src/pages/Mentorship.tsx`
+   - `src/pages/UserManagement.tsx`
+   - `src/components/people/OrganizationalChart.tsx`
+   - `src/components/people/TeamInsights.tsx`
+   - `src/components/modals/AddSalaryModal.tsx`
+   - `src/components/layout/Header.tsx`
 
 ---
 
@@ -173,12 +189,30 @@ Todas as correções foram validadas:
 
 ## 📁 Arquivos Modificados
 
+### Fase 1 - Críticos
 1. `src/services/database.ts`
 2. `src/services/mentalHealth.ts`
 3. `src/hooks/useSupabase.ts`
+
+### Fase 2 - Médios
 4. `src/components/NotificationCenter.tsx`
 5. `src/pages/PDI.tsx`
 6. `src/pages/ActionGroups.tsx`
 7. `src/services/mentorship.ts`
+
+### Fase 3 - Baixos
 8. `src/utils/security.ts`
 9. `src/services/api.ts`
+10. `src/utils/images.ts` (NOVO)
+11. `src/components/layout/Header.tsx`
+12. `src/pages/Profile.tsx`
+13. `src/pages/Mentorship.tsx`
+14. `src/pages/TeamManagement.tsx`
+15. `src/pages/PeopleManagement.tsx`
+16. `src/pages/HRArea.tsx`
+17. `src/pages/UserManagement.tsx`
+18. `src/pages/MentalHealthAdmin.tsx`
+19. `src/pages/ManagerFeedbackForm.tsx`
+20. `src/components/people/OrganizationalChart.tsx`
+21. `src/components/modals/AddSalaryModal.tsx`
+22. `src/components/people/TeamInsights.tsx`

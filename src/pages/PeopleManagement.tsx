@@ -18,6 +18,7 @@ import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Table } from '../components/ui/Table';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { getAvatarUrl, handleImageError } from '../utils/images';
 
 interface PeopleFilters {
   search: string;
@@ -529,9 +530,10 @@ const PeopleManagement: React.FC = () => {
       render: (value: string, row: Profile) => (
         <div className="flex items-center space-x-3">
           <img
-            src={row.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face'}
+            src={getAvatarUrl(row.avatar_url, value)}
             alt={value}
             className="w-8 h-8 rounded-full object-cover"
+            onError={(e) => handleImageError(e, value)}
           />
           <div>
             <span className="font-medium text-gray-900">{value}</span>
@@ -886,9 +888,10 @@ const PeopleManagement: React.FC = () => {
             {/* Header with Photo and Basic Info */}
             <div className="flex items-center space-x-6 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
               <img
-                src={selectedProfile.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=96&h=96&fit=crop&crop=face'}
+                src={getAvatarUrl(selectedProfile.avatar_url, selectedProfile.name)}
                 alt={selectedProfile.name}
                 className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                onError={(e) => handleImageError(e, selectedProfile.name)}
               />
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-gray-900">{selectedProfile.name}</h2>

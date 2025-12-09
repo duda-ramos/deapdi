@@ -31,6 +31,7 @@ import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Table } from '../components/ui/Table';
+import { getAvatarUrl, handleImageError } from '../utils/images';
 
 const TeamManagement: React.FC = () => {
   const { user } = useAuth();
@@ -281,9 +282,10 @@ const TeamManagement: React.FC = () => {
       render: (value: Profile | null) => value ? (
         <div className="flex items-center space-x-2">
           <img
-            src={value.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face'}
+            src={getAvatarUrl(value.avatar_url, value.name)}
             alt={value.name}
             className="w-6 h-6 rounded-full object-cover"
+            onError={(e) => handleImageError(e, value.name)}
           />
           <span className="text-sm font-medium">{value.name}</span>
         </div>
@@ -608,9 +610,10 @@ const TeamManagement: React.FC = () => {
                 {selectedTeam.members.map((member) => (
                   <div key={member.id} className="flex items-center space-x-2 p-2 bg-white rounded">
                     <img
-                      src={member.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=24&h=24&fit=crop&crop=face'}
+                      src={getAvatarUrl(member.avatar_url, member.name)}
                       alt={member.name}
                       className="w-5 h-5 rounded-full object-cover"
+                      onError={(e) => handleImageError(e, member.name)}
                     />
                     <span className="text-sm">{member.name}</span>
                     <Badge variant={member.status === 'active' ? 'success' : 'default'} size="sm">
@@ -685,9 +688,10 @@ const TeamManagement: React.FC = () => {
                           className="rounded"
                         />
                         <img
-                          src={member.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face'}
+                          src={getAvatarUrl(member.avatar_url, member.name)}
                           alt={member.name}
                           className="w-8 h-8 rounded-full object-cover"
+                          onError={(e) => handleImageError(e, member.name)}
                         />
                         <div>
                           <span className="text-sm font-medium">{member.name}</span>
@@ -775,9 +779,10 @@ const TeamManagement: React.FC = () => {
                     {team.manager ? (
                       <div className="flex items-center space-x-2 p-2 bg-yellow-50 rounded-lg">
                         <img
-                          src={team.manager.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=32&h=32&fit=crop&crop=face'}
+                          src={getAvatarUrl(team.manager.avatar_url, team.manager.name)}
                           alt={team.manager.name}
                           className="w-8 h-8 rounded-full object-cover"
+                          onError={(e) => handleImageError(e, team.manager.name)}
                         />
                         <div>
                           <span className="text-sm font-medium">{team.manager.name}</span>
@@ -801,9 +806,10 @@ const TeamManagement: React.FC = () => {
                       {team.members?.slice(0, 3).map((member) => (
                         <div key={member.id} className="flex items-center space-x-2 p-1 bg-gray-50 rounded">
                           <img
-                            src={member.avatar_url || 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?w=24&h=24&fit=crop&crop=face'}
+                            src={getAvatarUrl(member.avatar_url, member.name)}
                             alt={member.name}
                             className="w-5 h-5 rounded-full object-cover"
+                            onError={(e) => handleImageError(e, member.name)}
                           />
                           <span className="text-xs">{member.name}</span>
                         </div>
