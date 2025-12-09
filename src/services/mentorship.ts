@@ -215,41 +215,47 @@ export const mentorshipService = {
         throw error;
       }
 
-      // Get ratings, session counts, and availability for each mentor
-      const mentorsWithStats = await Promise.all(
-        (mentors || []).map(async (mentor) => {
-          const [ratingsResult, slotsResult] = await Promise.all([
-            supabase
-              .from('mentor_ratings')
-              .select('rating')
-              .eq('mentor_id', mentor.id),
-            supabase
-              .from('session_slots')
-              .select('*')
-              .eq('mentor_id', mentor.id)
-              .eq('is_available', true)
-          ]);
+        // Get ratings, session counts, and availability for each mentor
+        const mentorsWithStats = await Promise.all(
+          (mentors || []).map(async (mentor) => {
+            const [ratingsResult, slotsResult] = await Promise.all([
+              supabase
+                .from('mentor_ratings')
+                .select('rating')
+                .eq('mentor_id', mentor.id),
+              supabase
+                .from('session_slots')
+                .select('*')
+                .eq('mentor_id', mentor.id)
+                .eq('is_available', true)
+            ]);
 
-          // Calculate average rating
-          const ratings = ratingsResult.data || [];
-          const averageRating = ratings.length > 0 
-            ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length 
-            : 4.5;
+            // Calculate average rating
+            const ratings = ratingsResult.data || [];
+            const averageRating = ratings.length > 0 
+              ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length 
+              : 4.5;
 
-          // Get total sessions count
-          const { count: totalSessions } = await supabase
-            .from('mentorship_sessions')
-            .select('*', { count: 'exact', head: true })
-            .or(`mentorship_id.in.(${await this.getUserMentorshipIds(mentor.id)})`);
+            // Get total sessions count using parameterized query
+            const mentorshipIds = await this.getUserMentorshipIdsArray(mentor.id);
+            let totalSessions = 0;
+            
+            if (mentorshipIds.length > 0) {
+              const { count } = await supabase
+                .from('mentorship_sessions')
+                .select('*', { count: 'exact', head: true })
+                .in('mentorship_id', mentorshipIds);
+              totalSessions = count || 0;
+            }
 
-          return {
-            ...mentor,
-            average_rating: Math.round(averageRating * 10) / 10,
-            total_sessions: totalSessions || 0,
-            available_slots: slotsResult.data || []
-          };
-        })
-      );
+            return {
+              ...mentor,
+              average_rating: Math.round(averageRating * 10) / 10,
+              total_sessions: totalSessions,
+              available_slots: slotsResult.data || []
+            };
+          })
+        );
 
       console.log('🤝 Mentorship: Mentors with stats loaded:', mentorsWithStats.length);
       return mentorsWithStats;
@@ -468,12 +474,11 @@ export const mentorshipService = {
     console.log('🤝 Mentorship: Getting mentorship stats for:', profileId);
 
     try {
-      const [mentorships, sessions, ratingsGiven, ratingsReceived] = await Promise.all([
+      // Get mentorship IDs first for parameterized query
+      const mentorshipIds = await this.getUserMentorshipIdsArray(profileId);
+      
+      const [mentorships, ratingsGiven, ratingsReceived] = await Promise.all([
         this.getMentorships(profileId, 'both'),
-        supabase
-          .from('mentorship_sessions')
-          .select('status')
-          .or(`mentorship_id.in.(${await this.getUserMentorshipIds(profileId)})`),
         supabase
           .from('mentor_ratings')
           .select('rating')
@@ -483,6 +488,16 @@ export const mentorshipService = {
           .select('rating')
           .eq('mentor_id', profileId)
       ]);
+
+      // Fetch sessions only if there are mentorships
+      let sessionsData: any[] = [];
+      if (mentorshipIds.length > 0) {
+        const { data } = await supabase
+          .from('mentorship_sessions')
+          .select('status')
+          .in('mentorship_id', mentorshipIds);
+        sessionsData = data || [];
+      }
 
       const asMentor = mentorships.filter(m => m.mentor_id === profileId);
       const asMentee = mentorships.filter(m => m.mentee_id === profileId);
@@ -498,7 +513,7 @@ export const mentorshipService = {
           active: asMentee.filter(m => m.status === 'active').length,
           completed: asMentee.filter(m => m.status === 'completed').length
         },
-        total_sessions: sessions.data?.filter(s => s.status === 'completed').length || 0,
+        total_sessions: sessionsData.filter(s => s.status === 'completed').length,
         average_rating_given: this.calculateAverageRating(ratingsGiven.data || []),
         average_rating_received: this.calculateAverageRating(ratingsReceived.data || [])
       };
@@ -521,6 +536,20 @@ export const mentorshipService = {
     } catch (error) {
       console.error('🤝 Mentorship: Error getting mentorship IDs:', error);
       return '';
+    }
+  },
+
+  async getUserMentorshipIdsArray(profileId: string): Promise<string[]> {
+    try {
+      const { data } = await supabase
+        .from('mentorships')
+        .select('id')
+        .or(`mentor_id.eq.${profileId},mentee_id.eq.${profileId}`);
+
+      return data?.map(m => m.id) || [];
+    } catch (error) {
+      console.error('🤝 Mentorship: Error getting mentorship IDs:', error);
+      return [];
     }
   },
 

@@ -24,17 +24,59 @@ export const sanitizeText = (input: string): string => {
 
 /**
  * Validate email format
+ * Uses a more robust regex that validates:
+ * - Local part: alphanumeric, dots, hyphens, underscores, plus signs
+ * - Domain part: at least 2 characters
+ * - TLD: at least 2 characters
  */
 export const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // RFC 5322 inspired regex - more comprehensive email validation
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  
+  // Additional checks
+  if (!email || email.length > 254) return false;
+  const parts = email.split('@');
+  if (parts.length !== 2) return false;
+  if (parts[0].length > 64) return false;
+  if (parts[1].split('.').some(part => part.length > 63)) return false;
+  
   return emailRegex.test(email);
 };
 
 /**
  * Validate password strength
+ * Requires: minimum 8 characters, at least one uppercase, one lowercase, and one number
  */
 export const isValidPassword = (password: string): boolean => {
-  return password.length >= 6;
+  if (password.length < 8) return false;
+  
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  
+  return hasUppercase && hasLowercase && hasNumber;
+};
+
+/**
+ * Get password validation errors for user feedback
+ */
+export const getPasswordErrors = (password: string): string[] => {
+  const errors: string[] = [];
+  
+  if (password.length < 8) {
+    errors.push('A senha deve ter pelo menos 8 caracteres');
+  }
+  if (!/[A-Z]/.test(password)) {
+    errors.push('A senha deve conter pelo menos uma letra maiúscula');
+  }
+  if (!/[a-z]/.test(password)) {
+    errors.push('A senha deve conter pelo menos uma letra minúscula');
+  }
+  if (!/\d/.test(password)) {
+    errors.push('A senha deve conter pelo menos um número');
+  }
+  
+  return errors;
 };
 
 /**

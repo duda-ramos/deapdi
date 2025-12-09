@@ -134,6 +134,11 @@ export const databaseService = {
   },
   // Competencies
   async getCompetencies(profileId: string) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('competencies')
       .select('*')
@@ -145,6 +150,11 @@ export const databaseService = {
   },
 
   async getAllCompetencies() {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('competencies')
       .select('*')
@@ -155,6 +165,11 @@ export const databaseService = {
   },
 
   async createCompetency(competency: Omit<Competency, 'id' | 'created_at' | 'updated_at'>) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     const { data, error } = await supabase
       .from('competencies')
       .insert(competency)
@@ -166,6 +181,11 @@ export const databaseService = {
   },
 
   async updateCompetency(id: string, updates: Partial<Competency>) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     const { data, error } = await supabase
       .from('competencies')
       .update(updates)
@@ -178,6 +198,11 @@ export const databaseService = {
   },
 
   async deleteCompetency(id: string) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     const { error } = await supabase
       .from('competencies')
       .delete()
@@ -188,6 +213,11 @@ export const databaseService = {
 
   // PDIs
   async getPDIs(profileId: string) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('pdis')
       .select(`
@@ -204,6 +234,11 @@ export const databaseService = {
   },
 
   async createPDI(pdi: Omit<PDI, 'id' | 'created_at' | 'updated_at'>) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     const { data, error } = await supabase
       .from('pdis')
       .insert(pdi)
@@ -215,6 +250,11 @@ export const databaseService = {
   },
 
   async updatePDI(id: string, updates: Partial<PDI>) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     const { data, error } = await supabase
       .from('pdis')
       .update(updates)
@@ -277,6 +317,11 @@ export const databaseService = {
 
   // Salary History
   async getSalaryHistory(profileId: string) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('salary_history')
       .select('*')
@@ -288,6 +333,11 @@ export const databaseService = {
   },
 
   async addSalaryEntry(entry: Omit<SalaryEntry, 'id' | 'created_at'>) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     const { data, error } = await supabase
       .from('salary_history')
       .insert(entry)
@@ -300,6 +350,11 @@ export const databaseService = {
 
   // Notifications
   async getNotifications(profileId: string, unreadOnly = false) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      return [];
+    }
+
     let query = supabase
       .from('notifications')
       .select('*')
@@ -315,6 +370,11 @@ export const databaseService = {
   },
 
   async markNotificationAsRead(id: string) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     const { data, error } = await supabase
       .from('notifications')
       .update({ read: true })
@@ -327,6 +387,11 @@ export const databaseService = {
   },
 
   async createNotification(notification: Omit<Notification, 'id' | 'created_at'>) {
+    if (!supabase) {
+      console.warn('🗄️ Database: Supabase not available');
+      throw new Error('Database not available');
+    }
+
     const { data, error } = await supabase
       .from('notifications')
       .insert(notification)

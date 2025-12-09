@@ -209,14 +209,18 @@ const ActionGroups: React.FC = () => {
       await loadData();
       
       // Check for career progression after group completion
-      setTimeout(async () => {
-        try {
-          const { careerTrackService } = await import('../services/careerTrack');
-          await careerTrackService.checkProgression(user.id);
-        } catch (error) {
-          console.error('Error checking career progression:', error);
-        }
-      }, 1500);
+      // Capture user ID to avoid null reference in async callback
+      const currentUserId = user?.id;
+      if (currentUserId) {
+        setTimeout(async () => {
+          try {
+            const { careerTrackService } = await import('../services/careerTrack');
+            await careerTrackService.checkProgression(currentUserId);
+          } catch (progressError) {
+            console.error('Error checking career progression:', progressError);
+          }
+        }, 1500);
+      }
     } catch (error) {
       console.error('Erro ao concluir grupo:', error);
     }
