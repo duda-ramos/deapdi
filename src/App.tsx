@@ -73,8 +73,9 @@ const useSupabaseSetup = () => {
     const offlineMode = localStorage.getItem('OFFLINE_MODE') === 'true';
     const skipHealthCheck = import.meta.env.VITE_SKIP_HEALTH_CHECK === 'true';
 
-    if (skipHealthCheck && import.meta.env.DEV) {
-      console.log('🔧 Setup: Health check skipped (dev mode)');
+    // In production, skip health check to allow app to load faster
+    if (import.meta.env.PROD || skipHealthCheck || offlineMode) {
+      console.log('🔧 Setup: Health check skipped (production/dev mode)');
       setConfigStatus({
         isConfigured: true,
         isValid: true,
