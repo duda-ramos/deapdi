@@ -24,6 +24,25 @@ export const performance = {
     if (window.performance && window.performance.clearMeasures) {
       window.performance.clearMeasures();
     }
+  },
+  monitorWebVitals: () => {
+    if (typeof window === 'undefined') return;
+
+    import('web-vitals').then(({ onCLS, onINP, onLCP, onFCP, onTTFB }) => {
+      const reportMetric = (metric: { name: string; value: number; id: string }) => {
+        if (import.meta.env.DEV) {
+          console.log(`[Web Vitals] ${metric.name}`, metric);
+        }
+      };
+
+      onCLS(reportMetric);
+      onINP(reportMetric);
+      onLCP(reportMetric);
+      onFCP(reportMetric);
+      onTTFB(reportMetric);
+    }).catch(() => {
+      // Ignore web-vitals load errors to avoid breaking the app shell.
+    });
   }
 };
 
