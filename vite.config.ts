@@ -58,10 +58,7 @@ export default defineConfig(({ mode }) => ({
         passes: 2
       },
       mangle: {
-        safari10: true,
-        properties: {
-          regex: /^_/
-        }
+        safari10: true
       },
       format: {
         comments: false
