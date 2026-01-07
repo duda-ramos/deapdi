@@ -90,7 +90,58 @@ const UserManagement: React.FC = () => {
     e.preventDefault();
     setCreating(true);
     try {
-      await authService.signUp(formData);
+      const signup = await authService.signUp({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        position: formData.position,
+        level: formData.level
+      });
+
+      if (!signup.success || !signup.user?.id) {
+        throw new Error(signup.error || 'Erro ao criar usuário');
+      }
+
+      const createdUserId = signup.user.id as string;
+
+      // Persist role/team/manager and optional fields into the created user's profile.
+      try {
+        await databaseService.updateProfile(createdUserId, {
+          role: formData.role,
+          level: formData.level,
+          position: formData.position,
+          team_id: formData.team_id || null,
+          manager_id: formData.manager_id || null,
+          bio: formData.bio || null,
+          formation: formData.formation || null
+        });
+      } catch (updateError) {
+        // Fallback for cases where the profile row isn't available yet.
+        const { supabase } = await import('../lib/supabase');
+        if (!supabase) throw updateError;
+
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: createdUserId,
+            email: formData.email,
+            name: formData.name,
+            position: formData.position,
+            level: formData.level,
+            role: formData.role,
+            team_id: formData.team_id || null,
+            manager_id: formData.manager_id || null,
+            bio: formData.bio || null,
+            formation: formData.formation || null,
+            status: 'active'
+          })
+          .select()
+          .single();
+
+        if (upsertError) {
+          throw updateError;
+        }
+      }
       setShowCreateModal(false);
       setFormData({
         email: '',
