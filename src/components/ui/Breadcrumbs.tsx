@@ -43,6 +43,7 @@ const routeLabels: Record<string, string> = {
   'action-groups': 'Grupos de Ações',
   'quality-assurance': 'Garantia de Qualidade',
   'people-management': 'Gestão de Pessoas',
+  management: 'Gestão',
   'analytics': 'Analytics',
   'evaluations': 'Avaliações',
   'wellness-admin': 'Admin Bem-estar',

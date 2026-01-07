@@ -36,6 +36,25 @@ import {
   LazyHRCalendar
 } from './components/LazyComponents';
 
+const ManagementRedirect: React.FC = () => {
+  const { user } = useAuth();
+
+  // Should be guarded by ProtectedRoute, but keep safe defaults.
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  switch (user.role) {
+    case 'manager':
+      return <Navigate to="/manager-feedback" replace />;
+    case 'admin':
+    case 'hr':
+      return <Navigate to="/people" replace />;
+    default:
+      return <Navigate to="/dashboard" replace />;
+  }
+};
+
 const useSupabaseSetup = () => {
   const [configStatus, setConfigStatus] = React.useState<ConfigurationStatus | null>(null);
   const [checking, setChecking] = React.useState(true);
@@ -202,6 +221,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <LazyDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/management"
+        element={
+          <ProtectedRoute>
+            <ManagementRedirect />
           </ProtectedRoute>
         }
       />
