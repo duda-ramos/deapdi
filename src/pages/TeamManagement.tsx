@@ -130,6 +130,15 @@ const TeamManagement: React.FC = () => {
     }
   }, [user?.id, user?.role, loadDataInternal]);
 
+  // If user is present but doesn't have access, stop the loader and show an error
+  useEffect(() => {
+    if (!user) return;
+    if (!permissionService.canCreateTeams(user.role)) {
+      setLoading(false);
+      setError('Você não tem permissão para acessar a gestão de times.');
+    }
+  }, [user?.id, user?.role]);
+
   // Function to reload data after updates
   const reloadData = useCallback(() => {
     loadDataInternal();
