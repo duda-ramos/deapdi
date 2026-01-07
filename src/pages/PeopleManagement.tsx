@@ -266,7 +266,7 @@ const PeopleManagement: React.FC = () => {
 
     try {
       const { authService } = await import('../services/auth');
-      await authService.signUp({
+      const signup = await authService.signUp({
         email: createForm.email,
         password: createForm.password,
         name: createForm.name,
@@ -274,14 +274,54 @@ const PeopleManagement: React.FC = () => {
         level: createForm.level
       });
 
-      // Update additional profile data
-      const newProfile = await databaseService.updateProfile(user.id, {
+      if (!signup.success || !signup.user?.id) {
+        throw new Error(signup.error || 'Erro ao criar usuário');
+      }
+
+      const createdUserId = signup.user.id as string;
+
+      // Update additional profile data for the *new* user (not the current logged-in admin/HR)
+      const profileUpdates = {
+        name: createForm.name,
+        email: createForm.email,
+        position: createForm.position,
+        level: createForm.level,
         role: createForm.role,
         team_id: createForm.team_id || null,
         manager_id: createForm.manager_id || null,
         bio: createForm.bio || null,
         formation: createForm.formation || null
-      });
+      } as const;
+
+      try {
+        await databaseService.updateProfile(createdUserId, profileUpdates);
+      } catch (updateError) {
+        // Fallback: if the profile row isn't available yet (or update is blocked), try upsert.
+        const { supabase } = await import('../lib/supabase');
+        if (!supabase) throw updateError;
+
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: createdUserId,
+            email: createForm.email,
+            name: createForm.name,
+            position: createForm.position,
+            level: createForm.level,
+            role: createForm.role,
+            team_id: createForm.team_id || null,
+            manager_id: createForm.manager_id || null,
+            bio: createForm.bio || null,
+            formation: createForm.formation || null,
+            status: 'active'
+          })
+          .select()
+          .single();
+
+        if (upsertError) {
+          throw updateError;
+        }
+      }
 
       setShowCreateModal(false);
       setCreateForm({
