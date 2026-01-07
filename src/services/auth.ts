@@ -20,7 +20,16 @@ class AuthService {
   /**
    * Sign up a new user
    */
-  async signUp(data: SignUpData): Promise<AuthResponse> {
+  async signUp(
+    data: SignUpData,
+    options?: {
+      /**
+       * When true, preserves the current session (useful for admins creating users).
+       * Note: this does NOT bypass Supabase auth rules; it only restores the previous session.
+       */
+      preserveSession?: boolean;
+    }
+  ): Promise<AuthResponse> {
     console.log('🔐 AuthService: Starting signup process');
     console.log('🔐 AuthService: Email:', data.email);
     console.log('🔐 AuthService: Name:', data.name);
@@ -34,6 +43,10 @@ class AuthService {
     }
 
     try {
+      const previousSession = options?.preserveSession
+        ? (await supabase.auth.getSession()).data.session
+        : null;
+
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -65,6 +78,18 @@ class AuthService {
           success: false,
           error: 'Falha ao criar usuário'
         };
+      }
+
+      // If the caller wants to preserve the current session (admin UX),
+      // restore it after the signUp call.
+      if (options?.preserveSession && previousSession) {
+        const { error: restoreError } = await supabase.auth.setSession({
+          access_token: previousSession.access_token,
+          refresh_token: previousSession.refresh_token
+        });
+        if (restoreError) {
+          console.warn('🔐 AuthService: Failed to restore previous session:', restoreError);
+        }
       }
 
       console.log('🔐 AuthService: Signup successful');

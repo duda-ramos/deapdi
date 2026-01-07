@@ -266,16 +266,20 @@ const PeopleManagement: React.FC = () => {
 
     try {
       const { authService } = await import('../services/auth');
-      await authService.signUp({
+      const result = await authService.signUp({
         email: createForm.email,
         password: createForm.password,
         name: createForm.name,
         position: createForm.position,
         level: createForm.level
-      });
+      }, { preserveSession: true });
+
+      if (!result.success || !result.user?.id) {
+        throw new Error(result.error || 'Erro ao criar usuário');
+      }
 
       // Update additional profile data
-      const newProfile = await databaseService.updateProfile(user.id, {
+      await databaseService.updateProfile(result.user.id, {
         role: createForm.role,
         team_id: createForm.team_id || null,
         manager_id: createForm.manager_id || null,
