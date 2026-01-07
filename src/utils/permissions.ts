@@ -16,11 +16,13 @@ export const permissionService = {
   },
 
   canManageTeam(userRole: UserRole): boolean {
-    return ['admin', 'manager'].includes(userRole);
+    // HR and Admin can manage across teams; Managers can manage within their scope.
+    return ['admin', 'hr', 'manager'].includes(userRole);
   },
 
   canCreateTeams(userRole: UserRole): boolean {
-    return userRole === 'admin';
+    // HR is allowed to create/manage teams in the UI.
+    return userRole === 'admin' || userRole === 'hr';
   },
 
   canChangeRoles(userRole: UserRole): boolean {

@@ -193,6 +193,15 @@ const PeopleManagement: React.FC = () => {
     }
   }, [user?.id, permissions?.canManageTeam, loadDataInternal]);
 
+  // If user is present but doesn't have access, stop the loader and show an error
+  useEffect(() => {
+    if (!user) return;
+    if (permissions && !permissions.canManageTeam) {
+      setLoading(false);
+      setError('Você não tem permissão para acessar a gestão de pessoas.');
+    }
+  }, [user?.id, permissions]);
+
   // Function to reload data after updates
   const reloadData = useCallback(() => {
     loadDataInternal();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { careerTrackService, CareerTrackTemplate, StageCompetency, StageSalaryRange } from '../services/careerTrack';
+import { permissionService } from '../utils/permissions';
 import { Card } from '../components/ui/Card';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { ErrorMessage } from '../utils/errorMessages';
@@ -70,19 +71,7 @@ const CareerTrackManagement: React.FC = () => {
     'Resolução de Problemas', 'Gestão de Tempo'
   ];
 
-  useEffect(() => {
-    if (user && user.role === 'admin') {
-      loadTemplates();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (selectedTemplate) {
-      loadTemplateDetails();
-    }
-  }, [selectedTemplate]);
-
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -94,7 +83,25 @@ const CareerTrackManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    if (permissionService.canManageCareerTracks(user.role)) {
+      loadTemplates();
+    } else {
+      // User logged in but no access: stop loader and show message
+      setLoading(false);
+      setError('Você não tem permissão para acessar a gestão de trilhas.');
+    }
+  }, [user?.id, user?.role, loadTemplates]);
+
+  useEffect(() => {
+    if (selectedTemplate) {
+      loadTemplateDetails();
+    }
+  }, [selectedTemplate]);
 
   const loadTemplateDetails = async () => {
     if (!selectedTemplate) return;
