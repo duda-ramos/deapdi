@@ -185,7 +185,7 @@ const Dashboard: React.FC = () => {
       <div className="rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 p-5 text-white sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-4">
-            <h1 className="text-2xl font-semibold sm:text-3xl">
+            <h1 className="text-2xl font-semibold sm:text-3xl text-white">
               Olá, {user?.name}!
             </h1>
             <p className="text-sm text-slate-200 sm:text-base">
