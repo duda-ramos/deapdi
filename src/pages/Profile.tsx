@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard as Edit, Save, X, User, Briefcase, Calendar, TrendingUp } from 'lucide-react';
+import { CreditCard as Edit, Save, X, User, Briefcase, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/database';
 import { authService } from '../services/auth';
@@ -21,13 +21,11 @@ const Profile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
-    bio: user?.bio || '',
-    formation: user?.formation || '',
     avatar_url: user?.avatar_url || ''
   });
 
   // Memoized handler to prevent input focus loss
-  const handleFormChange = useCallback((field: 'name' | 'bio' | 'formation' | 'avatar_url', value: string) => {
+  const handleFormChange = useCallback((field: 'name' | 'avatar_url', value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
 
@@ -35,8 +33,6 @@ const Profile: React.FC = () => {
     if (user) {
       setFormData({
         name: user.name,
-        bio: user.bio || '',
-        formation: user.formation || '',
         avatar_url: user.avatar_url || ''
       });
       loadSalaryHistory();
@@ -61,8 +57,6 @@ const Profile: React.FC = () => {
       setLoading(true);
       await authService.updateProfile(user.id, {
         name: formData.name,
-        bio: formData.bio || null,
-        formation: formData.formation || null,
         avatar_url: formData.avatar_url || null
       });
       await refreshUser();
@@ -78,8 +72,6 @@ const Profile: React.FC = () => {
     if (user) {
       setFormData({
         name: user.name,
-        bio: user.bio || '',
-        formation: user.formation || '',
         avatar_url: user.avatar_url || ''
       });
     }
@@ -142,12 +134,12 @@ const Profile: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Meu Perfil</h1>
           <p className="text-gray-600 mt-1">Gerencie suas informações pessoais e profissionais</p>
         </div>
-        {!isEditing ? (
+        {(!isEditing && user.role === 'admin') ? (
           <Button onClick={() => setIsEditing(true)}>
             <Edit size={20} className="mr-2" />
             Editar Perfil
           </Button>
-        ) : (
+        ) : isEditing ? (
           <div className="flex space-x-2">
             <Button onClick={handleSave} loading={loading}>
               <Save size={20} className="mr-2" />
@@ -158,7 +150,7 @@ const Profile: React.FC = () => {
               Cancelar
             </Button>
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -224,10 +216,6 @@ const Profile: React.FC = () => {
               <Badge variant="success" className="block">
                 Nível {user.level}
               </Badge>
-              <div className="text-center mt-4">
-                <div className="text-2xl font-bold text-blue-600">{user.points}</div>
-                <div className="text-sm text-gray-500">Pontos</div>
-              </div>
             </div>
           </div>
         </Card>
@@ -261,45 +249,13 @@ const Profile: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Sobre Mim</h3>
-            {isEditing ? (
-              <Textarea
-                value={formData.bio || ''}
-                onChange={(e) => handleFormChange('bio', e.target.value)}
-                placeholder="Conte um pouco sobre você..."
-                rows={4}
-              />
-            ) : (
-              <p className="text-gray-700">
-                {user.bio || 'Nenhuma informação adicionada ainda.'}
-              </p>
-            )}
-          </Card>
-
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Formação</h3>
-            {isEditing ? (
-              <Textarea
-                value={formData.formation || ''}
-                onChange={(e) => handleFormChange('formation', e.target.value)}
-                placeholder="Descreva sua formação acadêmica e cursos..."
-                rows={3}
-              />
-            ) : (
-              <p className="text-gray-700">
-                {user.formation || 'Nenhuma formação cadastrada ainda.'}
-              </p>
-            )}
-          </Card>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Salary History */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center">
-            <TrendingUp className="mr-2" size={20} />
+          <h3 className="text-lg font-semibold mb-4">
             Histórico Salarial
           </h3>
           {salaryHistory.length > 0 ? (
