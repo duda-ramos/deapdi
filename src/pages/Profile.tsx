@@ -14,6 +14,8 @@ import { Badge } from '../components/ui/Badge';
 import { Timeline } from '../components/ui/Timeline';
 import { AvatarUpload } from '../components/ui/AvatarUpload';
 import { getAvatarUrl, handleImageError } from '../utils/images';
+import { permissionService } from '../utils/permissions';
+import { UserRole } from '../types';
 
 const Profile: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -71,6 +73,15 @@ const Profile: React.FC = () => {
       if (user.role === 'admin') {
         updates.position = formData.position;
         updates.level = formData.level;
+
+        if (formData.role !== user.role) {
+          const roleValidationError = permissionService.validateRoleChange(user, user, formData.role as UserRole);
+          if (roleValidationError) {
+            alert(roleValidationError);
+            return;
+          }
+        }
+
         updates.role = formData.role;
         updates.status = formData.status;
       }
