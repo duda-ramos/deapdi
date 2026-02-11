@@ -8,11 +8,14 @@ import { SalaryEntry } from '../types';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { Badge } from '../components/ui/Badge';
 import { Timeline } from '../components/ui/Timeline';
 import { AvatarUpload } from '../components/ui/AvatarUpload';
 import { getAvatarUrl, handleImageError } from '../utils/images';
+import { permissionService } from '../utils/permissions';
+import { UserRole } from '../types';
 
 const Profile: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -21,11 +24,15 @@ const Profile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
-    avatar_url: user?.avatar_url || ''
+    avatar_url: user?.avatar_url || '',
+    position: user?.position || '',
+    level: user?.level || '',
+    role: user?.role || 'employee' as string,
+    status: user?.status || 'active' as string,
   });
 
   // Memoized handler to prevent input focus loss
-  const handleFormChange = useCallback((field: 'name' | 'avatar_url', value: string) => {
+  const handleFormChange = useCallback((field: 'name' | 'avatar_url' | 'position' | 'level' | 'role' | 'status', value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
 
@@ -33,7 +40,11 @@ const Profile: React.FC = () => {
     if (user) {
       setFormData({
         name: user.name,
-        avatar_url: user.avatar_url || ''
+        avatar_url: user.avatar_url || '',
+        position: user.position || '',
+        level: user.level || '',
+        role: user.role || 'employee',
+        status: user.status || 'active',
       });
       loadSalaryHistory();
     }
@@ -55,10 +66,26 @@ const Profile: React.FC = () => {
 
     try {
       setLoading(true);
-      await authService.updateProfile(user.id, {
+      const updates: Record<string, any> = {
         name: formData.name,
-        avatar_url: formData.avatar_url || null
-      });
+        avatar_url: formData.avatar_url || null,
+      };
+      if (user.role === 'admin') {
+        updates.position = formData.position;
+        updates.level = formData.level;
+
+        if (formData.role !== user.role) {
+          const roleValidationError = permissionService.validateRoleChange(user, user, formData.role as UserRole);
+          if (roleValidationError) {
+            alert(roleValidationError);
+            return;
+          }
+        }
+
+        updates.role = formData.role;
+        updates.status = formData.status;
+      }
+      await authService.updateProfile(user.id, updates);
       await refreshUser();
       setIsEditing(false);
     } catch (error) {
@@ -72,7 +99,11 @@ const Profile: React.FC = () => {
     if (user) {
       setFormData({
         name: user.name,
-        avatar_url: user.avatar_url || ''
+        avatar_url: user.avatar_url || '',
+        position: user.position || '',
+        level: user.level || '',
+        role: user.role || 'employee',
+        status: user.status || 'active',
       });
     }
     setIsEditing(false);
@@ -134,7 +165,7 @@ const Profile: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Meu Perfil</h1>
           <p className="text-gray-600 mt-1">Gerencie suas informações pessoais e profissionais</p>
         </div>
-        {(!isEditing && user.role === 'admin') ? (
+        {!isEditing ? (
           <Button onClick={() => setIsEditing(true)}>
             <Edit size={20} className="mr-2" />
             Editar Perfil
@@ -227,26 +258,74 @@ const Profile: React.FC = () => {
               <Briefcase className="mr-2" size={20} />
               Informações Profissionais
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
-                <p className="text-gray-900">{user.position}</p>
+            {isEditing && user.role === 'admin' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Cargo"
+                  value={formData.position}
+                  onChange={(e) => handleFormChange('position', e.target.value)}
+                  placeholder="Ex: Desenvolvedor Frontend"
+                />
+                <Select
+                  label="Nível"
+                  value={formData.level}
+                  onChange={(e) => handleFormChange('level', e.target.value)}
+                  options={[
+                    { value: 'Estagiário', label: 'Estagiário' },
+                    { value: 'Assistente', label: 'Assistente' },
+                    { value: 'Júnior', label: 'Júnior' },
+                    { value: 'Pleno', label: 'Pleno' },
+                    { value: 'Sênior', label: 'Sênior' },
+                    { value: 'Especialista', label: 'Especialista' },
+                    { value: 'Principal', label: 'Principal' },
+                  ]}
+                  placeholder="Selecione o nível"
+                />
+                <Select
+                  label="Função"
+                  value={formData.role}
+                  onChange={(e) => handleFormChange('role', e.target.value)}
+                  options={[
+                    { value: 'admin', label: 'Admin' },
+                    { value: 'hr', label: 'RH' },
+                    { value: 'manager', label: 'Gestor' },
+                    { value: 'employee', label: 'Colaborador' },
+                  ]}
+                  placeholder="Selecione a função"
+                />
+                <Select
+                  label="Status"
+                  value={formData.status}
+                  onChange={(e) => handleFormChange('status', e.target.value)}
+                  options={[
+                    { value: 'active', label: 'Ativo' },
+                    { value: 'inactive', label: 'Inativo' },
+                  ]}
+                  placeholder="Selecione o status"
+                />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nível</label>
-                <p className="text-gray-900">{user.level}</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
+                  <p className="text-gray-900">{user.position}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nível</label>
+                  <p className="text-gray-900">{user.level}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Função</label>
+                  <p className="text-gray-900 capitalize">{user.role}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <Badge variant={user.status === 'active' ? 'success' : 'default'}>
+                    {user.status === 'active' ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Função</label>
-                <p className="text-gray-900 capitalize">{user.role}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <Badge variant={user.status === 'active' ? 'success' : 'default'}>
-                  {user.status === 'active' ? 'Ativo' : 'Inativo'}
-                </Badge>
-              </div>
-            </div>
+            )}
           </Card>
 
         </div>
