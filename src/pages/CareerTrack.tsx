@@ -351,9 +351,6 @@ const CareerTrack: React.FC = () => {
                   Continue desenvolvendo suas competências para avançar!
                 </span>
               </div>
-              <p className="text-sm text-blue-700 mt-1">
-                Você precisa atingir 80% de progresso para avançar automaticamente para o próximo estágio.
-              </p>
             </div>
           )}
         </Card>
