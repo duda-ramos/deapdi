@@ -62,14 +62,6 @@ import { Breadcrumbs, useBreadcrumbs, breadcrumbPresets } from '@/components/ui/
 | `/wellness-library` | Dashboard > Bem-estar > Biblioteca |
 | `/wellness-admin` | Dashboard > Bem-estar > Administração |
 
-### Calendário
-
-| Rota | Breadcrumb |
-|------|------------|
-| `/hr-calendar` | Dashboard > Calendário |
-| `/hr-calendar/event/:id` | Dashboard > Calendário > [Nome Evento] |
-| `/calendar` | Dashboard > Calendário |
-
 ### Administração
 
 | Rota | Breadcrumb |

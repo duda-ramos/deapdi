@@ -62,11 +62,10 @@
 - ⏭️ **Sidebar.tsx** - Navegação principal (3h)
 - ⏭️ **FormAssignmentModal.tsx** - Formulários (2h)
 - ⏭️ **EmotionalCheckin.tsx** - Saúde mental (1.5h)
-- ⏭️ **CalendarFilters.tsx** - Filtros (2h)
 - ⏭️ **CompetencyManager.tsx** - Admin (3-4h)
 
 ### 🟢 BAIXA PRIORIDADE - Não Iniciados (0/9)
-- ⏭️ Header.tsx, Login.tsx, AddSalaryModal.tsx, EventModal.tsx, TestingPanel.tsx, e outros
+- ⏭️ Header.tsx, Login.tsx, AddSalaryModal.tsx, TestingPanel.tsx, e outros
 
 ---
 
@@ -538,7 +537,6 @@ npm install --save-dev eslint-plugin-jsx-a11y @axe-core/react jest-axe
 ### 🔜 Semana 4: Navegação e Admin
 - [ ] Sidebar.tsx (3h)
 - [ ] CompetencyManager.tsx (3-4h)
-- [ ] CalendarFilters.tsx (2h)
 - [ ] Outros componentes (6h)
 - **Tempo Estimado:** 14-15 horas
 - **Status:** ⏳ PENDENTE

@@ -166,8 +166,6 @@ TOTAL: 6 arquivos, ~170 linhas, ~2 horas
 ### Fase 2: Componentes Especializados (Semana 2)
 - [ ] FormAssignmentModal.tsx (2h)
 - [ ] Onboarding.tsx (3-4h)
-- [ ] EventModal.tsx (1h)
-
 ### Fase 3: Feedback e Notificações (Semana 3)
 - [ ] NotificationCenter.tsx (4-5h) ⚠️ PRIORIDADE ALTA
 - [ ] EmotionalCheckin.tsx (1.5h)
@@ -175,7 +173,6 @@ TOTAL: 6 arquivos, ~170 linhas, ~2 horas
 
 ### Fase 4: Admin e Validação (Semana 4)
 - [ ] CompetencyManager.tsx (3-4h)
-- [ ] CalendarFilters.tsx (2h)
 - [ ] TestingPanel.tsx (2h)
 - [ ] Testes completos e validação final
 

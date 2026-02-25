@@ -147,18 +147,7 @@ const sizes = {
 
 ---
 
-### FIX-007: HRCalendar - Grid e Header Responsivos
-
-**Arquivo:** `src/pages/HRCalendar.tsx`
-
-**Mudanças:**
-- Stats grid: `grid-cols-2 sm:grid-cols-3 lg:grid-cols-6`
-- Header: Botões com texto abreviado em mobile
-- Flex-wrap para evitar overflow
-
----
-
-### FIX-008: MentalHealth Page - Header Responsivo
+### FIX-007: MentalHealth Page - Header Responsivo
 
 **Arquivo:** `src/pages/MentalHealth.tsx`
 
@@ -294,8 +283,7 @@ const sizes = {
 4. `src/components/ui/Table.tsx`
 5. `src/pages/Competencies.tsx`
 6. `src/pages/PDI.tsx`
-7. `src/pages/HRCalendar.tsx`
-8. `src/pages/MentalHealth.tsx`
+7. `src/pages/MentalHealth.tsx`
 9. `src/pages/PeopleManagement.tsx`
 10. `src/components/admin/CompetencyManager.tsx`
 11. `src/components/layout/Sidebar.tsx`

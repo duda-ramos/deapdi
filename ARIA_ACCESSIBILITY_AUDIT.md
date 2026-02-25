@@ -490,80 +490,7 @@ Análise completa dos componentes interativos identificando elementos que necess
 
 ---
 
-## 6. Componentes de Calendário
-
-### 6.1 `/src/components/hr-calendar/EventModal.tsx` ⚠️ BAIXO
-**Problemas Identificados:**
-- Modal usa componente base com ARIA ✅
-- Checkboxes sem `id` único e labels sem `htmlFor`
-- Botões de cor sem `aria-label`
-
-**Elementos a Modificar:**
-```tsx
-// Linha 223-234: Checkbox sem id
-<input
-  type="checkbox"
-  id="all_day"
-  checked={formData.all_day}
-  onChange={(e) => setFormData({ ...formData, all_day: e.target.checked })}
-  disabled={!canEdit}
-  className="rounded"
-/>
-
-// Linha 292-306: Botões de cor sem aria-label
-<button
-  key={option.value}
-  type="button"
-  onClick={() => setFormData({ ...formData, color: option.value })}
-  disabled={!canEdit}
-  className="w-8 h-8 rounded-full border-2..."
-  style={{ backgroundColor: option.color }}
-  title={option.label}
-/>
-```
-
-**Correções Necessárias:**
-- Garantir IDs únicos para todos os checkboxes
-- Adicionar `aria-label="Selecionar cor {option.label}"` nos botões de cor
-- Adicionar `aria-pressed={formData.color === option.value}` nos botões
-
----
-
-### 6.2 `/src/components/hr-calendar/CalendarFilters.tsx` ⚠️ MÉDIO
-**Problemas Identificados:**
-- Botões de tipo de evento sem `role="checkbox"` e `aria-checked`
-- Select de status sem label visível
-- Botão de limpar filtros poderia ter `aria-label` mais descritivo
-
-**Elementos a Modificar:**
-```tsx
-// Linha 95-117: Botões que funcionam como checkboxes
-<button
-  key={type.value}
-  onClick={() => toggleTypeFilter(type.value)}
-  className="w-full flex items-center justify-between p-2 rounded-lg..."
->
-  {/* Conteúdo */}
-</button>
-
-// Linha 128-137: Select sem label
-<select
-  value={filters.status}
-  onChange={(e) => onFiltersChange({ ...filters, status: e.target.value })}
-  className="w-full px-3 py-2 border..."
->
-  {/* Opções */}
-</select>
-```
-
-**Correções Necessárias:**
-- Adicionar `role="checkbox"` e `aria-checked={isActive}` nos botões de tipo
-- Adicionar `aria-label="Filtrar por tipo de evento"` no container
-- Adicionar label visível ou `aria-label="Filtrar por status"` no select
-
----
-
-## 7. Componentes de Administração
+## 6. Componentes de Administração
 
 ### 7.1 `/src/components/admin/CompetencyManager.tsx` ⚠️ MÉDIO
 **Problemas Identificados:**
@@ -780,14 +707,12 @@ Análise completa dos componentes interativos identificando elementos que necess
 4. **Sidebar.tsx** - Falta aria-current em navegação
 5. **FormAssignmentModal.tsx** - Botões tipo radio sem roles
 6. **EmotionalCheckin.tsx** - Ranges sem labels e valores anunciados
-7. **CalendarFilters.tsx** - Botões checkbox sem roles
-8. **CompetencyManager.tsx** - Listas e ranges sem ARIA
+7. **CompetencyManager.tsx** - Listas e ranges sem ARIA
 
 ### 🟢 **BAIXA PRIORIDADE** (Melhorias incrementais)
 1. **Header.tsx** - Apenas melhorias em alt text
 2. **AddSalaryModal.tsx** - Apenas aria-live em erros
-3. **EventModal.tsx** - Checkboxes e botões de cor
-4. **Login.tsx** - Tabs sem roles adequados
+3. **Login.tsx** - Tabs sem roles adequados
 5. **TestingPanel.tsx** - Painel de desenvolvimento
 
 ---

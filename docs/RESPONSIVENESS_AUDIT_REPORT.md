@@ -149,44 +149,7 @@ Os botões de ação estavam em `flex space-x-2` sem wrap, podendo quebrar o lay
 
 ---
 
-### HIGH-003: HRCalendar Stats Grid Muito Denso em Mobile ✅ CORRIGIDO
-**Severidade:** Alta  
-**Componente:** `src/pages/HRCalendar.tsx`  
-**Breakpoints Afetados:** 320px, 375px  
-**Status:** ✅ **CORRIGIDO**
-
-**Descrição:**
-O grid de estatísticas usava `grid-cols-2 md:grid-cols-6`, muito comprimido em mobile.
-
-**Correção Implementada:**
-```tsx
-// Stats grid com breakpoint intermediário
-<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-
-// Header responsivo com botões condensados
-<div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-```
-
-**Resultado:** Grid de stats distribui melhor em todas as resoluções.
-
----
-
-### HIGH-004: EventModal - Formulário Muito Longo ✅ CORRIGIDO (via Modal.tsx)
-**Severidade:** Alta  
-**Componente:** `src/components/hr-calendar/EventModal.tsx`  
-**Breakpoints Afetados:** 320px, 375px  
-**Status:** ✅ **CORRIGIDO** (herda de Modal.tsx)
-
-**Descrição:**
-O modal de evento tinha muitas seções que criavam um formulário muito longo em mobile.
-
-**Correção:** O EventModal usa o componente Modal.tsx que agora é fullscreen em mobile com scroll interno. O formulário já usa `grid-cols-1 md:grid-cols-2` para campos.
-
-**Resultado:** Modal fullscreen com scroll permite navegação confortável do formulário longo.
-
----
-
-### HIGH-005: PDI Page - Botão "Novo PDI" Corta Texto ✅ CORRIGIDO
+### HIGH-003: PDI Page - Botão "Novo PDI" Corta Texto ✅ CORRIGIDO
 **Severidade:** Alta  
 **Componente:** `src/pages/PDI.tsx`  
 **Breakpoints Afetados:** 320px  
@@ -337,17 +300,7 @@ Badges inline com texto longo podem causar overflow em containers estreitos.
 
 ---
 
-### LOW-003: Calendar View Mode Toggle
-**Severidade:** Baixa  
-**Componente:** `src/pages/HRCalendar.tsx`  
-**Breakpoints Afetados:** 320px
-
-**Descrição:**
-Os botões de toggle de visualização (Mês/Semana/Dia) ficam muito pequenos em 320px.
-
----
-
-### LOW-004: Login Form - Emoji no Placeholder
+### LOW-003: Login Form - Emoji no Placeholder
 **Severidade:** Baixa  
 **Componente:** `src/components/Login.tsx`  
 **Breakpoints Afetados:** Todos
@@ -401,8 +354,7 @@ Os seguintes componentes passaram na auditoria de responsividade:
 ### Prioridade 2 - Altos ✅ CONCLUÍDO
 
 1. ✅ **Competencies** - Flex-wrap nos botões de ação
-2. ✅ **HRCalendar** - Grid de stats ajustado
-3. ⏳ **FormAssignmentModal** - Herda de Modal.tsx (emails a truncar)
+2. ⏳ **FormAssignmentModal** - Herda de Modal.tsx (emails a truncar)
 4. ✅ **PDI Header** - Stack em mobile
 
 ### Prioridade 3 - Médios ✅ CONCLUÍDO

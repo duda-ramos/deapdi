@@ -237,8 +237,7 @@ Todos os 4 componentes de Fase 3 foram implementados:
 
 **Sugestões de próximos:**
 1. **Onboarding.tsx** (3-4h) - Wizard multi-step
-2. **CalendarFilters.tsx** (2h) - Filtros complexos
-3. **CompetencyManager.tsx** (3-4h) - Admin
+2. **CompetencyManager.tsx** (3-4h) - Admin
 
 ---
 

@@ -96,11 +96,6 @@
 |---------|-------|-------------|--------|
 | `src/services/careerTrack.ts` | 254 | `update_career_progress_with_advancement` | ✅ Existe |
 | `src/services/careerTrack.ts` | 264 | `manual_career_progression_check` | ✅ Existe |
-| `src/services/hrCalendar.ts` | 310 | `check_vacation_eligibility` | ✅ Existe |
-| `src/services/hrCalendar.ts` | 332 | `validate_vacation_request` | ✅ Existe |
-| `src/services/hrCalendar.ts` | 351 | `calculate_business_days` | ✅ Existe |
-| `src/services/hrCalendar.ts` | 369 | `create_birthday_events` | ✅ Existe |
-| `src/services/hrCalendar.ts` | 382 | `create_company_anniversary_events` | ✅ Existe |
 | `src/services/database.ts` | 261 | `manual_check_achievements` | ✅ Existe |
 | `src/services/mentalHealth.ts` | 1043 | `check_alert_rules` | ✅ Existe |
 | `src/services/mentalHealth.ts` | 1051 | `get_mental_health_analytics` | ✅ Existe |

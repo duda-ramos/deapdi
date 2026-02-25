@@ -237,12 +237,6 @@ Estados hover funcionam como feedback visual, mas ações são disparadas por cl
 <Input type="date" ... /> // ✅ OK
 ```
 
-#### Event Modal (`src/components/hr-calendar/EventModal.tsx`)
-```tsx
-// Datas
-<Input type="date" ... /> // ✅ OK
-```
-
 #### FormAssignmentModal
 ```tsx
 // Data/hora limite

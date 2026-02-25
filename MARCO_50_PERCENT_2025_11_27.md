@@ -361,33 +361,22 @@
    - Formulários dinâmicos
    - **Impacto:** MÉDIO-ALTO - Admin
 
-3. **CalendarFilters.tsx** (2h)
-   - Filtros complexos
-   - Date pickers
-   - Multi-select
-   - **Impacto:** MÉDIO - Filtros importantes
-
-**Subtotal:** 8-10 horas
+**Subtotal:** 6-8 horas
 
 ---
 
 #### Prioridade MÉDIA (5 componentes)
-4. **Header.tsx** (2h)
-5. **AddSalaryModal.tsx** (1.5h)
-6. **EventModal.tsx** (2h)
-7. **RequestForm.tsx** (2.5h)
-8. **ApprovalQueue.tsx** (2h)
+3. **Header.tsx** (2h)
+4. **AddSalaryModal.tsx** (1.5h)
 
-**Subtotal:** 10 horas
+**Subtotal:** 3.5 horas
 
 ---
 
 #### Prioridade BAIXA (3 componentes)
-9. **TestingPanel.tsx** (2h)
-10. **CalendarLegend.tsx** (1h)
-11. **CalendarExport.tsx** (1h)
+5. **TestingPanel.tsx** (2h)
 
-**Subtotal:** 4 horas
+**Subtotal:** 2 horas
 
 ---
 
@@ -451,7 +440,6 @@ Total: 12 componentes, ~8.5h
 Semana 4 (PRÓXIMA):
 ⏭️ Onboarding.tsx
 ⏭️ CompetencyManager.tsx
-⏭️ CalendarFilters.tsx
 ⏭️ Header.tsx
 ⏭️ +3 componentes
 Meta: 18-19 componentes (~80%)

@@ -153,11 +153,6 @@ export const VisuallyHidden: React.FC<{ children: React.ReactNode }> = ({ childr
 - [ ] Adicionar `aria-current="step"` no step ativo
 - [ ] Adicionar `aria-label` em cada step do wizard
 
-**3. EventModal.tsx** (1h)
-- [ ] Garantir IDs únicos em checkboxes
-- [ ] Adicionar `aria-label` nos botões de cor
-- [ ] Adicionar `aria-pressed` nos botões de cor
-
 ---
 
 ### 2.2 Componentes de Saúde Mental 🧠
@@ -241,21 +236,6 @@ export const VisuallyHidden: React.FC<{ children: React.ReactNode }> = ({ childr
 - [ ] Adicionar `role="tab"` nos botões
 - [ ] Adicionar `aria-controls` apontando para formulário
 - [ ] Adicionar `role="tabpanel"` nos formulários
-
----
-
-### 3.4 Componentes de Calendário 📅
-**Tempo Estimado:** 4-6 horas
-
-**1. CalendarFilters.tsx** (2-3h)
-- [ ] Adicionar `role="checkbox"` e `aria-checked` nos botões de tipo
-- [ ] Adicionar `aria-label` no container de tipos
-- [ ] Adicionar label ou `aria-label` no select de status
-
-**2. Outros componentes de calendário** (2-3h)
-- [ ] CalendarView: Adicionar ARIA em navegação de datas
-- [ ] RequestForm: Revisar ARIA em formulários
-- [ ] ApprovalQueue: Adicionar ARIA em lista de aprovações
 
 ---
 
@@ -394,14 +374,12 @@ test('Button should have no accessibility violations', async () => {
 - [ ] `/src/components/layout/Sidebar.tsx`
 - [ ] `/src/components/forms/FormAssignmentModal.tsx`
 - [ ] `/src/components/mental-health/EmotionalCheckin.tsx`
-- [ ] `/src/components/hr-calendar/CalendarFilters.tsx`
 - [ ] `/src/components/admin/CompetencyManager.tsx`
 
 ### 🟢 Prioridade BAIXA
 
 - [ ] `/src/components/layout/Header.tsx`
 - [ ] `/src/components/modals/AddSalaryModal.tsx`
-- [ ] `/src/components/hr-calendar/EventModal.tsx`
 - [ ] `/src/components/Login.tsx`
 - [ ] `/src/components/testing/TestingPanel.tsx`
 

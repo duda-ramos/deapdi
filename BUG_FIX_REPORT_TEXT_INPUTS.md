@@ -28,29 +28,7 @@ O problema ocorria devido a padrões anti-pattern no React que causam re-renderi
 
 ## Arquivos Modificados
 
-### 1. **RequestForm.tsx** (src/components/hr-calendar/)
-
-**Problemas Encontrados:**
-- ❌ Linha 162: `onClick={() => setFormData({ ...formData, event_type: type.value })}`
-- ❌ Linha 243: `onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}`
-- ❌ Linha 251: `onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}`
-- ❌ Linha 293: `onChange={(e) => setFormData({ ...formData, reason: e.target.value })}`
-
-**Correções Aplicadas:**
-```typescript
-// ✅ CORRETO - Adicionado handler memoizado
-const handleFormChange = React.useCallback((field: keyof typeof formData, value: string | 'ferias' | 'day_off') => {
-  setFormData(prev => ({ ...prev, [field]: value }));
-}, []);
-
-// ✅ CORRETO - Uso do handler memoizado
-<Input
-  value={formData.start_date || ''}
-  onChange={(e) => handleFormChange('start_date', e.target.value)}
-/>
-```
-
-### 2. **FormAssignmentModal.tsx** (src/components/forms/)
+### 1. **FormAssignmentModal.tsx** (src/components/forms/)
 
 **Problemas Encontrados:**
 - ❌ Linha 347: `onChange={(e) => setDueDate(e.target.value)}`
@@ -218,7 +196,6 @@ const handleChange = useCallback((field: keyof FormData, value: string) => {
    - ✅ Preencher formulário completo sem interrupções
 
 3. **Teste de Formulários Complexos**
-   - ✅ RequestForm com validação assíncrona
    - ✅ FormBuilder com múltiplas questões
    - ✅ TaskManager com campos dinâmicos
 
