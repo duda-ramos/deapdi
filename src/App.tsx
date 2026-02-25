@@ -33,7 +33,6 @@ import {
   LazyTeamManagement,
   LazyPeopleManagement,
   LazyQualityAssurance,
-  LazyHRCalendar
 } from './components/LazyComponents';
 
 const ManagementRedirect: React.FC = () => {
@@ -309,14 +308,6 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <LazyHRArea />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/hr-calendar"
-        element={
-          <ProtectedRoute>
-            <LazyHRCalendar />
           </ProtectedRoute>
         }
       />

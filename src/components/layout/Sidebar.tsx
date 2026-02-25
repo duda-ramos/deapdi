@@ -9,7 +9,6 @@ import {
   Users, 
   Heart, 
   Brain,
-  Calendar,
   Trophy,
   Award,
   Settings,
@@ -82,7 +81,6 @@ const sidebarItems: SidebarItem[] = [
   { id: 'mental-health-admin', label: 'Portal do Psicólogo', icon: <Brain size={20} aria-hidden="true" />, path: '/mental-health/admin', roles: ['hr'] },
   { id: 'users', label: 'Criar Usuários', icon: <UserCog size={20} aria-hidden="true" />, path: '/users', roles: ['admin', 'hr'] },
   { id: 'hr', label: 'Área de RH', icon: <Heart size={20} aria-hidden="true" />, path: '/hr', roles: ['admin', 'hr'] },
-  { id: 'hr-calendar', label: 'Calendário', icon: <Calendar size={20} aria-hidden="true" />, path: '/hr-calendar', roles: ['admin', 'hr'] },
   { id: 'admin', label: 'Administração', icon: <Settings size={20} aria-hidden="true" />, path: '/admin', roles: ['admin'] },
   { id: 'qa', label: 'Garantia de Qualidade', icon: <TestTube size={20} aria-hidden="true" />, path: '/qa', roles: ['admin'] },
 ];

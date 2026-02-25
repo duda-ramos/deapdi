@@ -32,14 +32,12 @@ const routeLabels: Record<string, string> = {
   mentorship: 'Mentoria',
   wellness: 'Bem-estar',
   'mental-health': 'Saúde Mental',
-  calendar: 'Calendário',
   profile: 'Perfil',
   administration: 'Administração',
   'user-management': 'Gestão de Usuários',
   'team-management': 'Gestão de Equipes',
   'career-track': 'Trilha de Carreira',
   'hr-area': 'Área de RH',
-  'hr-calendar': 'Calendário RH',
   'action-groups': 'Grupos de Ações',
   'quality-assurance': 'Garantia de Qualidade',
   'people-management': 'Gestão de Pessoas',
@@ -75,8 +73,6 @@ const routeHierarchy: Record<string, string[]> = {
   'wellness/checkin': ['dashboard', 'wellness'],
   'mental-health': ['dashboard'],
   'mental-health/checkin': ['dashboard', 'mental-health'],
-  'calendar': ['dashboard'],
-  'calendar/events': ['dashboard', 'calendar'],
   'administration': ['dashboard'],
   'administration/competencies': ['dashboard', 'administration'],
   'administration/users': ['dashboard', 'administration'],
@@ -416,18 +412,6 @@ export const breadcrumbPresets = {
     { label: 'Dashboard', href: '/dashboard', icon: <Home size={16} /> },
     { label: 'Bem-estar', href: '/mental-health' },
     { label: 'Check-in Emocional' },
-  ],
-
-  // Calendário
-  calendar: (): BreadcrumbItem[] => [
-    { label: 'Dashboard', href: '/dashboard', icon: <Home size={16} /> },
-    { label: 'Calendário' },
-  ],
-
-  calendarEvent: (eventName?: string): BreadcrumbItem[] => [
-    { label: 'Dashboard', href: '/dashboard', icon: <Home size={16} /> },
-    { label: 'Calendário', href: '/hr-calendar' },
-    { label: eventName || 'Evento' },
   ],
 
   // Administração
