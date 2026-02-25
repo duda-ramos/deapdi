@@ -89,7 +89,6 @@ src/services/__tests__/
 ├── authService.test.ts              ✅ 6/6 testes
 ├── databaseService.test.ts          ⚠️ 0/3 testes (timeout)
 ├── formAssignment.security.test.ts  ❌ Não executado
-├── hrCalendarService.test.ts        ❌ Não executado
 └── mentalHealthService.test.ts      ❌ Não executado
 
 src/utils/__tests__/

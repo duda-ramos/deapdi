@@ -230,7 +230,6 @@ try {
 **Test Files Found:**
 - `src/services/__tests__/authService.test.ts`
 - `src/services/__tests__/databaseService.test.ts`
-- `src/services/__tests__/hrCalendarService.test.ts`
 - `src/services/__tests__/mentalHealthService.test.ts`
 - `src/components/__tests__/SetupCheck.test.tsx`
 - `src/components/ui/__tests__/Button.test.tsx`

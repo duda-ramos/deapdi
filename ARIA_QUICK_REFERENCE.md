@@ -20,7 +20,6 @@
 7. **FormAssignmentModal.tsx** - Radio buttons sem roles
 8. **EmotionalCheckin.tsx** - Range sliders sem labels
 9. **CompetencyManager.tsx** - Listas sem roles e botões sem labels
-10. **CalendarFilters.tsx** - Checkboxes sem roles apropriados
 
 ---
 
@@ -53,7 +52,6 @@
 ✓ /src/components/layout/Sidebar.tsx               - 3h
 ✓ /src/components/forms/FormAssignmentModal.tsx    - 2h
 ✓ /src/components/mental-health/EmotionalCheckin.tsx - 1.5h
-✓ /src/components/hr-calendar/CalendarFilters.tsx  - 2h
 ✓ /src/components/admin/CompetencyManager.tsx      - 4h
 ```
 
@@ -66,7 +64,6 @@
 ```
 ✓ /src/components/layout/Header.tsx                - 30 min
 ✓ /src/components/modals/AddSalaryModal.tsx        - 1h
-✓ /src/components/hr-calendar/EventModal.tsx       - 1h
 ✓ /src/components/Login.tsx                        - 2h
 ✓ /src/components/testing/TestingPanel.tsx         - 2h
 ```

@@ -478,8 +478,6 @@ aria-required={required ? 'true' : undefined}
 ### Fase 2: Componentes de Formulários Especializados
 1. [ ] FormAssignmentModal.tsx (2h)
 2. [ ] Onboarding.tsx (3-4h)
-3. [ ] EventModal.tsx (1h)
-
 ### Fase 3: Componentes de Feedback
 1. [ ] NotificationCenter.tsx (4-5h) - PRIORIDADE ALTA
 2. [ ] EmotionalCheckin.tsx (1.5h)

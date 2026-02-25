@@ -164,9 +164,7 @@ Os seguintes arquivos foram verificados e **NÃO** apresentaram problemas:
 6. ✅ `/workspace/src/pages/UserManagement.tsx` - Gerenciamento de usuários
 7. ✅ `/workspace/src/pages/MentalHealth.tsx` - Saúde mental
 8. ✅ `/workspace/src/pages/TeamManagement.tsx` - Gerenciamento de times
-9. ✅ `/workspace/src/components/hr-calendar/EventModal.tsx` - Modal de eventos
-10. ✅ `/workspace/src/components/hr-calendar/RequestForm.tsx` - Formulário de requisições
-11. ✅ `/workspace/src/components/mental-health/EmotionalCheckin.tsx` - Check-in emocional
+9. ✅ `/workspace/src/components/mental-health/EmotionalCheckin.tsx` - Check-in emocional
 
 ### Padrões Corretos Encontrados:
 - Todos usam `value={formData.field}` ou `value={formData.field || ''}`

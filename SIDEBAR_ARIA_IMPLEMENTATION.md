@@ -141,7 +141,6 @@ O **Sidebar.tsx**, componente de navegação principal usado em **TODAS as pági
 { id: 'mental-health-admin', label: 'Portal do Psicólogo', icon: <Brain size={20} aria-hidden="true" />, ... },
 { id: 'users', label: 'Criar Usuários', icon: <UserCog size={20} aria-hidden="true" />, ... },
 { id: 'hr', label: 'Área de RH', icon: <Heart size={20} aria-hidden="true" />, ... },
-{ id: 'hr-calendar', label: 'Calendário', icon: <Calendar size={20} aria-hidden="true" />, ... },
 { id: 'admin', label: 'Administração', icon: <Settings size={20} aria-hidden="true" />, ... },
 { id: 'qa', label: 'Garantia de Qualidade', icon: <TestTube size={20} aria-hidden="true" />, ... },
 ```
