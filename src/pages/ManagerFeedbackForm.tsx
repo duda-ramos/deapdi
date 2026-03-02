@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Users, 
@@ -107,7 +107,7 @@ const ManagerFeedbackForm: React.FC = () => {
     }
   };
 
-  const getCurrentResponse = (): FeedbackResponse => {
+  const getCurrentResponse = useCallback((): FeedbackResponse => {
     const subordinate = subordinates.find(s => s.id === currentSubordinate);
     if (!subordinate) {
       return {
@@ -146,33 +146,47 @@ const ManagerFeedbackForm: React.FC = () => {
       additional_comments: '',
       overall_rating: 0
     };
-  };
+  }, [currentSubordinate, subordinates, responses]);
 
-  const updateResponse = (updates: Partial<FeedbackResponse>) => {
-    const current = getCurrentResponse();
-    const updated = { ...current, ...updates };
-    
-    // Calculate overall rating
-    const ratings = updated.ratings;
-    const averageRating = (ratings.performance + ratings.communication + ratings.teamwork + ratings.leadership + ratings.initiative) / 5;
-    updated.overall_rating = Math.round(averageRating * 10) / 10;
+  const updateResponse = useCallback((updates: Partial<FeedbackResponse>) => {
+    setResponses(prev => {
+      const newMap = new Map(prev);
+      const current = newMap.get(currentSubordinate) || getCurrentResponse();
+      const updated = { ...current, ...updates };
 
-    setResponses(new Map(responses.set(currentSubordinate, updated)));
-  };
+      // Calculate overall rating
+      const ratings = updated.ratings;
+      const averageRating = (ratings.performance + ratings.communication + ratings.teamwork + ratings.leadership + ratings.initiative) / 5;
+      updated.overall_rating = Math.round(averageRating * 10) / 10;
 
-  const handleRatingChange = (category: keyof FeedbackResponse['ratings'], value: number) => {
-    const current = getCurrentResponse();
-    updateResponse({
-      ratings: {
-        ...current.ratings,
-        [category]: value
-      }
+      newMap.set(currentSubordinate, updated);
+      return newMap;
     });
-  };
+  }, [currentSubordinate, getCurrentResponse]);
 
-  const handleTextChange = (field: keyof Omit<FeedbackResponse, 'subordinate_id' | 'subordinate_name' | 'ratings' | 'overall_rating' | 'submitted_at'>, value: string) => {
-    updateResponse({ [field]: value });
-  };
+  const handleRatingChange = useCallback((category: keyof FeedbackResponse['ratings'], value: number) => {
+    setResponses(prev => {
+      const newMap = new Map(prev);
+      const current = newMap.get(currentSubordinate) || getCurrentResponse();
+      const updatedRatings = { ...current.ratings, [category]: value };
+      const averageRating = (updatedRatings.performance + updatedRatings.communication + updatedRatings.teamwork + updatedRatings.leadership + updatedRatings.initiative) / 5;
+      newMap.set(currentSubordinate, {
+        ...current,
+        ratings: updatedRatings,
+        overall_rating: Math.round(averageRating * 10) / 10
+      });
+      return newMap;
+    });
+  }, [currentSubordinate, getCurrentResponse]);
+
+  const handleTextChange = useCallback((field: string, value: string) => {
+    setResponses(prev => {
+      const newMap = new Map(prev);
+      const current = newMap.get(currentSubordinate) || getCurrentResponse();
+      newMap.set(currentSubordinate, { ...current, [field]: value });
+      return newMap;
+    });
+  }, [currentSubordinate, getCurrentResponse]);
 
   const saveResponse = async () => {
     try {
@@ -182,8 +196,12 @@ const ManagerFeedbackForm: React.FC = () => {
       const current = getCurrentResponse();
       const updated = { ...current, submitted_at: new Date().toISOString() };
       
-      setResponses(new Map(responses.set(currentSubordinate, updated)));
-      
+      setResponses(prev => {
+        const newMap = new Map(prev);
+        newMap.set(currentSubordinate, updated);
+        return newMap;
+      });
+
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       

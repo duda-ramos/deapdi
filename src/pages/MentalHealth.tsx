@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -40,6 +40,11 @@ const MentalHealth: React.FC = () => {
     reason: '',
     preferred_times: [] as string[]
   });
+
+  // Memoized handler to prevent input focus loss
+  const handleRequestFormChange = useCallback((field: string, value: string) => {
+    setRequestForm(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   const timeSlots = [
     '08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'
@@ -378,7 +383,7 @@ const MentalHealth: React.FC = () => {
           <Select
             label="Urgência"
             value={requestForm.urgency}
-            onChange={(e) => setRequestForm({ ...requestForm, urgency: e.target.value as any })}
+            onChange={(e) => handleRequestFormChange('urgency', e.target.value)}
             options={[
               { value: 'normal', label: 'Normal - Agendamento regular' },
               { value: 'prioritaria', label: 'Prioritária - Preciso de atenção em breve' },
@@ -390,7 +395,7 @@ const MentalHealth: React.FC = () => {
           <Select
             label="Tipo de Sessão"
             value={requestForm.preferred_type}
-            onChange={(e) => setRequestForm({ ...requestForm, preferred_type: e.target.value as any })}
+            onChange={(e) => handleRequestFormChange('preferred_type', e.target.value)}
             options={[
               { value: 'presencial', label: 'Presencial - No escritório' },
               { value: 'online', label: 'Online - Videochamada' },
@@ -402,7 +407,7 @@ const MentalHealth: React.FC = () => {
           <Textarea
             label="Motivo da Solicitação"
             value={requestForm.reason}
-            onChange={(e) => setRequestForm({ ...requestForm, reason: e.target.value })}
+            onChange={(e) => handleRequestFormChange('reason', e.target.value)}
             placeholder="Descreva brevemente o que gostaria de abordar na sessão..."
             rows={4}
             required
@@ -418,17 +423,14 @@ const MentalHealth: React.FC = () => {
                   key={time}
                   type="button"
                   onClick={() => {
-                    if (requestForm.preferred_times.includes(time)) {
-                      setRequestForm({
-                        ...requestForm,
-                        preferred_times: requestForm.preferred_times.filter(t => t !== time)
-                      });
-                    } else if (requestForm.preferred_times.length < 3) {
-                      setRequestForm({
-                        ...requestForm,
-                        preferred_times: [...requestForm.preferred_times, time]
-                      });
-                    }
+                    setRequestForm(prev => {
+                      if (prev.preferred_times.includes(time)) {
+                        return { ...prev, preferred_times: prev.preferred_times.filter(t => t !== time) };
+                      } else if (prev.preferred_times.length < 3) {
+                        return { ...prev, preferred_times: [...prev.preferred_times, time] };
+                      }
+                      return prev;
+                    });
                   }}
                   className={`p-2 text-sm rounded-lg transition-colors ${
                     requestForm.preferred_times.includes(time)

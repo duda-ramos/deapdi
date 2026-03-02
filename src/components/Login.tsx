@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Mail, Lock, Eye, EyeOff, User, Briefcase, UserPlus, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,6 +32,15 @@ export const Login: React.FC = () => {
     position: '',
     level: 'Júnior'
   });
+
+  // Memoized handlers to prevent input focus loss
+  const handleLoginFormChange = useCallback((field: string, value: string) => {
+    setLoginForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleSignupFormChange = useCallback((field: string, value: string) => {
+    setSignupForm(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   const levelOptions = [
     { value: 'Estagiário', label: 'Estagiário' },
@@ -223,7 +232,7 @@ export const Login: React.FC = () => {
                     <input
                       type="email"
                       value={loginForm.email}
-                      onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                      onChange={(e) => handleLoginFormChange('email', e.target.value)}
                       className="w-full rounded-lg border border-slate-200 bg-white pl-11 pr-4 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                       placeholder="seu@email.com"
                       required
@@ -241,7 +250,7 @@ export const Login: React.FC = () => {
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={loginForm.password}
-                      onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                      onChange={(e) => handleLoginFormChange('password', e.target.value)}
                       className="w-full rounded-lg border border-slate-200 bg-white pl-11 pr-12 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                       placeholder="Sua senha"
                       required
@@ -296,7 +305,7 @@ export const Login: React.FC = () => {
                     <Input
                       label="Nome Completo"
                       value={signupForm.name}
-                      onChange={(e) => setSignupForm({ ...signupForm, name: e.target.value })}
+                      onChange={(e) => handleSignupFormChange('name', e.target.value)}
                       placeholder="Seu nome completo"
                       required
                     />
@@ -309,7 +318,7 @@ export const Login: React.FC = () => {
                         <input
                           type="email"
                           value={signupForm.email}
-                          onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
+                          onChange={(e) => handleSignupFormChange('email', e.target.value)}
                           className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                           placeholder="seu@email.com"
                           required
@@ -330,14 +339,14 @@ export const Login: React.FC = () => {
                     <Input
                       label="Cargo/Posição"
                       value={signupForm.position}
-                      onChange={(e) => setSignupForm({ ...signupForm, position: e.target.value })}
+                      onChange={(e) => handleSignupFormChange('position', e.target.value)}
                       placeholder="Ex: Desenvolvedor, Analista, Designer..."
                       required
                     />
                     <Select
                       label="Nível Profissional"
                       value={signupForm.level}
-                      onChange={(e) => setSignupForm({ ...signupForm, level: e.target.value })}
+                      onChange={(e) => handleSignupFormChange('level', e.target.value)}
                       options={levelOptions}
                       required
                     />
@@ -360,7 +369,7 @@ export const Login: React.FC = () => {
                         <input
                           type={showPassword ? 'text' : 'password'}
                           value={signupForm.password}
-                          onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
+                          onChange={(e) => handleSignupFormChange('password', e.target.value)}
                           className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-10 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                           placeholder="Mínimo 6 caracteres"
                           required
@@ -385,7 +394,7 @@ export const Login: React.FC = () => {
                         <input
                           type={showPassword ? 'text' : 'password'}
                           value={signupForm.confirmPassword}
-                          onChange={(e) => setSignupForm({ ...signupForm, confirmPassword: e.target.value })}
+                          onChange={(e) => handleSignupFormChange('confirmPassword', e.target.value)}
                           className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm text-ink shadow-sm transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                           placeholder="Repita a senha"
                           required

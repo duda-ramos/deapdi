@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   ClipboardList, 
@@ -70,6 +70,11 @@ const EvaluationsManagement: React.FC = () => {
     type: 'performance' as 'performance' | 'competency' | 'engagement' | 'satisfaction' | '360_feedback',
     target_audience: [] as string[]
   });
+
+  // Memoized handler to prevent input focus loss
+  const handleFormChange = useCallback((field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   const tabs = [
     { id: 'forms', label: 'Formulários', icon: <ClipboardList size={16} /> },
@@ -568,7 +573,7 @@ const EvaluationsManagement: React.FC = () => {
           <Input
             label="Título do Formulário"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e) => handleFormChange('title', e.target.value)}
             placeholder="Ex: Avaliação de Performance Q1 2024"
             required
           />
@@ -576,7 +581,7 @@ const EvaluationsManagement: React.FC = () => {
           <Textarea
             label="Descrição"
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={(e) => handleFormChange('description', e.target.value)}
             placeholder="Descreva o objetivo e escopo desta avaliação..."
             rows={3}
             required
@@ -585,7 +590,7 @@ const EvaluationsManagement: React.FC = () => {
           <Select
             label="Tipo de Avaliação"
             value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+            onChange={(e) => handleFormChange('type', e.target.value)}
             options={formTypes}
             required
           />

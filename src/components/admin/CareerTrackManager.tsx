@@ -140,9 +140,15 @@ const CareerTrackManager: React.FC = () => {
     salaries: {}
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Memoized handler to prevent input focus loss
+  const handleFormDataChange = useCallback((field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  
+
   // View modal state
   const [viewCompetencies, setViewCompetencies] = useState<StageCompetency[]>([]);
   const [viewSalaries, setViewSalaries] = useState<StageSalaryRange[]>([]);
@@ -885,7 +891,7 @@ const CareerTrackManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Nome da Trilha *</label>
                 <Input
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => handleFormDataChange('name', e.target.value)}
                   placeholder="Ex: Trilha de Desenvolvimento Frontend"
                   error={formErrors.name}
                 />
@@ -895,7 +901,7 @@ const CareerTrackManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => handleFormDataChange('description', e.target.value)}
                   placeholder="Descreva o objetivo e escopo desta trilha..."
                   rows={3}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
@@ -907,7 +913,7 @@ const CareerTrackManager: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Profissão *</label>
                   <Input
                     value={formData.profession}
-                    onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
+                    onChange={(e) => handleFormDataChange('profession', e.target.value)}
                     placeholder="Ex: Desenvolvedor Frontend"
                     error={formErrors.profession}
                   />
@@ -916,7 +922,7 @@ const CareerTrackManager: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Público-alvo</label>
                   <Input
                     value={formData.target_role}
-                    onChange={(e) => setFormData({ ...formData, target_role: e.target.value })}
+                    onChange={(e) => handleFormDataChange('target_role', e.target.value)}
                     placeholder="Ex: Desenvolvedores"
                   />
                 </div>
@@ -927,7 +933,7 @@ const CareerTrackManager: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
                   <select
                     value={formData.track_type}
-                    onChange={(e) => setFormData({ ...formData, track_type: e.target.value as any })}
+                    onChange={(e) => handleFormDataChange('track_type', e.target.value)}
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                   >
                     <option value="development">Desenvolvimento</option>
@@ -938,7 +944,7 @@ const CareerTrackManager: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Área</label>
                   <select
                     value={formData.area}
-                    onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                    onChange={(e) => handleFormDataChange('area', e.target.value)}
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
                   >
                     <option value="">Selecione uma área</option>
