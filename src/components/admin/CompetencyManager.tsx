@@ -120,6 +120,12 @@ const CompetencyManager: React.FC = () => {
     description: ''
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Memoized handler to prevent input focus loss
+  const handleFormDataChange = useCallback((field: string, value: string | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   
@@ -916,7 +922,7 @@ const CompetencyManager: React.FC = () => {
               </label>
               <select
                 value={formData.profile_id || ''}
-                onChange={(e) => setFormData({ ...formData, profile_id: e.target.value })}
+                onChange={(e) => handleFormDataChange('profile_id', e.target.value)}
                 className={`w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 min-h-[2.75rem] ${
                   formErrors.profile_id
                     ? 'border-red-500 focus-visible:ring-red-400'
@@ -942,7 +948,7 @@ const CompetencyManager: React.FC = () => {
             </label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => handleFormDataChange('name', e.target.value)}
               placeholder="Ex: Liderança de Equipes"
               error={formErrors.name}
             />
@@ -955,7 +961,7 @@ const CompetencyManager: React.FC = () => {
               </label>
               <select
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as 'hard' | 'soft' })}
+                onChange={(e) => handleFormDataChange('type', e.target.value)}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
               >
                 <option value="hard">Hard Skill</option>
@@ -969,7 +975,7 @@ const CompetencyManager: React.FC = () => {
               </label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) => handleFormDataChange('category', e.target.value)}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 min-h-[2.75rem]"
               >
                 {allCategories.map(cat => (
@@ -985,7 +991,7 @@ const CompetencyManager: React.FC = () => {
             </label>
             <select
               value={formData.stage}
-              onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
+              onChange={(e) => handleFormDataChange('stage', e.target.value)}
               className={`w-full rounded-lg border px-3 py-2.5 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 min-h-[2.75rem] ${
                 formErrors.stage
                   ? 'border-red-500 focus-visible:ring-red-400'
@@ -1011,7 +1017,7 @@ const CompetencyManager: React.FC = () => {
                 min="1"
                 max="5"
                 value={formData.target_level}
-                onChange={(e) => setFormData({ ...formData, target_level: parseInt(e.target.value) })}
+                onChange={(e) => handleFormDataChange('target_level', parseInt(e.target.value))}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
               <div className="flex justify-between">
@@ -1044,7 +1050,7 @@ const CompetencyManager: React.FC = () => {
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => handleFormDataChange('description', e.target.value)}
               placeholder="Descreva a competência e os critérios de avaliação..."
               rows={4}
               className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 ${

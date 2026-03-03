@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Play, Headphones, Activity, Heart, Search, Filter, Star, Eye, Plus, CreditCard as Edit, Trash2, Upload, Download, Tag, Clock, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,6 +38,11 @@ const WellnessLibrary: React.FC = () => {
     thumbnail_url: '',
     tags: [] as string[]
   });
+
+  // Memoized handler to prevent input focus loss
+  const handleResourceFormChange = useCallback((field: string, value: string) => {
+    setResourceForm(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   const categories = [
     { value: 'all', label: 'Todas as Categorias' },
@@ -681,14 +686,14 @@ const WellnessLibrary: React.FC = () => {
             <Input
               label="Título"
               value={resourceForm.title}
-              onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
+              onChange={(e) => handleResourceFormChange('title', e.target.value)}
               placeholder="Ex: Técnicas de Respiração para Ansiedade"
               required
             />
             <Select
               label="Tipo de Conteúdo"
               value={resourceForm.resource_type}
-              onChange={(e) => setResourceForm({ ...resourceForm, resource_type: e.target.value as any })}
+              onChange={(e) => handleResourceFormChange('resource_type', e.target.value)}
               options={contentTypes.filter(t => t.value !== 'all')}
               required
             />
@@ -697,7 +702,7 @@ const WellnessLibrary: React.FC = () => {
           <Textarea
             label="Descrição"
             value={resourceForm.description}
-            onChange={(e) => setResourceForm({ ...resourceForm, description: e.target.value })}
+            onChange={(e) => handleResourceFormChange('description', e.target.value)}
             placeholder="Descreva brevemente o conteúdo e seus benefícios..."
             rows={3}
             required
@@ -707,14 +712,14 @@ const WellnessLibrary: React.FC = () => {
             <Select
               label="Categoria"
               value={resourceForm.category}
-              onChange={(e) => setResourceForm({ ...resourceForm, category: e.target.value })}
+              onChange={(e) => handleResourceFormChange('category', e.target.value)}
               options={categories.filter(c => c.value !== 'all')}
               required
             />
             <Input
               label="URL do Conteúdo (Opcional)"
               value={resourceForm.content_url}
-              onChange={(e) => setResourceForm({ ...resourceForm, content_url: e.target.value })}
+              onChange={(e) => handleResourceFormChange('content_url', e.target.value)}
               placeholder="https://exemplo.com/video"
             />
           </div>
@@ -723,7 +728,7 @@ const WellnessLibrary: React.FC = () => {
             <Input
               label="URL da Miniatura (Opcional)"
               value={resourceForm.thumbnail_url}
-              onChange={(e) => setResourceForm({ ...resourceForm, thumbnail_url: e.target.value })}
+              onChange={(e) => handleResourceFormChange('thumbnail_url', e.target.value)}
               placeholder="https://exemplo.com/thumbnail.jpg"
             />
             <div className="flex items-center space-x-2">
@@ -735,7 +740,7 @@ const WellnessLibrary: React.FC = () => {
           <Textarea
             label="Conteúdo Texto (Opcional)"
             value={resourceForm.content_text}
-            onChange={(e) => setResourceForm({ ...resourceForm, content_text: e.target.value })}
+            onChange={(e) => handleResourceFormChange('content_text', e.target.value)}
             placeholder="Digite o conteúdo completo do recurso aqui..."
             rows={6}
           />

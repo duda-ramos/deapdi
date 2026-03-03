@@ -106,6 +106,15 @@ const PeopleManagement: React.FC = () => {
     manager_id: ''
   });
 
+  // Memoized handlers to prevent input focus loss
+  const handleCreateFormChange = useCallback((field: string, value: string) => {
+    setCreateForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleEditFormChange = useCallback((field: string, value: string) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
   // Memoize permissions to prevent infinite loops
   const permissions = useMemo(() => 
     user ? permissionService.getUserPermissions(user.role) : null,
@@ -1148,7 +1157,7 @@ const PeopleManagement: React.FC = () => {
               <Input
                 label="Nome Completo"
                 value={createForm.name}
-                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                onChange={(e) => handleCreateFormChange('name', e.target.value)}
                 placeholder="Ex: João Silva Santos"
                 required
               />
@@ -1156,7 +1165,7 @@ const PeopleManagement: React.FC = () => {
                 label="Email Corporativo"
                 type="email"
                 value={createForm.email}
-                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                onChange={(e) => handleCreateFormChange('email', e.target.value)}
                 placeholder="joao.silva@empresa.com"
                 required
               />
@@ -1165,7 +1174,7 @@ const PeopleManagement: React.FC = () => {
               label="Senha Inicial"
               type="password"
               value={createForm.password}
-              onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+              onChange={(e) => handleCreateFormChange('password', e.target.value)}
               placeholder="Senha temporária (usuário deve alterar no primeiro login)"
               helperText="Mínimo 6 caracteres - O usuário será solicitado a alterar no primeiro acesso"
               required
@@ -1182,28 +1191,28 @@ const PeopleManagement: React.FC = () => {
               <Input
                 label="Cargo/Posição"
                 value={createForm.position}
-                onChange={(e) => setCreateForm({ ...createForm, position: e.target.value })}
+                onChange={(e) => handleCreateFormChange('position', e.target.value)}
                 placeholder="Ex: Desenvolvedor Frontend"
                 required
               />
               <Select
                 label="Nível Profissional"
                 value={createForm.level}
-                onChange={(e) => setCreateForm({ ...createForm, level: e.target.value })}
+                onChange={(e) => handleCreateFormChange('level', e.target.value)}
                 options={levelOptions.filter(l => l.value !== 'all')}
                 required
               />
               <Select
                 label="Função no Sistema"
                 value={createForm.role}
-                onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}
+                onChange={(e) => handleCreateFormChange('role', e.target.value)}
                 options={roleOptions.filter(r => r.value !== 'all')}
                 required
               />
               <Select
                 label="Time"
                 value={createForm.team_id}
-                onChange={(e) => setCreateForm({ ...createForm, team_id: e.target.value })}
+                onChange={(e) => handleCreateFormChange('team_id', e.target.value)}
                 options={teamOptions.filter(t => t.value !== 'all' && t.value !== 'none')}
                 placeholder="Selecione um time"
               />
@@ -1211,7 +1220,7 @@ const PeopleManagement: React.FC = () => {
             <Select
               label="Gestor Direto"
               value={createForm.manager_id}
-              onChange={(e) => setCreateForm({ ...createForm, manager_id: e.target.value })}
+              onChange={(e) => handleCreateFormChange('manager_id', e.target.value)}
               options={[
                 { value: '', label: 'Será atribuído automaticamente' },
                 ...managers.map(manager => ({ value: manager.id, label: `${manager.name} - ${manager.position}` }))
@@ -1227,14 +1236,14 @@ const PeopleManagement: React.FC = () => {
               <Textarea
                 label="Biografia/Apresentação"
                 value={createForm.bio}
-                onChange={(e) => setCreateForm({ ...createForm, bio: e.target.value })}
+                onChange={(e) => handleCreateFormChange('bio', e.target.value)}
                 placeholder="Breve descrição sobre o colaborador..."
                 rows={3}
               />
               <Textarea
                 label="Formação Acadêmica"
                 value={createForm.formation}
-                onChange={(e) => setCreateForm({ ...createForm, formation: e.target.value })}
+                onChange={(e) => handleCreateFormChange('formation', e.target.value)}
                 placeholder="Graduação, pós-graduação, certificações..."
                 rows={2}
               />
@@ -1271,26 +1280,26 @@ const PeopleManagement: React.FC = () => {
               <Input
                 label="Nome Completo"
                 value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                onChange={(e) => handleEditFormChange('name', e.target.value)}
                 required
               />
               <Input
                 label="Email"
                 type="email"
                 value={editForm.email}
-                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                onChange={(e) => handleEditFormChange('email', e.target.value)}
                 required
               />
               <Input
                 label="Telefone"
                 value={editForm.phone}
-                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                onChange={(e) => handleEditFormChange('phone', e.target.value)}
                 placeholder="(11) 99999-9999"
               />
               <Input
                 label="Localização"
                 value={editForm.location}
-                onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                onChange={(e) => handleEditFormChange('location', e.target.value)}
                 placeholder="São Paulo, SP"
               />
             </div>
@@ -1303,13 +1312,13 @@ const PeopleManagement: React.FC = () => {
               <Input
                 label="Cargo/Posição"
                 value={editForm.position}
-                onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
+                onChange={(e) => handleEditFormChange('position', e.target.value)}
                 required
               />
               <Select
                 label="Nível"
                 value={editForm.level}
-                onChange={(e) => setEditForm({ ...editForm, level: e.target.value })}
+                onChange={(e) => handleEditFormChange('level', e.target.value)}
                 options={levelOptions.filter(l => l.value !== 'all')}
                 required
               />
@@ -1317,7 +1326,7 @@ const PeopleManagement: React.FC = () => {
                 <Select
                   label="Papel no Sistema"
                   value={editForm.role}
-                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
+                  onChange={(e) => handleEditFormChange('role', e.target.value)}
                   options={roleOptions.filter(r => r.value !== 'all')}
                   required
                 />
@@ -1325,7 +1334,7 @@ const PeopleManagement: React.FC = () => {
               <Select
                 label="Status"
                 value={editForm.status}
-                onChange={(e) => setEditForm({ ...editForm, status: e.target.value as 'active' | 'inactive' })}
+                onChange={(e) => handleEditFormChange('status', e.target.value)}
                 options={[
                   { value: 'active', label: 'Ativo' },
                   { value: 'inactive', label: 'Inativo' }
@@ -1335,7 +1344,7 @@ const PeopleManagement: React.FC = () => {
               <Select
                 label="Time"
                 value={editForm.team_id}
-                onChange={(e) => setEditForm({ ...editForm, team_id: e.target.value })}
+                onChange={(e) => handleEditFormChange('team_id', e.target.value)}
                 options={[
                   { value: '', label: 'Sem time' },
                   ...teams.map(team => ({ value: team.id, label: team.name }))
@@ -1344,7 +1353,7 @@ const PeopleManagement: React.FC = () => {
               <Select
                 label="Gestor Direto"
                 value={editForm.manager_id}
-                onChange={(e) => setEditForm({ ...editForm, manager_id: e.target.value })}
+                onChange={(e) => handleEditFormChange('manager_id', e.target.value)}
                 options={[
                   { value: '', label: 'Sem gestor' },
                   ...managers.map(manager => ({ value: manager.id, label: `${manager.name} - ${manager.position}` }))
@@ -1355,14 +1364,14 @@ const PeopleManagement: React.FC = () => {
               <Input
                 label="Área de Atuação"
                 value={editForm.area}
-                onChange={(e) => setEditForm({ ...editForm, area: e.target.value })}
+                onChange={(e) => handleEditFormChange('area', e.target.value)}
                 placeholder="Ex: Tecnologia, Marketing"
               />
               <Input
                 label="Data de Admissão"
                 type="date"
                 value={editForm.admission_date}
-                onChange={(e) => setEditForm({ ...editForm, admission_date: e.target.value })}
+                onChange={(e) => handleEditFormChange('admission_date', e.target.value)}
               />
             </div>
           </div>
@@ -1375,12 +1384,12 @@ const PeopleManagement: React.FC = () => {
                 label="Data de Nascimento"
                 type="date"
                 value={editForm.birth_date}
-                onChange={(e) => setEditForm({ ...editForm, birth_date: e.target.value })}
+                onChange={(e) => handleEditFormChange('birth_date', e.target.value)}
               />
               <Input
                 label="Contato de Emergência"
                 value={editForm.emergency_contact}
-                onChange={(e) => setEditForm({ ...editForm, emergency_contact: e.target.value })}
+                onChange={(e) => handleEditFormChange('emergency_contact', e.target.value)}
                 placeholder="Nome e telefone"
               />
             </div>
@@ -1393,19 +1402,19 @@ const PeopleManagement: React.FC = () => {
               <Textarea
                 label="Biografia"
                 value={editForm.bio}
-                onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                onChange={(e) => handleEditFormChange('bio', e.target.value)}
                 rows={2}
               />
               <Textarea
                 label="Formação"
                 value={editForm.formation}
-                onChange={(e) => setEditForm({ ...editForm, formation: e.target.value })}
+                onChange={(e) => handleEditFormChange('formation', e.target.value)}
                 rows={2}
               />
               <Textarea
                 label="Objetivos de Carreira"
                 value={editForm.career_objectives}
-                onChange={(e) => setEditForm({ ...editForm, career_objectives: e.target.value })}
+                onChange={(e) => handleEditFormChange('career_objectives', e.target.value)}
                 rows={2}
               />
             </div>

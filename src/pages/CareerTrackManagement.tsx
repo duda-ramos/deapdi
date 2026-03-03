@@ -59,8 +59,21 @@ const CareerTrackManagement: React.FC = () => {
     max_salary: 0
   });
 
+  // Memoized handlers to prevent input focus loss
+  const handleTemplateFormChange = useCallback((field: string, value: string) => {
+    setTemplateForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleCompetencyFormChange = useCallback((field: string, value: string | number) => {
+    setCompetencyForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleSalaryFormChange = useCallback((field: string, value: string | number) => {
+    setSalaryForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
   const stages = [
-    'Estagiário', 'Assistente', 'Júnior', 'Pleno', 
+    'Estagiário', 'Assistente', 'Júnior', 'Pleno',
     'Sênior', 'Especialista', 'Principal'
   ];
 
@@ -430,7 +443,7 @@ const CareerTrackManagement: React.FC = () => {
           <Input
             label="Nome da Trilha"
             value={templateForm.name}
-            onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+            onChange={(e) => handleTemplateFormChange('name', e.target.value)}
             placeholder="Ex: Trilha de Desenvolvimento - Frontend"
             required
           />
@@ -438,7 +451,7 @@ const CareerTrackManagement: React.FC = () => {
           <Textarea
             label="Descrição"
             value={templateForm.description}
-            onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+            onChange={(e) => handleTemplateFormChange('description', e.target.value)}
             placeholder="Descreva o objetivo e escopo desta trilha..."
             rows={3}
           />
@@ -446,7 +459,7 @@ const CareerTrackManagement: React.FC = () => {
           <Input
             label="Profissão"
             value={templateForm.profession}
-            onChange={(e) => setTemplateForm({ ...templateForm, profession: e.target.value })}
+            onChange={(e) => handleTemplateFormChange('profession', e.target.value)}
             placeholder="Ex: Desenvolvedor Frontend"
             required
           />
@@ -454,7 +467,7 @@ const CareerTrackManagement: React.FC = () => {
           <Select
             label="Tipo de Trilha"
             value={templateForm.track_type}
-            onChange={(e) => setTemplateForm({ ...templateForm, track_type: e.target.value as any })}
+            onChange={(e) => handleTemplateFormChange('track_type', e.target.value)}
             options={[
               { value: 'development', label: 'Desenvolvimento' },
               { value: 'specialization', label: 'Especialização' }
@@ -497,7 +510,7 @@ const CareerTrackManagement: React.FC = () => {
           <Select
             label="Estágio"
             value={competencyForm.stage_name}
-            onChange={(e) => setCompetencyForm({ ...competencyForm, stage_name: e.target.value })}
+            onChange={(e) => handleCompetencyFormChange('stage_name', e.target.value)}
             options={stages.map(s => ({ value: s, label: s }))}
             required
           />
@@ -505,7 +518,7 @@ const CareerTrackManagement: React.FC = () => {
           <Select
             label="Competência"
             value={competencyForm.competency_name}
-            onChange={(e) => setCompetencyForm({ ...competencyForm, competency_name: e.target.value })}
+            onChange={(e) => handleCompetencyFormChange('competency_name', e.target.value)}
             options={competencyNames.map(c => ({ value: c, label: c }))}
             required
           />
@@ -513,7 +526,7 @@ const CareerTrackManagement: React.FC = () => {
           <Select
             label="Nível Requerido"
             value={competencyForm.required_level.toString()}
-            onChange={(e) => setCompetencyForm({ ...competencyForm, required_level: parseInt(e.target.value) })}
+            onChange={(e) => handleCompetencyFormChange('required_level', parseInt(e.target.value))}
             options={[
               { value: '1', label: '1 - Básico' },
               { value: '2', label: '2 - Iniciante' },
@@ -531,7 +544,7 @@ const CareerTrackManagement: React.FC = () => {
             min="0.1"
             max="3.0"
             value={competencyForm.weight}
-            onChange={(e) => setCompetencyForm({ ...competencyForm, weight: parseFloat(e.target.value) })}
+            onChange={(e) => handleCompetencyFormChange('weight', parseFloat(e.target.value))}
             helperText="1.0 = peso normal, 1.5 = mais importante, 0.5 = menos importante"
             required
           />
@@ -562,7 +575,7 @@ const CareerTrackManagement: React.FC = () => {
           <Select
             label="Estágio"
             value={salaryForm.stage_name}
-            onChange={(e) => setSalaryForm({ ...salaryForm, stage_name: e.target.value })}
+            onChange={(e) => handleSalaryFormChange('stage_name', e.target.value)}
             options={stages.map(s => ({ value: s, label: s }))}
             required
           />
@@ -574,7 +587,7 @@ const CareerTrackManagement: React.FC = () => {
               min="0"
               step="100"
               value={salaryForm.min_salary}
-              onChange={(e) => setSalaryForm({ ...salaryForm, min_salary: parseInt(e.target.value) })}
+              onChange={(e) => handleSalaryFormChange('min_salary', parseInt(e.target.value))}
               required
             />
 
@@ -584,7 +597,7 @@ const CareerTrackManagement: React.FC = () => {
               min="0"
               step="100"
               value={salaryForm.max_salary}
-              onChange={(e) => setSalaryForm({ ...salaryForm, max_salary: parseInt(e.target.value) })}
+              onChange={(e) => handleSalaryFormChange('max_salary', parseInt(e.target.value))}
               required
             />
           </div>

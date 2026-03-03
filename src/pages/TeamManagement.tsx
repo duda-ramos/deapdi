@@ -60,6 +60,15 @@ const TeamManagement: React.FC = () => {
     memberIds: [] as string[]
   });
 
+  // Memoized handlers to prevent input focus loss
+  const handleTeamFormChange = useCallback((field: string, value: string) => {
+    setTeamForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleTransferFormChange = useCallback((field: string, value: string) => {
+    setTransferForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
   // Track if data has been loaded to prevent multiple calls
   const isLoadingRef = useRef(false);
   const hasLoadedRef = useRef(false);
@@ -492,7 +501,7 @@ const TeamManagement: React.FC = () => {
               <Input
                 label="Nome do Time"
                 value={teamForm.name}
-                onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
+                onChange={(e) => handleTeamFormChange('name', e.target.value)}
                 placeholder="Ex: Desenvolvimento Frontend, Marketing Digital"
                 required
               />
@@ -500,7 +509,7 @@ const TeamManagement: React.FC = () => {
               <Textarea
                 label="Descrição/Objetivo"
                 value={teamForm.description}
-                onChange={(e) => setTeamForm({ ...teamForm, description: e.target.value })}
+                onChange={(e) => handleTeamFormChange('description', e.target.value)}
                 placeholder="Descreva o propósito e responsabilidades do time..."
                 rows={3}
               />
@@ -516,7 +525,7 @@ const TeamManagement: React.FC = () => {
               <Select
                 label="Gestor do Time"
                 value={teamForm.manager_id}
-                onChange={(e) => setTeamForm({ ...teamForm, manager_id: e.target.value })}
+                onChange={(e) => handleTeamFormChange('manager_id', e.target.value)}
                 options={managerOptions}
                 placeholder="Selecione um gestor"
               />
@@ -524,7 +533,7 @@ const TeamManagement: React.FC = () => {
               <Select
                 label="Status"
                 value={teamForm.status}
-                onChange={(e) => setTeamForm({ ...teamForm, status: e.target.value as 'active' | 'inactive' })}
+                onChange={(e) => handleTeamFormChange('status', e.target.value)}
                 options={[
                   { value: 'active', label: 'Ativo' },
                   { value: 'inactive', label: 'Inativo' }
@@ -573,14 +582,14 @@ const TeamManagement: React.FC = () => {
               <Input
                 label="Nome do Time"
                 value={teamForm.name}
-                onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
+                onChange={(e) => handleTeamFormChange('name', e.target.value)}
                 required
               />
 
               <Textarea
                 label="Descrição/Objetivo"
                 value={teamForm.description}
-                onChange={(e) => setTeamForm({ ...teamForm, description: e.target.value })}
+                onChange={(e) => handleTeamFormChange('description', e.target.value)}
                 rows={3}
               />
             </div>
@@ -592,7 +601,7 @@ const TeamManagement: React.FC = () => {
               <Select
                 label="Gestor do Time"
                 value={teamForm.manager_id}
-                onChange={(e) => setTeamForm({ ...teamForm, manager_id: e.target.value })}
+                onChange={(e) => handleTeamFormChange('manager_id', e.target.value)}
                 options={managerOptions}
                 placeholder="Selecione um gestor"
               />
@@ -600,7 +609,7 @@ const TeamManagement: React.FC = () => {
               <Select
                 label="Status"
                 value={teamForm.status}
-                onChange={(e) => setTeamForm({ ...teamForm, status: e.target.value as 'active' | 'inactive' })}
+                onChange={(e) => handleTeamFormChange('status', e.target.value)}
                 options={[
                   { value: 'active', label: 'Ativo' },
                   { value: 'inactive', label: 'Inativo' }
@@ -663,7 +672,7 @@ const TeamManagement: React.FC = () => {
               <Select
                 label="Time de Destino"
                 value={transferForm.toTeamId}
-                onChange={(e) => setTransferForm({ ...transferForm, toTeamId: e.target.value })}
+                onChange={(e) => handleTransferFormChange('toTeamId', e.target.value)}
                 options={teamOptions.filter(t => t.value !== transferForm.fromTeamId)}
                 placeholder="Selecione o time de destino"
                 required
