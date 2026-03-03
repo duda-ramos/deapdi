@@ -41,10 +41,14 @@ export const Modal: React.FC<ModalProps> = ({
   const contentId = ariaDescribedby ?? useId();
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
+  // Use ref for onClose to avoid re-triggering effects when parent re-renders
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   // Get all focusable elements within the modal
   const getFocusableElements = useCallback(() => {
     if (!modalRef.current) return [];
-    
+
     const focusableSelectors = [
       'button:not([disabled])',
       'input:not([disabled])',
@@ -60,12 +64,12 @@ export const Modal: React.FC<ModalProps> = ({
     ).filter((el) => el.offsetParent !== null);
   }, []);
 
-  // Handle keyboard events for focus trap and close
+  // Handle keyboard events for focus trap and close - stable reference via ref
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.stopPropagation();
       event.preventDefault();
-      onClose();
+      onCloseRef.current();
       return;
     }
 
@@ -91,23 +95,16 @@ export const Modal: React.FC<ModalProps> = ({
         }
       }
     }
-  }, [onClose, getFocusableElements]);
+  }, [getFocusableElements]);
 
+  // Effect 1: Focus management - only runs when modal opens
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+    if (!isOpen) return;
 
     // Store the currently focused element to restore later
     previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
 
-    // Prevent body scroll when modal is open
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    // Focus management: focus initial element or first focusable
+    // Focus initial element or first focusable on open
     const focusTimer = window.setTimeout(() => {
       if (initialFocusRef?.current) {
         initialFocusRef.current.focus();
@@ -123,15 +120,26 @@ export const Modal: React.FC<ModalProps> = ({
 
     return () => {
       window.clearTimeout(focusTimer);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = originalOverflow;
-      
       // Return focus to the previously focused element
       if (previouslyFocusedRef.current && typeof previouslyFocusedRef.current.focus === 'function') {
         previouslyFocusedRef.current.focus();
       }
     };
-  }, [isOpen, handleKeyDown, initialFocusRef, getFocusableElements]);
+  }, [isOpen]); // Only re-run when modal opens/closes
+
+  // Effect 2: Keyboard listener and scroll lock
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen, handleKeyDown]);
 
   return (
     <AnimatePresence>
