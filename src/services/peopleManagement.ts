@@ -51,7 +51,7 @@ export const peopleManagementService = {
       .from('profiles')
       .select(`
         *,
-        team:teams(id, name, manager_id),
+        team:teams!profiles_team_id_fkey(id, name, manager_id),
         manager:profiles!profiles_manager_id_fkey(id, name, position)
       `);
 
@@ -87,7 +87,7 @@ export const peopleManagementService = {
       .from('profiles')
       .select(`
         *,
-        team:teams(id, name, manager_id),
+        team:teams!profiles_team_id_fkey(id, name, manager_id),
         manager:profiles!profiles_manager_id_fkey(id, name, position, email)
       `)
       .eq('id', profileId)
