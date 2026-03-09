@@ -52,7 +52,7 @@ export const peopleManagementService = {
       .select(`
         *,
         team:teams!profiles_team_id_fkey(id, name, manager_id),
-        manager:profiles!profiles_manager_id_fkey(id, name, position)
+        manager:profiles!manager_id(id, name, position)
       `);
 
     if (filters?.role) query = query.eq('role', filters.role);
@@ -88,7 +88,7 @@ export const peopleManagementService = {
       .select(`
         *,
         team:teams!profiles_team_id_fkey(id, name, manager_id),
-        manager:profiles!profiles_manager_id_fkey(id, name, position, email)
+        manager:profiles!manager_id(id, name, position, email)
       `)
       .eq('id', profileId)
       .single(), 'getProfileDetails');
