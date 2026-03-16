@@ -131,3 +131,38 @@ export const supabaseRequest = async <T>(
     throw normalizedError;
   }
 };
+
+const PAGE_SIZE = 1000;
+
+/**
+ * Fetch all rows from a Supabase query by paginating through the full result set.
+ * Prevents silent truncation when the total row count exceeds the PostgREST limit.
+ */
+export const supabasePaginatedRequest = async <T extends Record<string, unknown>>(
+  buildQuery: (from: number, to: number) => Promise<{ data: T[] | null; error: PostgrestError | SupabaseOperationError | null }>,
+  context: string
+): Promise<T[]> => {
+  const all: T[] = [];
+  let from = 0;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const to = from + PAGE_SIZE - 1;
+    const { data, error } = await buildQuery(from, to);
+
+    if (error) {
+      const errorMessage = error?.message || String(error);
+      console.error(`Supabase error in ${context} (page ${from}-${to}):`, errorMessage);
+      throw new Error(errorMessage || 'Erro interno do servidor.');
+    }
+
+    if (!data || data.length === 0) break;
+
+    all.push(...data);
+
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return all;
+};

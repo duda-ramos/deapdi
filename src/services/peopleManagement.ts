@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { supabaseRequest } from './api';
+import { supabaseRequest, supabasePaginatedRequest } from './api';
 import { Profile, UserRole } from '../types';
 import { permissionService } from '../utils/permissions';
 
@@ -237,28 +237,38 @@ export const peopleManagementService = {
 
       const allProfileIds = profiles.map(p => p.id);
 
-      // Count per profile to avoid row-cap truncation on bulk fetches
-      const pdiCountByProfile = new Map<string, number>();
-      await Promise.all(allProfileIds.map(async (id) => {
-        const rows = await supabaseRequest(() => supabase
+      // Fetch all completed PDIs with pagination to avoid row-cap truncation
+      const allPdis = await supabasePaginatedRequest<{ profile_id: string }>(
+        (from, to) => supabase
           .from('pdis')
-          .select('id')
-          .eq('profile_id', id)
-          .in('status', ['completed', 'validated']), 'getPdiCount');
-        pdiCountByProfile.set(id, rows?.length ?? 0);
-      }));
+          .select('profile_id')
+          .in('profile_id', allProfileIds)
+          .in('status', ['completed', 'validated'])
+          .range(from, to),
+        'getPdiCountsForMetrics'
+      );
 
-      // Fetch competencies per profile to avoid row-cap truncation
-      const competenciesByProfile = new Map<string, { self_rating: number; manager_rating: number }[]>();
-      await Promise.all(allProfileIds.map(async (id) => {
-        const comps = await supabaseRequest(() => supabase
+      const pdiCountByProfile = new Map<string, number>();
+      for (const pdi of allPdis) {
+        pdiCountByProfile.set(pdi.profile_id, (pdiCountByProfile.get(pdi.profile_id) || 0) + 1);
+      }
+
+      // Fetch all competencies with pagination to avoid row-cap truncation
+      const allCompetencies = await supabasePaginatedRequest<{ profile_id: string; self_rating: number; manager_rating: number }>(
+        (from, to) => supabase
           .from('competencies')
-          .select('self_rating, manager_rating')
-          .eq('profile_id', id), 'getCompetencies');
-        if (comps?.length) {
-          competenciesByProfile.set(id, comps);
-        }
-      }));
+          .select('profile_id, self_rating, manager_rating')
+          .in('profile_id', allProfileIds)
+          .range(from, to),
+        'getCompetenciesForMetrics'
+      );
+
+      const competenciesByProfile = new Map<string, { self_rating: number; manager_rating: number }[]>();
+      for (const comp of allCompetencies) {
+        const existing = competenciesByProfile.get(comp.profile_id) || [];
+        existing.push(comp);
+        competenciesByProfile.set(comp.profile_id, existing);
+      }
 
       const metrics: PerformanceMetrics[] = profiles.map(profile => {
         const pdisCount = pdiCountByProfile.get(profile.id) || 0;
