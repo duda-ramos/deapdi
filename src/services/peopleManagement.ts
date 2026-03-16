@@ -237,6 +237,10 @@ export const peopleManagementService = {
 
       const allProfileIds = profiles.map(p => p.id);
 
+      if (allProfileIds.length === 0) {
+        return [];
+      }
+
       // Fetch all completed PDIs with pagination to avoid row-cap truncation
       const allPdis = await supabasePaginatedRequest<{ profile_id: string }>(
         (from, to) => supabase
