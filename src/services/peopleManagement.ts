@@ -237,30 +237,28 @@ export const peopleManagementService = {
 
       const allProfileIds = profiles.map(p => p.id);
 
-      // Batch fetch PDI counts for all profiles at once (avoid N+1)
-      const { data: allPdis } = await supabase
-        .from('pdis')
-        .select('profile_id')
-        .in('profile_id', allProfileIds)
-        .in('status', ['completed', 'validated']);
-
+      // Count per profile to avoid row-cap truncation on bulk fetches
       const pdiCountByProfile = new Map<string, number>();
-      allPdis?.forEach(pdi => {
-        pdiCountByProfile.set(pdi.profile_id, (pdiCountByProfile.get(pdi.profile_id) || 0) + 1);
-      });
+      await Promise.all(allProfileIds.map(async (id) => {
+        const rows = await supabaseRequest(() => supabase
+          .from('pdis')
+          .select('id')
+          .eq('profile_id', id)
+          .in('status', ['completed', 'validated']), 'getPdiCount');
+        pdiCountByProfile.set(id, rows?.length ?? 0);
+      }));
 
-      // Batch fetch competencies for all profiles at once (avoid N+1)
-      const { data: allCompetencies } = await supabase
-        .from('competencies')
-        .select('profile_id, self_rating, manager_rating')
-        .in('profile_id', allProfileIds);
-
+      // Fetch competencies per profile to avoid row-cap truncation
       const competenciesByProfile = new Map<string, { self_rating: number; manager_rating: number }[]>();
-      allCompetencies?.forEach(comp => {
-        const existing = competenciesByProfile.get(comp.profile_id) || [];
-        existing.push(comp);
-        competenciesByProfile.set(comp.profile_id, existing);
-      });
+      await Promise.all(allProfileIds.map(async (id) => {
+        const comps = await supabaseRequest(() => supabase
+          .from('competencies')
+          .select('self_rating, manager_rating')
+          .eq('profile_id', id), 'getCompetencies');
+        if (comps?.length) {
+          competenciesByProfile.set(id, comps);
+        }
+      }));
 
       const metrics: PerformanceMetrics[] = profiles.map(profile => {
         const pdisCount = pdiCountByProfile.get(profile.id) || 0;

@@ -110,25 +110,32 @@ export const adminService = {
     console.log('⚙️ Admin: Getting system statistics');
 
     try {
+      if (!supabase) {
+        throw new Error('Supabase client is not available');
+      }
+
       const [
-        profilesResult,
-        pdisResult,
-        teamsResult
+        totalUsersResult,
+        activeUsersResult,
+        totalPdisResult,
+        completedPdisResult,
+        totalTeamsResult
       ] = await Promise.all([
-        supabase.from('profiles').select('id, status', { count: 'exact' }),
-        supabase.from('pdis').select('id, status', { count: 'exact' }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true })
+          .eq('status', 'active'),
+        supabase.from('pdis').select('id', { count: 'exact', head: true }),
+        supabase.from('pdis').select('id', { count: 'exact', head: true })
+          .in('status', ['completed', 'validated']),
         supabase.from('teams').select('id', { count: 'exact', head: true })
       ]);
 
-      const profiles = profilesResult.data || [];
-      const pdis = pdisResult.data || [];
-
       return {
-        total_users: profiles.length,
-        active_users: profiles.filter(p => p.status === 'active').length,
-        total_pdis: pdis.length,
-        completed_pdis: pdis.filter(p => p.status === 'completed' || p.status === 'validated').length,
-        total_teams: teamsResult.count || 0,
+        total_users: totalUsersResult.count ?? 0,
+        active_users: activeUsersResult.count ?? 0,
+        total_pdis: totalPdisResult.count ?? 0,
+        completed_pdis: completedPdisResult.count ?? 0,
+        total_teams: totalTeamsResult.count ?? 0,
         system_uptime: '99.9%', // Would come from monitoring service
         last_backup: new Date().toISOString(),
         database_size: '2.3GB', // Would come from database metrics
