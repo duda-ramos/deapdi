@@ -16,19 +16,21 @@ import {
 export const databaseService = {
   // Profiles
   async getProfiles(filters?: { role?: string; team_id?: string; status?: string }) {
-    let query = supabase
-      .from('profiles')
-      .select(`
-        *,
-        team:teams!profiles_team_id_fkey(name),
-        manager:profiles!profiles_manager_id_fkey(name)
-      `);
+    return supabaseRequest(() => {
+      let query = supabase
+        .from('profiles')
+        .select(`
+          *,
+          team:teams!profiles_team_id_fkey(name),
+          manager:profiles!profiles_manager_id_fkey(name)
+        `);
 
-    if (filters?.role) query = query.eq('role', filters.role);
-    if (filters?.team_id) query = query.eq('team_id', filters.team_id);
-    if (filters?.status) query = query.eq('status', filters.status);
+      if (filters?.role) query = query.eq('role', filters.role);
+      if (filters?.team_id) query = query.eq('team_id', filters.team_id);
+      if (filters?.status) query = query.eq('status', filters.status);
 
-    return supabaseRequest(() => query, 'getProfiles');
+      return query;
+    }, 'getProfiles');
   },
 
   async updateProfile(id: string, updates: Partial<Profile>) {
@@ -220,16 +222,18 @@ export const databaseService = {
 
   // Notifications
   async getNotifications(profileId: string, unreadOnly = false) {
-    let query = supabase
-      .from('notifications')
-      .select('*')
-      .eq('profile_id', profileId);
+    return supabaseRequest(() => {
+      let query = supabase
+        .from('notifications')
+        .select('*')
+        .eq('profile_id', profileId);
 
-    if (unreadOnly) {
-      query = query.eq('read', false);
-    }
+      if (unreadOnly) {
+        query = query.eq('read', false);
+      }
 
-    return supabaseRequest(() => query.order('created_at', { ascending: false }), 'getNotifications');
+      return query.order('created_at', { ascending: false });
+    }, 'getNotifications');
   },
 
   async markNotificationAsRead(id: string) {
