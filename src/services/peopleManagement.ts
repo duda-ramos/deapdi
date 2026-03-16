@@ -76,7 +76,7 @@ export const peopleManagementService = {
   },
 
   async getProfileDetails(profileId: string): Promise<Profile & {
-    team?: any;
+    team?: { id: string; name: string; manager_id: string | null };
     manager?: Profile;
     pdis_count?: number;
     competencies_count?: number;
@@ -235,48 +235,63 @@ export const peopleManagementService = {
         profiles = await this.getProfilesWithDetails();
       }
 
-      const metrics: PerformanceMetrics[] = await Promise.all(
-        profiles.map(async (profile) => {
-          // Get PDI count
-          const { count: pdisCount } = await supabase
-            .from('pdis')
-            .select('*', { count: 'exact', head: true })
-            .eq('profile_id', profile.id)
-            .in('status', ['completed', 'validated']);
+      const allProfileIds = profiles.map(p => p.id);
 
-          // Get competencies average
-          const { data: competencies } = await supabase
-            .from('competencies')
-            .select('self_rating, manager_rating')
-            .eq('profile_id', profile.id);
+      // Batch fetch PDI counts for all profiles at once (avoid N+1)
+      const { data: allPdis } = await supabase
+        .from('pdis')
+        .select('profile_id')
+        .in('profile_id', allProfileIds)
+        .in('status', ['completed', 'validated']);
 
-          const avgRating = competencies && competencies.length > 0
-            ? competencies.reduce((sum, comp) => {
-                const rating = Math.max(comp.self_rating || 0, comp.manager_rating || 0);
-                return sum + rating;
-              }, 0) / competencies.length
-            : 0;
+      const pdiCountByProfile = new Map<string, number>();
+      allPdis?.forEach(pdi => {
+        pdiCountByProfile.set(pdi.profile_id, (pdiCountByProfile.get(pdi.profile_id) || 0) + 1);
+      });
 
-          // Calculate engagement score (simplified)
-          const engagementScore = Math.min(100, 
-            (profile.points / 10) + 
-            ((pdisCount || 0) * 15) + 
-            (avgRating * 10)
-          );
+      // Batch fetch competencies for all profiles at once (avoid N+1)
+      const { data: allCompetencies } = await supabase
+        .from('competencies')
+        .select('profile_id, self_rating, manager_rating')
+        .in('profile_id', allProfileIds);
 
-          return {
-            profile_id: profile.id,
-            name: profile.name,
-            position: profile.position,
-            level: profile.level,
-            points: profile.points,
-            completed_pdis: pdisCount || 0,
-            average_competency_rating: avgRating,
-            last_activity: profile.updated_at,
-            engagement_score: Math.round(engagementScore)
-          };
-        })
-      );
+      const competenciesByProfile = new Map<string, { self_rating: number; manager_rating: number }[]>();
+      allCompetencies?.forEach(comp => {
+        const existing = competenciesByProfile.get(comp.profile_id) || [];
+        existing.push(comp);
+        competenciesByProfile.set(comp.profile_id, existing);
+      });
+
+      const metrics: PerformanceMetrics[] = profiles.map(profile => {
+        const pdisCount = pdiCountByProfile.get(profile.id) || 0;
+        const competencies = competenciesByProfile.get(profile.id) || [];
+
+        const avgRating = competencies.length > 0
+          ? competencies.reduce((sum, comp) => {
+              const rating = Math.max(comp.self_rating || 0, comp.manager_rating || 0);
+              return sum + rating;
+            }, 0) / competencies.length
+          : 0;
+
+        // Calculate engagement score (simplified)
+        const engagementScore = Math.min(100,
+          (profile.points / 10) +
+          (pdisCount * 15) +
+          (avgRating * 10)
+        );
+
+        return {
+          profile_id: profile.id,
+          name: profile.name,
+          position: profile.position,
+          level: profile.level,
+          points: profile.points,
+          completed_pdis: pdisCount,
+          average_competency_rating: avgRating,
+          last_activity: profile.updated_at,
+          engagement_score: Math.round(engagementScore)
+        };
+      });
 
       return metrics.sort((a, b) => b.engagement_score - a.engagement_score);
     } catch (error) {
@@ -286,7 +301,12 @@ export const peopleManagementService = {
   },
 
   // Organizational chart
-  async getOrganizationalChart(): Promise<any> {
+  async getOrganizationalChart(): Promise<{
+    admins: Profile[];
+    hr: Profile[];
+    managers: (Profile & { team_members: Profile[] })[];
+    unassigned: Profile[];
+  }> {
     console.log('👥 PeopleManagement: Getting organizational chart');
 
     try {
@@ -419,7 +439,13 @@ export const peopleManagementService = {
   },
 
   // Reporting and analytics
-  async generatePeopleReport(filters?: any): Promise<any[]> {
+  async generatePeopleReport(filters?: {
+    role?: UserRole;
+    team_id?: string;
+    manager_id?: string;
+    status?: 'active' | 'inactive';
+    search?: string;
+  }): Promise<any[]> {
     console.log('👥 PeopleManagement: Generating people report');
 
     try {
@@ -440,7 +466,7 @@ export const peopleManagementService = {
           status: profile.status,
           points: profile.points,
           completed_pdis: metric?.completed_pdis || 0,
-          achievements_count: metric?.achievements_count || 0,
+          average_competency_rating: metric?.average_competency_rating || 0,
           engagement_score: metric?.engagement_score || 0,
           admission_date: profile.admission_date,
           last_update: profile.updated_at
@@ -457,13 +483,16 @@ export const peopleManagementService = {
 
     const headers = Object.keys(data[0]);
     const csvContent = [
-      headers.join(','),
-      ...data.map(row => 
+      headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','),
+      ...data.map(row =>
         headers.map(header => {
           const value = row[header];
-          return typeof value === 'string' && value.includes(',') 
-            ? `"${value}"` 
-            : value;
+          if (value == null) return '';
+          const str = String(value);
+          // Escape double quotes and prevent CSV formula injection
+          const escaped = str.replace(/"/g, '""');
+          const needsQuote = /^[=+\-@\t\r]/.test(escaped);
+          return `"${needsQuote ? "'" : ''}${escaped}"`;
         }).join(',')
       )
     ].join('\n');

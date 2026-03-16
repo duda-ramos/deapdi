@@ -261,7 +261,7 @@ export const careerTrackService = {
       .from('career_tracks')
       .select(`
         *,
-        profile:profiles(id, name, position, email)
+        profile:profiles!career_tracks_profile_id_fkey(id, name, position, email)
       `)
       .eq('template_id', templateId);
     

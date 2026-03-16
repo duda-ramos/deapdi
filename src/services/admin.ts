@@ -159,7 +159,7 @@ export const adminService = {
         .from('audit_logs')
         .select(`
           *,
-          user:profiles(name, email)
+          user:profiles!audit_logs_user_id_fkey(name, email)
         `)
         .order('created_at', { ascending: false })
         .limit(limit), 'getAuditLogs');
