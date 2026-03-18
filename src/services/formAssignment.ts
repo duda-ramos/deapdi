@@ -212,8 +212,8 @@ export class FormAssignmentService {
         })
         .select(`
           *,
-          assigned_by_profile:profiles!form_assignments_assigned_by_fkey(name),
-          assigned_to_profiles:profiles!form_assignments_assigned_to_fkey(name)
+          assigned_by_profile:profiles!assigned_by(name),
+          assigned_to_profiles:profiles!assigned_to(name)
         `)
         .single();
 
@@ -249,8 +249,8 @@ export class FormAssignmentService {
         .from('form_assignments')
         .select(`
           *,
-          assigned_by_profile:profiles!form_assignments_assigned_by_fkey(name),
-          assigned_to_profiles:profiles!form_assignments_assigned_to_fkey(name)
+          assigned_by_profile:profiles!assigned_by(name),
+          assigned_to_profiles:profiles!assigned_to(name)
         `);
 
       // CRITICAL SECURITY FIX: Prevent admins from accessing mental health data
