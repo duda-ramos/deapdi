@@ -88,7 +88,6 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
         Pontos: metric.points,
         'PDIs Concluídos': metric.completed_pdis,
         'Média Competências': metric.average_competency_rating.toFixed(1),
-        'Conquistas': metric.achievements_count,
         'Score Engajamento': metric.engagement_score,
         'Última Atividade': new Date(metric.last_activity).toLocaleDateString('pt-BR')
       })),
@@ -244,11 +243,6 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                     <div className="text-xs text-gray-500">PDIs</div>
                   </div>
                   
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-purple-600">{metric.achievements_count}</div>
-                    <div className="text-xs text-gray-500">conquistas</div>
-                  </div>
-                  
                   <div className="text-center min-w-24">
                     <div className="flex items-center justify-center space-x-1 mb-1">
                       {trend.icon}
@@ -314,17 +308,17 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
         <Card className="p-6">
           <h4 className="font-medium text-gray-900 mb-3 flex items-center">
             <Award className="mr-2 text-purple-500" size={16} />
-            Mais Conquistas
+            Maior Engajamento
           </h4>
           <div className="space-y-2">
             {filteredMetrics
-              .sort((a, b) => b.achievements_count - a.achievements_count)
+              .sort((a, b) => b.engagement_score - a.engagement_score)
               .slice(0, 3)
               .map((metric) => (
                 <div key={metric.profile_id} className="flex items-center justify-between">
                   <span className="text-sm text-gray-700">{metric.name}</span>
                   <Badge variant="warning" size="sm">
-                    {metric.achievements_count} conquistas
+                    {metric.engagement_score}% engajamento
                   </Badge>
                 </div>
               ))}
