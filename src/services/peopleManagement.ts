@@ -1,7 +1,39 @@
 import { supabase } from '../lib/supabase';
 import { supabaseRequest } from './api';
-import { Profile, UserRole } from '../types';
+import { Profile, Team, UserRole } from '../types';
 import { permissionService } from '../utils/permissions';
+
+export interface ProfileFilters {
+  role?: UserRole;
+  team_id?: string;
+  manager_id?: string;
+  status?: 'active' | 'inactive';
+  search?: string;
+}
+
+export interface OrganizationalChart {
+  admins: Profile[];
+  hr: Profile[];
+  managers: (Profile & { team_members: Profile[] })[];
+  unassigned: Profile[];
+}
+
+export interface PeopleReportEntry {
+  id: string;
+  name: string;
+  email: string;
+  position: string;
+  level: string;
+  role: string;
+  team: string;
+  manager: string;
+  status: string;
+  points: number;
+  completed_pdis: number;
+  engagement_score: number;
+  admission_date: string;
+  last_update: string;
+}
 
 export interface PeopleStats {
   total_employees: number;
@@ -38,13 +70,7 @@ export interface PerformanceMetrics {
 
 export const peopleManagementService = {
   // Enhanced profile management
-  async getProfilesWithDetails(filters?: {
-    role?: UserRole;
-    team_id?: string;
-    manager_id?: string;
-    status?: 'active' | 'inactive';
-    search?: string;
-  }): Promise<Profile[]> {
+  async getProfilesWithDetails(filters?: ProfileFilters): Promise<Profile[]> {
     console.log('👥 PeopleManagement: Getting profiles with details', filters);
 
     let query = supabase
@@ -76,7 +102,7 @@ export const peopleManagementService = {
   },
 
   async getProfileDetails(profileId: string): Promise<Profile & {
-    team?: any;
+    team?: Team;
     manager?: Profile;
     pdis_count?: number;
     competencies_count?: number;
@@ -235,48 +261,60 @@ export const peopleManagementService = {
         profiles = await this.getProfilesWithDetails();
       }
 
-      const metrics: PerformanceMetrics[] = await Promise.all(
-        profiles.map(async (profile) => {
-          // Get PDI count
-          const { count: pdisCount } = await supabase
-            .from('pdis')
-            .select('*', { count: 'exact', head: true })
-            .eq('profile_id', profile.id)
-            .in('status', ['completed', 'validated']);
+      const profileIds_list = profiles.map(p => p.id);
 
-          // Get competencies average
-          const { data: competencies } = await supabase
-            .from('competencies')
-            .select('self_rating, manager_rating')
-            .eq('profile_id', profile.id);
+      // Batch query 1: fetch all completed/validated PDI profile_ids in one query
+      const { data: pdiRows } = await supabase
+        .from('pdis')
+        .select('profile_id')
+        .in('profile_id', profileIds_list)
+        .in('status', ['completed', 'validated']);
 
-          const avgRating = competencies && competencies.length > 0
-            ? competencies.reduce((sum, comp) => {
-                const rating = Math.max(comp.self_rating || 0, comp.manager_rating || 0);
-                return sum + rating;
-              }, 0) / competencies.length
-            : 0;
+      // Count PDIs per profile client-side
+      const pdiCountMap = new Map<string, number>();
+      (pdiRows || []).forEach(row => {
+        pdiCountMap.set(row.profile_id, (pdiCountMap.get(row.profile_id) || 0) + 1);
+      });
 
-          // Calculate engagement score (simplified)
-          const engagementScore = Math.min(100, 
-            (profile.points / 10) + 
-            ((pdisCount || 0) * 15) + 
-            (avgRating * 10)
-          );
+      // Batch query 2: fetch all competencies in one query
+      const { data: allCompetencies } = await supabase
+        .from('competencies')
+        .select('profile_id, self_rating, manager_rating')
+        .in('profile_id', profileIds_list);
 
-          return {
-            profile_id: profile.id,
-            name: profile.name,
-            position: profile.position,
-            level: profile.level,
-            points: profile.points,
-            completed_pdis: pdisCount || 0,
-            average_competency_rating: avgRating,
-            last_activity: profile.updated_at,
-            engagement_score: Math.round(engagementScore)
-          };
-        })
-      );
+      // Group competencies per profile and compute averages client-side
+      const competencyMap = new Map<string, { sum: number; count: number }>();
+      (allCompetencies || []).forEach(comp => {
+        const entry = competencyMap.get(comp.profile_id) || { sum: 0, count: 0 };
+        const rating = Math.max(comp.self_rating || 0, comp.manager_rating || 0);
+        entry.sum += rating;
+        entry.count += 1;
+        competencyMap.set(comp.profile_id, entry);
+      });
+
+      const metrics: PerformanceMetrics[] = profiles.map((profile) => {
+        const pdisCount = pdiCountMap.get(profile.id) || 0;
+        const compEntry = competencyMap.get(profile.id);
+        const avgRating = compEntry && compEntry.count > 0 ? compEntry.sum / compEntry.count : 0;
+
+        const engagementScore = Math.min(100,
+          (profile.points / 10) +
+          (pdisCount * 15) +
+          (avgRating * 10)
+        );
+
+        return {
+          profile_id: profile.id,
+          name: profile.name,
+          position: profile.position,
+          level: profile.level,
+          points: profile.points,
+          completed_pdis: pdisCount,
+          average_competency_rating: avgRating,
+          last_activity: profile.updated_at,
+          engagement_score: Math.round(engagementScore)
+        };
+      });
 
       return metrics.sort((a, b) => b.engagement_score - a.engagement_score);
     } catch (error) {
@@ -286,7 +324,7 @@ export const peopleManagementService = {
   },
 
   // Organizational chart
-  async getOrganizationalChart(): Promise<any> {
+  async getOrganizationalChart(): Promise<OrganizationalChart> {
     console.log('👥 PeopleManagement: Getting organizational chart');
 
     try {
@@ -419,7 +457,7 @@ export const peopleManagementService = {
   },
 
   // Reporting and analytics
-  async generatePeopleReport(filters?: any): Promise<any[]> {
+  async generatePeopleReport(filters?: ProfileFilters): Promise<PeopleReportEntry[]> {
     console.log('👥 PeopleManagement: Generating people report');
 
     try {
@@ -440,7 +478,6 @@ export const peopleManagementService = {
           status: profile.status,
           points: profile.points,
           completed_pdis: metric?.completed_pdis || 0,
-          achievements_count: metric?.achievements_count || 0,
           engagement_score: metric?.engagement_score || 0,
           admission_date: profile.admission_date,
           last_update: profile.updated_at
@@ -452,19 +489,29 @@ export const peopleManagementService = {
     }
   },
 
-  async exportToCSV(data: any[], filename: string): Promise<void> {
+  async exportToCSV(data: Record<string, unknown>[], filename: string): Promise<void> {
     if (!data.length) return;
+
+    const sanitizeCsvValue = (raw: unknown): string => {
+      if (raw == null) return '';
+      const str = String(raw);
+      // Sanitize formula injection: trim whitespace, then check for dangerous prefixes
+      const trimmed = str.trimStart();
+      let sanitized = str;
+      if (/^[=+\-@]/.test(trimmed)) {
+        sanitized = "'" + str;
+      }
+      // RFC 4180: escape double quotes by doubling, wrap in quotes if needed
+      const needsQuoting = /[",\n\r]/.test(sanitized);
+      const escaped = sanitized.replace(/"/g, '""');
+      return needsQuoting || sanitized !== str ? `"${escaped}"` : escaped;
+    };
 
     const headers = Object.keys(data[0]);
     const csvContent = [
       headers.join(','),
-      ...data.map(row => 
-        headers.map(header => {
-          const value = row[header];
-          return typeof value === 'string' && value.includes(',') 
-            ? `"${value}"` 
-            : value;
-        }).join(',')
+      ...data.map(row =>
+        headers.map(header => sanitizeCsvValue(row[header])).join(',')
       )
     ].join('\n');
 
@@ -481,7 +528,7 @@ export const peopleManagementService = {
   },
 
   // Search and filtering
-  async searchProfiles(query: string, filters?: any): Promise<Profile[]> {
+  async searchProfiles(query: string, filters?: ProfileFilters): Promise<Profile[]> {
     console.log('👥 PeopleManagement: Searching profiles with query:', query);
 
     const profiles = await this.getProfilesWithDetails(filters);
@@ -500,7 +547,7 @@ export const peopleManagementService = {
 
   // Team insights
   async getTeamInsights(teamId: string): Promise<{
-    team_info: any;
+    team_info: Team | null;
     members: Profile[];
     performance_avg: number;
     engagement_avg: number;
